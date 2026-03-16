@@ -1,0 +1,2 @@
+eapli.exemplo.persistence.impl.inmemory
+eapli.exemplo.persistence.impl.jpa

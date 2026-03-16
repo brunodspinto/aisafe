@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="130px" preserveAspectRatio="none" style="width:459px;height:130px;" version="1.1" viewBox="0 0 459 130" width="459px" zoomAndPan="magnify"><defs><filter height="300%" id="f3qhtjaih881p" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[4ebf6920bc0181992ad64f125d44579f]
+class eapli.exemplo.myutente.application.SignupController--><a href="SignupController.html" target="_top" title="SignupController.html" xlink:actuate="onRequest" xlink:href="SignupController.html" xlink:show="new" xlink:title="SignupController.html" xlink:type="simple"><rect codeLine="5" fill="#FEFECE" filter="url(#f3qhtjaih881p)" height="93.1309" id="eapli.exemplo.myutente.application.SignupController" style="stroke: #A80036; stroke-width: 1.5;" width="433" x="7" y="7"/><ellipse cx="131.75" cy="26.1328" fill="#ADD1B2" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M134.2231,32.2759 Q133.6421,32.5747 133.0029,32.7241 Q132.3638,32.8735 131.6582,32.8735 Q129.1514,32.8735 127.8315,31.2217 Q126.5117,29.5698 126.5117,26.4487 Q126.5117,23.3193 127.8315,21.6675 Q129.1514,20.0156 131.6582,20.0156 Q132.3638,20.0156 133.0112,20.165 Q133.6587,20.3145 134.2231,20.6133 L134.2231,23.3359 Q133.5923,22.7549 132.9988,22.4851 Q132.4053,22.2153 131.7744,22.2153 Q130.4297,22.2153 129.7449,23.282 Q129.0601,24.3486 129.0601,26.4487 Q129.0601,28.5405 129.7449,29.6072 Q130.4297,30.6738 131.7744,30.6738 Q132.4053,30.6738 132.9988,30.4041 Q133.5923,30.1343 134.2231,29.5532 Z "/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="118" x="180.75" y="25.5352">SignupController</text><text fill="#000000" font-family="sans-serif" font-size="10" lengthAdjust="spacingAndGlyphs" textLength="175" x="152.25" y="38.1563">eapli.exemplo.myutente.application</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="8" x2="439" y1="45.2656" y2="45.2656"/><rect fill="none" height="6" style="stroke: #C82930; stroke-width: 1.0;" width="6" x="15" y="53.2656"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="282" x="27" y="59.9004">signupRequestRepository: SignupRequestRepository</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="8" x2="439" y1="66.2207" y2="66.2207"/><ellipse cx="18" cy="77.2207" fill="#84BE84" rx="3" ry="3" style="stroke: #038048; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="407" x="27" y="80.8555">signup(String, String, String, String, String, String, Calendar): SignupRequest</text><ellipse cx="18" cy="90.1758" fill="#84BE84" rx="3" ry="3" style="stroke: #038048; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" textLength="353" x="27" y="93.8105">signup(String, String, String, String, String, String): SignupRequest</text></a><text fill="#888888" font-family="sans-serif" font-size="10" lengthAdjust="spacingAndGlyphs" textLength="188" x="129.5" y="116.7988">UMLDoclet 2.0.12, PlantUML 1.2020.16</text><!--MD5=[f7f1b8ee9b27e4a14c1eed6a4d3f64ea]
+@startuml
+    set namespaceSeparator none
+    hide empty fields
+    hide empty methods
+
+    class "<size:14>SignupController\n<size:10>eapli.exemplo.myutente.application" as eapli.exemplo.myutente.application.SignupController [[SignupController.html]] {
+        -signupRequestRepository: SignupRequestRepository
+        +signup(String, String, String, String, String, String, Calendar): SignupRequest
+        +signup(String, String, String, String, String, String): SignupRequest
+    }
+
+    center footer UMLDoclet 2.0.12, PlantUML 1.2020.16
+@enduml
+
+PlantUML version 1.2020.16(Sun Aug 23 21:20:43 WEST 2020)
+(APACHE source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

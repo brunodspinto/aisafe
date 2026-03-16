@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: eapli.exemplo.utentemanagement.domain.UtenteTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.170 s -- in eapli.exemplo.utentemanagement.domain.UtenteTest

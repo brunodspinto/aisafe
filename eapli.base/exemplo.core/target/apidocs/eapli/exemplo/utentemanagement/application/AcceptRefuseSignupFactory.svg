@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" contentScriptType="application/ecmascript" contentStyleType="text/css" height="96px" preserveAspectRatio="none" style="width:301px;height:96px;" version="1.1" viewBox="0 0 301 96" width="301px" zoomAndPan="magnify"><defs><filter height="300%" id="fckd2uu563hxx" width="300%" x="-1" y="-1"><feGaussianBlur result="blurOut" stdDeviation="2.0"/><feColorMatrix in="blurOut" result="blurOut2" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .4 0"/><feOffset dx="4.0" dy="4.0" in="blurOut2" result="blurOut3"/><feBlend in="SourceGraphic" in2="blurOut3" mode="normal"/></filter></defs><g><!--MD5=[7c1bb6f9e082c3954f70c16b37321253]
+class eapli.exemplo.utentemanagement.application.AcceptRefuseSignupFactory--><a href="AcceptRefuseSignupFactory.html" target="_top" title="AcceptRefuseSignupFactory.html" xlink:actuate="onRequest" xlink:href="AcceptRefuseSignupFactory.html" xlink:show="new" xlink:title="AcceptRefuseSignupFactory.html" xlink:type="simple"><rect codeLine="5" fill="#FEFECE" filter="url(#fckd2uu563hxx)" height="59.2207" id="eapli.exemplo.utentemanagement.application.AcceptRefuseSignupFactory" style="stroke: #A80036; stroke-width: 1.5;" width="275" x="7" y="7"/><ellipse cx="30.1" cy="26.1328" fill="#ADD1B2" rx="11" ry="11" style="stroke: #A80036; stroke-width: 1.0;"/><path d="M32.5731,32.2759 Q31.9921,32.5747 31.3529,32.7241 Q30.7138,32.8735 30.0082,32.8735 Q27.5014,32.8735 26.1815,31.2217 Q24.8617,29.5698 24.8617,26.4487 Q24.8617,23.3193 26.1815,21.6675 Q27.5014,20.0156 30.0082,20.0156 Q30.7138,20.0156 31.3612,20.165 Q32.0087,20.3145 32.5731,20.6133 L32.5731,23.3359 Q31.9423,22.7549 31.3488,22.4851 Q30.7553,22.2153 30.1244,22.2153 Q28.7797,22.2153 28.0949,23.282 Q27.4101,24.3486 27.4101,26.4487 Q27.4101,28.5405 28.0949,29.6072 Q28.7797,30.6738 30.1244,30.6738 Q30.7553,30.6738 31.3488,30.4041 Q31.9423,30.1343 32.5731,29.5532 Z "/><text fill="#000000" font-family="sans-serif" font-size="14" lengthAdjust="spacingAndGlyphs" textLength="190" x="63.4" y="25.5352">AcceptRefuseSignupFactory</text><text fill="#000000" font-family="sans-serif" font-size="10" lengthAdjust="spacingAndGlyphs" textLength="225" x="45.9" y="38.1563">eapli.exemplo.utentemanagement.application</text><line style="stroke: #A80036; stroke-width: 1.5;" x1="8" x2="281" y1="45.2656" y2="45.2656"/><ellipse cx="18" cy="56.2656" fill="#84BE84" rx="3" ry="3" style="stroke: #038048; stroke-width: 1.0;"/><text fill="#000000" font-family="sans-serif" font-size="11" lengthAdjust="spacingAndGlyphs" text-decoration="underline" textLength="249" x="27" y="59.9004">build(): AcceptRefuseSignupRequestController</text></a><text fill="#888888" font-family="sans-serif" font-size="10" lengthAdjust="spacingAndGlyphs" textLength="188" x="50.5" y="82.8887">UMLDoclet 2.0.12, PlantUML 1.2020.16</text><!--MD5=[ab0c6bd9368785b770aebff050b99c21]
+@startuml
+    set namespaceSeparator none
+    hide empty fields
+    hide empty methods
+
+    class "<size:14>AcceptRefuseSignupFactory\n<size:10>eapli.exemplo.utentemanagement.application" as eapli.exemplo.utentemanagement.application.AcceptRefuseSignupFactory [[AcceptRefuseSignupFactory.html]] {
+        {static} +build(): AcceptRefuseSignupRequestController
+    }
+
+    center footer UMLDoclet 2.0.12, PlantUML 1.2020.16
+@enduml
+
+PlantUML version 1.2020.16(Sun Aug 23 21:20:43 WEST 2020)
+(APACHE source distribution)
+Java Runtime: OpenJDK Runtime Environment
+JVM: OpenJDK 64-Bit Server VM
+Default Encoding: UTF-8
+Language: en
+Country: US
+--></g></svg>

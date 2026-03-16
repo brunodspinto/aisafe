@@ -1,0 +1,12 @@
+eapli.exemplo.infrastructure.persistence
+eapli.exemplo.myutente.application
+eapli.exemplo.usermanagement
+eapli.exemplo.usermanagement.application
+eapli.exemplo.usermanagement.application.eventhandlers
+eapli.exemplo.usermanagement.domain
+eapli.exemplo.utentemanagement
+eapli.exemplo.utentemanagement.application
+eapli.exemplo.utentemanagement.application.eventhandlers
+eapli.exemplo.utentemanagement.domain
+eapli.exemplo.utentemanagement.domain.events
+eapli.exemplo.utentemanagement.repositories

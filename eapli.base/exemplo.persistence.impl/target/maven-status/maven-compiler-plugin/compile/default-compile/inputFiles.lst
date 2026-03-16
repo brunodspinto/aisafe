@@ -1,0 +1,10 @@
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/inmemory/InMemoryInitializer.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/inmemory/InMemoryRepositoryFactory.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/inmemory/InMemorySignupRequestRepository.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/inmemory/InMemoryUtenteRepository.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/BaseJpaRepositoryBase.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/ExemploJpaReportingRepositoryBase.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/JpaClientUserRepository.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/JpaRepositoryFactory.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/JpaSignupRequestRepository.java
+/Users/npereira/Downloads/eapli.base/exemplo.persistence.impl/src/main/java/eapli/exemplo/persistence/impl/jpa/PersistenceSettings.java

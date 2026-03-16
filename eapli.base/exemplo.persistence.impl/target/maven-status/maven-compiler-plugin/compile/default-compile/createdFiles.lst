@@ -1,0 +1,11 @@
+eapli/exemplo/persistence/impl/jpa/PersistenceSettings.class
+eapli/exemplo/persistence/impl/jpa/JpaClientUserRepository.class
+eapli/exemplo/persistence/impl/jpa/BaseJpaRepositoryBase.class
+eapli/exemplo/persistence/impl/inmemory/InMemorySignupRequestRepository.class
+eapli/exemplo/persistence/impl/inmemory/InMemoryUtenteRepository.class
+eapli/exemplo/persistence/impl/inmemory/InMemoryRepositoryFactory.class
+eapli/exemplo/persistence/impl/jpa/ExemploJpaReportingRepositoryBase.class
+eapli/exemplo/persistence/impl/jpa/JpaSignupRequestRepository.class
+eapli/exemplo/persistence/impl/inmemory/InMemoryInitializer.class
+eapli/exemplo/persistence/impl/inmemory/InMemoryInitializer$LazyHolder.class
+eapli/exemplo/persistence/impl/jpa/JpaRepositoryFactory.class
