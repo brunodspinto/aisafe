@@ -2,7 +2,7 @@
 
 ## 1. Description of the Project
 
-*To Do*
+AISafe is a prototype flight control and management system developed for a startup targeting the air traffic control market. The system covers the back-office management of flight operations, providing functionality for aircraft and infrastructure registration, flight planning via a formal Domain Specific Language (DSL), weather data integration, and parallelised flight simulation with real-time safety violation detection.
 
 ## 2. Planning and Technical Documentation
 
