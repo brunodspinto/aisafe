@@ -1,0 +1,270 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model
+
+class User {
+    name
+    phone number
+    status
+    skills assessment date
+}
+
+class Email {
+    address
+}
+
+class EmailDomain {
+    domain
+}
+
+class SecurityClearance {
+    level
+    expiration date
+}
+
+class Role {
+}
+
+class AirTransportCompany {
+    name
+    IATA code
+    ICAO code
+}
+
+class Collaborator {
+    position
+    status
+}
+
+class Pilot {
+    status
+}
+
+class Maker {
+    name
+    country
+}
+
+class AircraftModel {
+    model name
+    type
+    motorization
+    empty weight
+    MTOW
+    MZFW
+    max fuel capacity
+    service ceiling
+    cruise speed
+    wing area
+    drag coefficient
+    lift coefficient
+}
+
+class EngineModel {
+    name
+    type
+    thrust at standstill
+    thrust at cruise speed
+    TSFC
+}
+
+class Aircraft {
+    registration number
+    operational status
+    number of crew elements
+}
+
+class CabinConfiguration {
+    first class seats
+    business class seats
+    economy class seats
+}
+
+class AirControlArea {
+    area code
+    name
+    minimum fuel required
+}
+
+class GeoBoundary {
+    north latitude
+    south latitude
+    east longitude
+    west longitude
+}
+
+class Airport {
+    name
+    town
+    country
+    IATA code
+    ICAO code
+    altitude
+    latitude
+    longitude
+}
+
+class FlightRoute {
+    name
+}
+
+class FlightPlan {
+    flight designator
+    type
+    status
+    date time
+    total fuel load
+    passenger count
+    cargo weight
+}
+
+class FlightLeg {
+    sequence number
+    scheduled departure
+    scheduled arrival
+    fuel quantity
+}
+
+class FlightSegment {
+    allowed altitude slots
+    width per altitude slot
+    wind direction
+    wind speed
+}
+
+class Node {
+    latitude
+    longitude
+    altitude
+}
+
+class WeatherData {
+    date
+    wind speed
+    wind direction
+    temperature
+    pressure
+    visibility
+}
+
+class WeatherSource {
+    provider
+    format
+}
+
+class Simulation {
+    time range start
+    time range end
+    time step
+    safety threshold
+    status
+}
+
+class SimulationReport {
+    total flights
+    passed
+    generated at
+}
+
+class SafetyViolation {
+    timestamp
+    speed
+    heading
+    flight designator
+}
+
+Enum RoleType {
+    ADMIN
+    BACKOFFICE_OPERATOR
+    ATCC
+    PILOT
+    FLIGHT_CONTROL_OPERATOR
+    WEATHER_PERSON
+}
+
+Enum AircraftType {
+    PASSENGER
+    CARGO
+    MIXED
+}
+
+Enum EngineType {
+    TURBOPROP
+    TURBOFAN
+    TURBOJET
+    RAMJET
+    ELECTRIC_PROPELLER
+}
+
+Enum OperationalStatus {
+    ACTIVE
+    DECOMMISSIONED
+}
+
+Enum FlightPlanStatus {
+    DRAFT
+    VALIDATED
+    APPROVED
+    REJECTED
+}
+
+Enum FlightType {
+    REGULAR
+    CHARTER
+}
+
+User "1" --> "1" Email : "identified by"
+Email "1" --> "1" EmailDomain : "belongs to"
+User "1" --> "1" SecurityClearance : "holds"
+User "1" --> "1" Role : "has"
+Role "1" --> "1" RoleType : "typed as"
+
+AirTransportCompany "1" --> "0..*" Collaborator : "employs"
+AirTransportCompany "1" --> "0..*" Pilot : "employs"
+AirTransportCompany "1" --> "0..*" Aircraft : "owns"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
+Collaborator "1" --> "1" User : "is a"
+Pilot "1" --> "1" User : "is a"
+Pilot "0..*" --> "1..*" AircraftModel : "certified for"
+
+Maker "1" --> "0..*" AircraftModel : "manufactures"
+Maker "1" --> "0..*" EngineModel : "manufactures"
+
+AircraftModel "1" --> "1" AircraftType : "classified as"
+AircraftModel "1" --> "1..*" EngineModel : "certified with"
+EngineModel "1" --> "1" EngineType : "classified as"
+
+Aircraft "1" --> "1" AircraftModel : "defined by"
+Aircraft "1" --> "1" CabinConfiguration : "has"
+Aircraft "1" --> "1" OperationalStatus : "has"
+
+Airport "0..*" --> "1" AirControlArea : "belongs to"
+AirControlArea "1" --> "1" GeoBoundary : "bounded by"
+
+FlightRoute "1" --> "1" Airport : "originates at"
+FlightRoute "1" --> "1" Airport : "ends at"
+
+FlightPlan "1" --> "1" FlightRoute : "follows"
+FlightPlan "1" *-- "1..*" FlightLeg : "composed of"
+FlightPlan "1" --> "1" Aircraft : "uses"
+FlightPlan "1" --> "1" Pilot : "assigned to"
+FlightPlan "1" --> "1" FlightPlanStatus : "has"
+FlightPlan "1" --> "1" FlightType : "typed as"
+
+FlightLeg "1" --> "1" Airport : "departs from"
+FlightLeg "1" --> "1" Airport : "arrives at"
+FlightLeg "1" *-- "1..*" FlightSegment : "composed of"
+
+FlightSegment "1" --> "1" Node : "starts at"
+FlightSegment "1" --> "1" Node : "ends at"
+
+WeatherData "1" --> "1" AirControlArea : "recorded for"
+WeatherData "1" --> "1" WeatherSource : "imported from"
+
+Simulation "1" --> "1" AirControlArea : "covers"
+Simulation "1" --> "0..*" FlightPlan : "includes"
+Simulation "1" --> "1" SimulationReport : "produces"
+SimulationReport "1" --> "0..*" SafetyViolation : "records"
+@enduml
