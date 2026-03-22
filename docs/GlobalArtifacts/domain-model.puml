@@ -2,24 +2,25 @@
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 
+
 title Domain Model
 
-class User {
+class User <<entity>> {
     name
     phone number
     status
     skills assessment date
 }
 
-class Email {
+class Email <<value object>> {
     address
 }
 
-class EmailDomain {
+class EmailDomain <<entity>> {
     domain
 }
 
-class SecurityClearance {
+class SecurityClearance <<entity>> {
     level
     expiration date
 }
@@ -27,30 +28,27 @@ class SecurityClearance {
 class Role {
 }
 
-class AirTransportCompany {
+class AirTransportCompany <<entity>> {
     name
     IATA code
     ICAO code
 }
 
-class Collaborator {
+class Collaborator <<entity>> {
     position
-    status
+
 }
 
-class Pilot {
-    status
+class Pilot <<entity>>{
 }
 
-class Maker {
+class Maker <<entity>>{
     name
     country
 }
 
-class AircraftModel {
+class AircraftModel <<entity>>{
     model name
-    type
-    motorization
     empty weight
     MTOW
     MZFW
@@ -62,33 +60,31 @@ class AircraftModel {
     lift coefficient
 }
 
-class EngineModel {
+class EngineModel <<entity>>{
     name
-    type
     thrust at standstill
     thrust at cruise speed
     TSFC
 }
 
-class Aircraft {
+class Aircraft <<entity>>{
     registration number
-    operational status
     number of crew elements
 }
 
-class CabinConfiguration {
+class CabinConfiguration <<value object>>{
     first class seats
     business class seats
     economy class seats
 }
 
-class AirControlArea {
+class AirControlArea <<entity>>{
     area code
     name
     minimum fuel required
 }
 
-class GeoBoundary {
+class GeoBoundary <<value object>> {
     north latitude
     south latitude
     east longitude
@@ -112,9 +108,7 @@ class FlightRoute {
 
 class FlightPlan {
     flight designator
-    type
-    status
-    date time
+    departure date time
     total fuel load
     passenger count
     cargo weight
@@ -172,7 +166,6 @@ class SafetyViolation {
     timestamp
     speed
     heading
-    flight designator
 }
 
 Enum RoleType {
@@ -215,6 +208,9 @@ Enum FlightType {
     CHARTER
 }
 
+User <|-- Collaborator
+User <|-- Pilot
+
 User "1" --> "1" Email : "identified by"
 Email "1" --> "1" EmailDomain : "belongs to"
 User "1" --> "1" SecurityClearance : "holds"
@@ -225,8 +221,6 @@ AirTransportCompany "1" --> "0..*" Collaborator : "employs"
 AirTransportCompany "1" --> "0..*" Pilot : "employs"
 AirTransportCompany "1" --> "0..*" Aircraft : "owns"
 AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
-Collaborator "1" --> "1" User : "is a"
-Pilot "1" --> "1" User : "is a"
 Pilot "0..*" --> "1..*" AircraftModel : "certified for"
 
 Maker "1" --> "0..*" AircraftModel : "manufactures"
@@ -267,4 +261,5 @@ Simulation "1" --> "1" AirControlArea : "covers"
 Simulation "1" --> "0..*" FlightPlan : "includes"
 Simulation "1" --> "1" SimulationReport : "produces"
 SimulationReport "1" --> "0..*" SafetyViolation : "records"
+SafetyViolation "0..*" --> "1" FlightPlan : "violates"
 @enduml
