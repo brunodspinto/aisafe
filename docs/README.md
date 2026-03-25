@@ -47,6 +47,6 @@ The following artifacts are produced per user story, where applicable:
 
 ## References
 
-- [GlobalArtifacts](GlobalArtifacts)
+- [GlobalArtifacts](global-artifacts)
 - [ActiveDevelopment](ActiveDevelopment)
   
