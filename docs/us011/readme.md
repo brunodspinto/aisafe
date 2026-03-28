@@ -16,5 +16,6 @@ In accordance with **NFR02 (Technical Documentation)**:
 ## 3. Aggregate Catalog
 
 Justification of the main Aggregates identified for the *AISafe* domain:
+- [Aggregate Catalog](aggregate-justification.md)
 
 ---
