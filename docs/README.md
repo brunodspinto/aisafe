@@ -12,7 +12,6 @@ docs/
 ├── globalArtifacts/
 │   ├── domain_model.puml
 │   └── ...
-├── activeDevelopment/
 │   ├── us010/
 │   ├── us011/
 │   └── ...
@@ -48,5 +47,4 @@ The following artifacts are produced per user story, where applicable:
 ## References
 
 - [GlobalArtifacts](global-artifacts)
-- [ActiveDevelopment](ActiveDevelopment)
   
