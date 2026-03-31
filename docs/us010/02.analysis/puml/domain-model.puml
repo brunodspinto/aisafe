@@ -30,6 +30,15 @@ package "User Aggregate" <<Rectangle>> {
 
     class Role <<value object>> {
     }
+
+    Enum RoleType {
+        ADMIN
+        BACKOFFICE_OPERATOR
+        ATCC
+        PILOT
+        FLIGHT_CONTROL_OPERATOR
+        WEATHER_PERSON
+    }
 }
 
 
@@ -60,6 +69,14 @@ package "EngineModel Aggregate" <<Rectangle>> {
         thrustAtCruiseSpeed
         TSFC
     }
+
+    Enum EngineType {
+        TURBOPROP
+        TURBOFAN
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
+    }
 }
 
 
@@ -78,6 +95,12 @@ package "AircraftModel Aggregate" <<Rectangle>> {
         dragCoefficient
         liftCoefficient
     }
+
+    Enum AircraftType {
+        PASSENGER
+        CARGO
+        MIXED
+    }
 }
 
 
@@ -93,6 +116,11 @@ package "Aircraft Aggregate" <<Rectangle>> {
         firstClassSeats
         businessClassSeats
         economyClassSeats
+    }
+
+    Enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
     }
 }
 
@@ -133,8 +161,12 @@ package "FlightRoute Aggregate" <<Rectangle>> {
 
     class FlightRoute <<entity, aggregate root>> {
         name
-        status
         activeUntil
+    }
+
+    Enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
     }
 }
 
@@ -142,8 +174,14 @@ package "FlightRoute Aggregate" <<Rectangle>> {
 package "Flight Aggregate" <<Rectangle>> {
 
     class Flight <<entity, aggregate root>> {
+        flightDesignator
         departureDateTime
         scheduledArrival
+    }
+
+    Enum FlightType {
+        REGULAR
+        CHARTER
     }
 }
 
@@ -166,6 +204,13 @@ package "FlightPlan Aggregate" <<Rectangle>> {
         latitude
         longitude
         altitude
+    }
+
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
     }
 }
 
@@ -212,6 +257,13 @@ package "Simulation Aggregate" <<Rectangle>> {
         longitude
         altitude
     }
+
+    Enum SimulationStatus {
+        PENDING
+        RUNNING
+        COMPLETED
+        FAILED
+    }
 }
 
 
@@ -221,52 +273,6 @@ class AirportCode <<value object>> {
 
 class FlightPlanId <<value object>> {
     id
-}
-
-
-Enum RoleType {
-    ADMIN
-    BACKOFFICE_OPERATOR
-    ATCC
-    PILOT
-    FLIGHT_CONTROL_OPERATOR
-    WEATHER_PERSON
-}
-
-Enum AircraftType {
-    PASSENGER
-    CARGO
-    MIXED
-}
-
-Enum EngineType {
-    TURBOPROP
-    TURBOFAN
-    TURBOJET
-    RAMJET
-    ELECTRIC_PROPELLER
-}
-
-Enum OperationalStatus {
-    ACTIVE
-    DECOMMISSIONED
-}
-
-Enum FlightPlanStatus {
-    DRAFT
-    VALIDATED
-    APPROVED
-    REJECTED
-}
-
-Enum FlightType {
-    REGULAR
-    CHARTER
-}
-
-Enum FlightRouteStatus {
-    ACTIVE
-    INACTIVE
 }
 
 
@@ -303,7 +309,8 @@ FlightRoute "1" --> "0..*" Flight : "has"
 
 Flight "1" --> "0..*" FlightPlan : "has"
 Flight "1" --> "1" FlightType : "typed as"
-
+Flight "1" --> "1" AirportCode : "departs from"
+Flight "1" --> "1" AirportCode : "arrives at"
 
 FlightPlan "1" --> "1" Aircraft : "uses"
 FlightPlan "1" --> "1" User : "assigned to"
