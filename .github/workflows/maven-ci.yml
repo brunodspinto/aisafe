@@ -25,4 +25,4 @@ jobs:
         cache: maven
 
     - name: Build and Run Tests with Maven
-      run: mvn -B clean verify --file eapli.base/pom.xml
+      run: mvn -B clean verify
