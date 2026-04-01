@@ -7,39 +7,36 @@ title US005 - Automated Deployment Scripts (SSD)
 
 autonumber
 
-actor "Developer/PM" as Dev
+actor "Project Manager" as PM
 participant ":System\n(Unix Shell)" as Shell
 
-activate Dev
+activate PM
 
-    Dev -> Shell : executes script (e.g. ./build.sh)
-    activate Shell
+PM -> Shell : executes ./libs/scripts/build.sh
+activate Shell
+Shell --> PM : full build executed and status displayed
+deactivate Shell
 
-        Shell --> Dev : displays build/execution progress
-    deactivate Shell
+PM -> Shell : executes ./libs/scripts/build_c.sh
+activate Shell
+Shell --> PM : C components build status displayed
+deactivate Shell
 
-    Dev -> Shell : executes ./run_backoffice.sh
-    activate Shell
+PM -> Shell : executes ./libs/scripts/clean.sh
+activate Shell
+Shell --> PM : build artifacts removed and status displayed
+deactivate Shell
 
-        Shell --> Dev : starts backoffice application
-    deactivate Shell
+PM -> Shell : executes ./libs/scripts/generate-plantuml-diagrams.sh
+activate Shell
+Shell --> PM : diagrams generated and output paths displayed
+deactivate Shell
 
-    Dev -> Shell : executes ./run_tests.sh
-    activate Shell
 PM -> Shell : executes ./libs/scripts/run_placeholder.sh
 activate Shell
 Shell --> PM : placeholder status displayed (no app yet)
 deactivate Shell
 
-        Shell --> Dev : runs tests and displays coverage report path
-    deactivate Shell
-
-    Dev -> Shell : executes ./db_setup.sh [profile]
-    activate Shell
-
-        Shell --> Dev : sets up database for given profile
-    deactivate Shell
-
-deactivate Dev
+deactivate PM
 
 @enduml

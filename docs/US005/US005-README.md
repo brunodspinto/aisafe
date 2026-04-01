@@ -12,6 +12,7 @@ As Project Manager, I want the team to add to the project the necessary scripts,
 | `build_c.sh`                    | Builds only the C components                |
 | `clean.sh`                      | Removes all build artifacts                 |
 | `generate-plantuml-diagrams.sh` | Generates SVG diagrams from all .puml files |
+| `run_placeholder.sh`            | Placeholder for application execution in Sprint A |
 
 For Sprint A (US005), these are the only necessary scripts currently in scope in `libs/scripts`.
 Real application run/database scripts are out of scope for now.
@@ -43,6 +44,10 @@ chmod +x libs/scripts/*.sh
 ./libs/scripts/generate-plantuml-diagrams.sh
 ```
 
+### Run placeholder
+```bash
+./libs/scripts/run_placeholder.sh
+```
 
 ## Documentation
 
