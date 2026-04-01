@@ -26,6 +26,10 @@ activate Dev
 
     Dev -> Shell : executes ./run_tests.sh
     activate Shell
+PM -> Shell : executes ./libs/scripts/run_placeholder.sh
+activate Shell
+Shell --> PM : placeholder status displayed (no app yet)
+deactivate Shell
 
         Shell --> Dev : runs tests and displays coverage report path
     deactivate Shell

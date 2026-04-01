@@ -35,9 +35,9 @@
 
 ### 1.7 Other Relevant Remarks
 
-* All scripts must be placed in the `scripts/` folder at the project root
+* For Sprint A (US005 scope), scripts are in `libs/scripts`
 * All scripts must have execute permissions (`chmod +x`)
 * Scripts must use relative paths based on their location so they work from any directory
 * The `build.sh` script must trigger both Java (Maven) and C builds
-* Each `run_*.sh` script must automatically trigger a build if the binary/JAR is not found
+* The necessary Sprint A scripts are `build.sh`, `build_c.sh`, `clean.sh`, `generate-plantuml-diagrams.sh`, and `run_placeholder.sh`
 * Scripts must be compatible with `bash`

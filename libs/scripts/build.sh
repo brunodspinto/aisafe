@@ -1,32 +1,14 @@
 #!/bin/bash
-# =============================================================================
-# build.sh
-# Builds the entire project (Java + C components)
-# Usage: ./build.sh
-# =============================================================================
-
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# 1. Limpa tudo
+./libs/scripts/clean.sh
 
-echo "============================================"
-echo " AISafe - Building all components"
-echo "============================================"
+# 2. Compila Java (Maven)
+echo "[INFO] Building Java components..."
+mvn install -DskipTests
 
-# Build Java (Maven)
-echo ""
-echo "[1/2] Building Java components..."
-cd "$PROJECT_ROOT"
-mvn clean install -DskipTests
-echo "Java build complete."
+# 3. Compila C
+./libs/scripts/build_c.sh
 
-# Build C components
-echo ""
-echo "[2/2] Building C components..."
-bash "$SCRIPT_DIR/build_c.sh"
-
-echo ""
-echo "============================================"
-echo " Build completed successfully!"
-echo "============================================"
+echo "[COMPLETE] Full system built successfully."
