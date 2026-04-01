@@ -325,8 +325,10 @@ WeatherData "1" --> "1" AirControlArea : "recorded for"
 WeatherData "1" *-- "1" WeatherSource : "imported from"
 
 Simulation "1" --> "1" AirControlArea : "covers"
-Simulation "1" --> "0..*" FlightPlan : "includes"
+Simulation "1" --> "1..*" FlightPlan : "includes"
 Simulation "1" *-- "1" SimulationReport : "produces"
+Simulation "1" *-- "1" SimulationStatus : "has"
+
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
 SafetyViolation "0..*" --> "1" FlightPlanId : "references"
 
