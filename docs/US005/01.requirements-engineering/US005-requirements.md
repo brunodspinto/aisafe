@@ -41,3 +41,4 @@
 * The `build.sh` script must trigger both Java (Maven) and C builds
 * The necessary Sprint A scripts are `build.sh`, `build_c.sh`, `clean.sh`, `generate-plantuml-diagrams.sh`, and `run_placeholder.sh`
 * Scripts must be compatible with `bash`
+* `generate-plantuml-diagrams.sh` requires Java 11+ to process PlantUML files (Java 8 is insufficient for the PlantUML jar version 1.2026.2)

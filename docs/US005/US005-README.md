@@ -14,8 +14,14 @@ As Project Manager, I want the team to add to the project the necessary scripts,
 | `generate-plantuml-diagrams.sh` | Generates SVG diagrams from all .puml files |
 | `run_placeholder.sh`            | Placeholder for application execution in Sprint A |
 
-For Sprint A (US005), these are the only necessary scripts currently in scope in `libs/scripts`.
+For Sprint 1 (US005), these are the only necessary scripts currently in scope in `libs/scripts`.
 Real application run/database scripts are out of scope for now.
+
+## Requirements
+
+- **Java 11+** is required for `generate-plantuml-diagrams.sh` to process PlantUML files.
+- Scripts are designed to run on Unix-compatible systems (bash).
+- All scripts use relative paths and can be executed from any working directory.
 
 ## How to Use
 
