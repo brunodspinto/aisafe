@@ -1,0 +1,42 @@
+@startuml US005-SSD
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US005 - Automated Deployment Scripts (SSD)
+
+autonumber
+
+actor "Project Manager" as PM
+participant ":System\n(Unix Shell)" as Shell
+
+activate PM
+
+PM -> Shell : executes ./libs/scripts/build.sh
+activate Shell
+Shell --> PM : full build executed and status displayed
+deactivate Shell
+
+PM -> Shell : executes ./libs/scripts/build_c.sh
+activate Shell
+Shell --> PM : C components build status displayed
+deactivate Shell
+
+PM -> Shell : executes ./libs/scripts/clean.sh
+activate Shell
+Shell --> PM : build artifacts removed and status displayed
+deactivate Shell
+
+PM -> Shell : executes ./libs/scripts/generate-plantuml-diagrams.sh
+activate Shell
+Shell --> PM : diagrams generated and output paths displayed
+deactivate Shell
+
+PM -> Shell : executes ./libs/scripts/run_placeholder.sh
+activate Shell
+Shell --> PM : placeholder status displayed (no app yet)
+deactivate Shell
+
+deactivate PM
+
+@enduml
