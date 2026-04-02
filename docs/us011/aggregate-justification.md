@@ -5,15 +5,12 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 
 ---
 
-### 3.1. Aggregate: Flight Plan
+### 3.1. Aggregate: Air Transport Company
 
-* **Aggregate Root:** `FlightPlan`
-* **Local Entities:** `FlightSegment`
-* **Value Objects:** `Node`
-* **Enums:** `FlightPlanStatus`
-* **Scenario:** Create a flight plan for a route (US080) or import a flight plan from a DSL file (US081).
-* **Invariant (Business Rule):** A flight plan must contain at least one segment. The start and end coordinates of each segment must be different, and the end node of a segment must match the start node of the next segment, ensuring route continuity. Additionally, its initial status must be set to "draft" until validated.
-* **Justification:** The domain model defines that a `FlightPlan` is the root composed of multiple `FlightSegment` local entities, which in turn start and end at geographic points defined by `Node` value objects. The Aggregate Root (`FlightPlan`) ensures consistency across this internal structure, enforcing semantic validation rules (such as coordinate distinctness and route continuity). Furthermore, it manages the assignment of external references like `Aircraft` and `User` (Pilot), preventing invalid or disconnected flight plans from being persisted in the database.
+* **Aggregate Root:** `AirTransportCompany`
+* **Scenario:** Register a new air transport company in the system (US060).
+* **Invariant (Business Rule):** An air transport company must have a valid name, and its IATA code (2 letters) and ICAO code (2-3 letters) must be strictly formatted and globally unique.
+* **Justification:** The `AirTransportCompany` aggregate acts as the root entity representing an airline. In the domain model, it does not encapsulate any local entities or custom value objects, as its internal state is defined by simple primitive attributes (name, IATA, and ICAO codes). The Aggregate Root is responsible for enforcing its internal consistency by validating the strict formatting and uniqueness of these codes upon creation. Furthermore, adhering to DDD best practices, it manages its relationships by holding only external references to the `User` (collaborators/pilots), `Aircraft` (fleet), and `FlightRoute` aggregates, ensuring loose coupling and preventing the system from loading massive amounts of data into memory when a company is fetched.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_1/aggregate-3_1.puml)*
 
@@ -92,15 +89,12 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 
 ---
 
-### 3.8. Aggregate: Airport
-
 * **Aggregate Root:** `Airport`
 * **Scenario:** Register an airport in a given air control area (US052).
-* **Invariant (Business Rule):** An airport must have a valid location, and its IATA code and ICAO code must be strictly formatted and unique worldwide.
-* **Justification:** The `Airport` acts as an aggregate root for airport-specific data (such as coordinates, altitude, IATA, and ICAO codes). Following DDD best practices, it does not encapsulate the `AirControlArea` object itself, but rather maintains an external reference to the area it belongs to. It ensures its own internal consistency upon creation by validating the strict formatting and uniqueness of its identification codes before being persisted.
+* **Invariant (Business Rule):** An airport must have globally unique IATA and ICAO codes. Its geographic coordinates (latitude and longitude) must fall strictly within the rectangular boundaries of its associated `AirControlArea`.
+* **Justification:** The `Airport` acts as an independent aggregate representing a physical location. In the domain model, its internal state is defined by simple primitive attributes. As specified by the PO, it holds an external reference to the `AirControlArea` it belongs to, ensuring proper spatial organization without creating massive, tightly coupled objects. Upon creation, its primitive coordinate attributes are validated against the `GeoBoundary` value object of its associated control area to ensure it physically resides inside it.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_8/aggregate-3_8.puml)*
-
 ---
 ### 3.9. Aggregate: WeatherData
 
@@ -115,14 +109,15 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 
 ---
 
-### 3.10. Aggregate: Simulation
+## 3.10. Aggregate: Simulation
 
 * **Aggregate Root:** `Simulation`
 * **Local Entities:** `SimulationReport`, `SafetyViolation`
+* **Value Objects:** `FlightId`
 * **Enums:** `SimulationStatus`
 * **Scenario:** Simulate flights in a given area and generate a validation report (US109/US111).
-* **Invariant (Business Rule):** A simulation must successfully produce a report that accurately records any safety violations detected between the included flight plans. Furthermore, its execution lifecycle must be strictly tracked through a designated state (e.g., Pending, Running, Completed, Failed), and its final validation result (Pass/Fail) must be explicitly stated.
-* **Justification:** The `Simulation` aggregate controls the execution of flight plans over an `AirControlArea`. It acts as the root that generates and encapsulates the `SimulationReport`, ensuring that all internal `SafetyViolation` instances (which conceptually reference the involved `FlightPlan` objects) are properly recorded and bound to that specific simulation run. The multiplicity of `0..*` to `FlightPlan` allows a simulation to be logically created in the system before flight plans are bulk-assigned to it. Finally, it utilizes a `SimulationStatus` enum as an internal property to manage its execution phases accurately.
+* **Invariant (Business Rule):** A simulation must successfully produce a report that accurately records any safety violations detected between the included flights.
+* **Justification:** The `Simulation` aggregate controls the execution over an `AirControlArea`. Following explicit PO guidelines, the core Java domain delegates real-time simulation to a C module. The aggregate acts solely as the root that encapsulates the `SimulationReport`, ensuring that all internal `SafetyViolation` instances are properly recorded. To respect DDD boundaries, `SafetyViolation` utilizes the `FlightId` Value Object strictly as an external reference to identify the involved flights without coupling the entire `Flight` aggregate into memory.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_10/aggregate-3_10.puml)*
 ---
@@ -142,22 +137,12 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 ### 3.12. Aggregate: Flight
 
 * **Aggregate Root:** `Flight`
-* **Enums:** `FlightType`
-* **Scenario:** Instantiate/schedule a flight for a specific flight route.
-* **Invariant (Business Rule):** A flight must be uniquely identified by a valid flight designator (e.g., concatenation of a 2-letter airline designator, up to 4 digits, and an optional operational suffix) and must be properly typed as Regular or Charter.
-* **Justification:** The `Flight` aggregate acts as the operational bridge between a static `FlightRoute` and the executable `FlightPlan`. In the domain model, it is an independent aggregate that maintains its own state (such as departure date/time) and is characterized by a `FlightType` enum. The `Flight` Aggregate Root ensures its internal consistency by validating the strict formatting of its unique flight designator. Furthermore, adhering to DDD principles, it manages its relationships by holding only external references (identifiers) to the associated `FlightRoute` and its respective `FlightPlan` instances, avoiding tight coupling between large aggregates.
+* **Local Entities:** None
+* **Value Objects:** `FlightPlan`, `FlightSegment`, `Node`, `AirportCode`
+* **Enums:** `FlightType`, `FlightPlanStatus`
+* **Scenario:** Instantiate/schedule a flight for a specific flight route and register/validate its flight plans (US080).
+* **Invariant (Business Rule):** A flight must belong to a valid flight route, be properly typed (Regular or Charter), and encapsulate its flight plans (which are immutable descriptions generated from a DSL file).
+* **Justification:** Following GRASP patterns, the `Flight` acts as the Aggregate Root representing an operational instance of a route. It holds an external reference to the `FlightRoute` and uses `AirportCode` value objects to independently reference departure and arrival points. Crucially, the `FlightPlan` is modeled as a Value Object encapsulated within the `Flight`. This internal hierarchy allows the flight to manage its `FlightPlanStatus` and properly persist the plan's components (`FlightSegment` and `Node` value objects) as a single, highly cohesive document mapped to the database.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_12/aggregate-3_12.puml)*
----
-
-### 3.13. Aggregate: Air Transport Company
-
-* **Aggregate Root:** `AirTransportCompany`
-* **Scenario:** Register a new air transport company in the system (US060).
-* **Invariant (Business Rule):** An air transport company must have a valid name, and its IATA code (2 letters) and ICAO code (2-3 letters) must be strictly formatted and globally unique.
-* **Justification:** The `AirTransportCompany` aggregate acts as the root entity representing an airline. In the domain model, it does not encapsulate any local entities or custom value objects, as its internal state is defined by simple primitive attributes (name, IATA, and ICAO codes). The Aggregate Root is responsible for enforcing its internal consistency by validating the strict formatting and uniqueness of these codes upon creation. Furthermore, adhering to DDD best practices, it manages its relationships by holding only external references to the `User` (collaborators/pilots), `Aircraft` (fleet), and `FlightRoute` aggregates, ensuring loose coupling and preventing the system from loading massive amounts of data into memory when a company is fetched.
-* **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_13/aggregate-3_13.puml)*
-
-
 ---
