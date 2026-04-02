@@ -179,38 +179,34 @@ package "Flight Aggregate" <<Rectangle>> {
         scheduledArrival
     }
 
+    class FlightPlan <<value object>> {
+            totalFuelLoad
+            cargoWeight
+    }
+
+    class FlightSegment <<entity>> {
+            allowedAltitudeSlots
+            widthPerAltitudeSlot
+            windDirection
+            windSpeed
+    }
+
+    class Node <<value object>> {
+            latitude
+            longitude
+            altitude
+    }
+
     Enum FlightType {
         REGULAR
         CHARTER
     }
-}
-
-
-package "FlightPlan Aggregate" <<Rectangle>> {
-
-    class FlightPlan <<entity, aggregate root>> {
-        totalFuelLoad
-        cargoWeight
-    }
-
-    class FlightSegment <<entity>> {
-        allowedAltitudeSlots
-        widthPerAltitudeSlot
-        windDirection
-        windSpeed
-    }
-
-    class Node <<value object>> {
-        latitude
-        longitude
-        altitude
-    }
 
     Enum FlightPlanStatus {
-        DRAFT
-        VALIDATED
-        APPROVED
-        REJECTED
+            DRAFT
+            VALIDATED
+            APPROVED
+            REJECTED
     }
 }
 
@@ -305,10 +301,10 @@ AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
 FlightRoute "1" --> "1" AirportCode : "originates at"
 FlightRoute "1" --> "1" AirportCode : "ends at"
 FlightRoute "1" --> "1" FlightRouteStatus : "has"
-FlightRoute "1" --> "0..*" Flight : "has"
 
-Flight "1" --> "0..*" FlightPlan : "has"
+Flight "1" --> "1..*" FlightPlan : "has"
 Flight "1" --> "1" FlightType : "typed as"
+Flight "1" --> "1" FlightRoute : "instance of"
 Flight "1" --> "1" AirportCode : "departs from"
 Flight "1" --> "1" AirportCode : "arrives at"
 
