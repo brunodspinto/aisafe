@@ -41,7 +41,6 @@ package "User Aggregate" <<Rectangle>> {
     }
 }
 
-
 package "AirTransportCompany Aggregate" <<Rectangle>> {
 
     class AirTransportCompany <<entity, aggregate root>> {
@@ -51,7 +50,6 @@ package "AirTransportCompany Aggregate" <<Rectangle>> {
     }
 }
 
-
 package "Maker Aggregate" <<Rectangle>> {
 
     class Maker <<entity, aggregate root>> {
@@ -59,7 +57,6 @@ package "Maker Aggregate" <<Rectangle>> {
         country
     }
 }
-
 
 package "EngineModel Aggregate" <<Rectangle>> {
 
@@ -78,7 +75,6 @@ package "EngineModel Aggregate" <<Rectangle>> {
         ELECTRIC_PROPELLER
     }
 }
-
 
 package "AircraftModel Aggregate" <<Rectangle>> {
 
@@ -103,7 +99,6 @@ package "AircraftModel Aggregate" <<Rectangle>> {
     }
 }
 
-
 package "Aircraft Aggregate" <<Rectangle>> {
 
     class Aircraft <<entity, aggregate root>> {
@@ -123,7 +118,6 @@ package "Aircraft Aggregate" <<Rectangle>> {
         DECOMMISSIONED
     }
 }
-
 
 package "AirControlArea Aggregate" <<Rectangle>> {
 
@@ -180,21 +174,21 @@ package "Flight Aggregate" <<Rectangle>> {
     }
 
     class FlightPlan <<value object>> {
-            totalFuelLoad
-            cargoWeight
+        totalFuelLoad
+        cargoWeight
     }
 
-    class FlightSegment <<entity>> {
-            allowedAltitudeSlots
-            widthPerAltitudeSlot
-            windDirection
-            windSpeed
+    class FlightSegment <<value object>> {
+        allowedAltitudeSlots
+        widthPerAltitudeSlot
+        windDirection
+        windSpeed
     }
 
     class Node <<value object>> {
-            latitude
-            longitude
-            altitude
+        latitude
+        longitude
+        altitude
     }
 
     Enum FlightType {
@@ -203,10 +197,10 @@ package "Flight Aggregate" <<Rectangle>> {
     }
 
     Enum FlightPlanStatus {
-            DRAFT
-            VALIDATED
-            APPROVED
-            REJECTED
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
     }
 }
 
@@ -267,17 +261,15 @@ class AirportCode <<value object>> {
     code
 }
 
-class FlightPlanId <<value object>> {
+class FlightId <<value object>> {
     id
 }
-
 
 User "1" *-- "1" Email : "identified by"
 Email "1" *-- "1" EmailDomain : "belongs to"
 User "1" *-- "1" SecurityClearance : "holds"
 User "1" *-- "1" Role : "has"
 Role "1" --> "1" RoleType : "typed as"
-
 
 AirTransportCompany "1" --> "0..*" User : "employs"
 AirTransportCompany "1" --> "0..*" Aircraft : "owns"
@@ -301,18 +293,19 @@ AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
 FlightRoute "1" --> "1" AirportCode : "originates at"
 FlightRoute "1" --> "1" AirportCode : "ends at"
 FlightRoute "1" --> "1" FlightRouteStatus : "has"
+FlightRoute "1" --> "0..*" Flight : "has"
 
-Flight "1" --> "1..*" FlightPlan : "has"
-Flight "1" --> "1" FlightType : "typed as"
 Flight "1" --> "1" FlightRoute : "instance of"
+Flight "1" --> "1" FlightType : "typed as"
 Flight "1" --> "1" AirportCode : "departs from"
 Flight "1" --> "1" AirportCode : "arrives at"
+Flight "1" --> "1" Aircraft : "uses"
+Flight "1" --> "1" User : "assigned to"
+Flight "1" --> "1" FlightPlanStatus : "has"
+Flight "1" *-- "1..*" FlightPlan : "has"
+Flight "0..1" --> "1" WeatherData : "uses"
 
-FlightPlan "1" --> "1" Aircraft : "uses"
-FlightPlan "1" --> "1" User : "assigned to"
-FlightPlan "1" --> "1" FlightPlanStatus : "has"
 FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
-FlightPlan "0..1" --> "1" WeatherData : "uses"
 
 FlightSegment "1" *-- "1" Node : "starts at"
 FlightSegment "1" *-- "1" Node : "ends at"
@@ -321,11 +314,9 @@ WeatherData "1" --> "1" AirControlArea : "recorded for"
 WeatherData "1" *-- "1" WeatherSource : "imported from"
 
 Simulation "1" --> "1" AirControlArea : "covers"
-Simulation "1" --> "1..*" FlightPlan : "includes"
+Simulation "1" --> "0..*" Flight : "includes"
 Simulation "1" *-- "1" SimulationReport : "produces"
-Simulation "1" *-- "1" SimulationStatus : "has"
-
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
-SafetyViolation "0..*" --> "1" FlightPlanId : "references"
+SafetyViolation "0..*" --> "1" FlightId : "references"
 
 @enduml
