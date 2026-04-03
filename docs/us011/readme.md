@@ -1,23 +1,5 @@
 # US011 - Aggregate Justification
 
-## 1. Objective
-
-This User Story aims to demonstrate and justify the responsibility of each Aggregate designed in the Domain Model (US010). For each aggregate, a representative scenario is illustrated through a Sequence Diagram (SD) and a brief explanation of the business rule (*invariant*) that the Aggregate Root (an Entity) is responsible for enforcing.
-
-## 2. Tools and Rules
-
-In accordance with **NFR02 (Technical Documentation)**:
-
-* The sequence diagrams were created using **PlantUML**.
-* The source code of the diagrams (`.puml`) and their corresponding vector images (`.png`) are stored in this directory (`docs`).
-
----
-
-## 3. Aggregate Catalog
-
-Justification of the main Aggregates identified for the *AISafe* domain:
-- [Aggregate Catalog](aggregate-justification.md)
-
 ---
 ## 1. Context
 
@@ -50,14 +32,14 @@ In this section we present the functionality that is being developed and how the
 
 ## 3. Analysis
 
-In order to take the best design decisions for this requirement, the team analyzed the Domain Model created in US010. We identified the main Aggregate Roots (e.g., FlightPlan, Simulation, User, Aircraft, etc.) and selected one representative scenario (User Story) for each to show how each root keeps its internal rules safe and consistent.
+In order to take the best design decisions for this requirement, the team analyzed the Domain Model created in US010. We identified the main Aggregate Roots (e.g., Flight, Simulation, User, Aircraft, etc.) and selected one representative scenario (User Story) for each to show how each root keeps its internal rules safe and consistent.
 
 To ensure consistency and readability across the documentation, the team decided to adopt an Aggregate Catalog format. For each aggregate, the following structure was adopted:
 1. **Aggregate Root:** Identification of the root entity.
 2. **Local Entities / Value Objects / Enums:** Clear separation of the internal structural components to prove DDD and JPA mapping knowledge.
 3. **Scenario:** The representative use case chosen for the Sequence Diagram.
 4. **Invariant (Business Rule):** The strict business rule the root is responsible for enforcing.
-5. **Justification:** The architectural reasoning (e.g., explaining the use of external references/IDs to ensure loose coupling between aggregates).
+5. **Justification:** The architectural reasoning.
 6. **Sequence Diagram:** A link to the PlantUML diagram demonstrating the object creation and persistence flow.
 
 **Agregate Catalog:**
