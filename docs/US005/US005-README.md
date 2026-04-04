@@ -1,63 +1,55 @@
 # US005 - Automated Deployment Scripts
 
-## Overview
+## 1. Context
+This task was assigned in Sprint 1 to establish the initial Unix-compatible automation baseline for the project. Since there is no functional application runtime or database in this sprint, the focus is on essential infrastructure scripts for build, cleanup, documentation generation, and a temporary execution entry point.
 
-As Project Manager, I want the team to add to the project the necessary scripts, so that build/executions/deployments can be executed effortlessly in a Unix compatible machine. Include scripts for all the major tasks and execution of applications.
+## 2. Requirements
+**US005:** As Project Manager, I want the team to add to the project the necessary scripts, so that build/executions/deployments can be executed effortlessly in a Unix compatible machine. Include scripts for all the major tasks and execution of applications.
 
-## Scripts
+For Sprint 1, the scripts in scope are:
+- `build.sh`
+- `build_c.sh`
+- `clean.sh`
+- `generate-plantuml-diagrams.sh`
+- `run_placeholder.sh`
 
-| Script                          | Description                                 |
-|---------------------------------|---------------------------------------------|
-| `build.sh`                      | Builds the entire project (Java + C)        |
-| `build_c.sh`                    | Builds only the C components                |
-| `clean.sh`                      | Removes all build artifacts                 |
-| `generate-plantuml-diagrams.sh` | Generates SVG diagrams from all .puml files |
-| `run_placeholder.sh`            | Placeholder for application execution in Sprint A |
+Acceptance criteria considered for this sprint:
+- Scripts are Bash-compatible and executable in Unix-compatible environments.
+- Scripts use relative paths so they can run from different working directories.
+- Scope is limited to Sprint 1 infrastructure tasks; concrete runtime and database scripts are intentionally out of scope.
 
-For Sprint 1 (US005), these are the only necessary scripts currently in scope in `libs/scripts`.
-Real application run/database scripts are out of scope for now.
+System Sequence Diagram (SSD):
 
-## Requirements
+![System Sequence Diagram](US005-SSD/svg/US005-SSD.svg)
 
-- **Java 11+** is required for `generate-plantuml-diagrams.sh` to process PlantUML files.
-- Scripts are designed to run on Unix-compatible systems (bash).
-- All scripts use relative paths and can be executed from any working directory.
+## 3. Analysis
+The user story asks for effortless build/execution/deployment activities, but Sprint 1 only has project setup work. Therefore, the analysis constrains implementation to the smallest useful script set that supports recurring team workflows now, while leaving application-specific execution scripts for later sprints.
 
-## How to Use
+Key constraints:
+1. Scripts must run with `bash` in Unix-compatible systems.
+2. Script logic must be based on relative paths.
+3. `generate-plantuml-diagrams.sh` requires Java 11+ for PlantUML `1.2026.2`.
 
-### Make scripts executable
-```bash
-chmod +x libs/scripts/*.sh
-```
+## 4. Design
+The script design follows a single-responsibility approach so each script can evolve independently in later sprints:
+- `build.sh` orchestrates the full build workflow.
+- `build_c.sh` isolates C-specific build actions.
+- `clean.sh` removes generated artifacts.
+- `generate-plantuml-diagrams.sh` converts `.puml` artifacts into SVG diagrams.
+- `run_placeholder.sh` provides a temporary run entry point until real applications exist.
 
-### Build everything
-```bash
-./libs/scripts/build.sh
-```
+All scripts are located in `libs/scripts` and are designed to be invoked from any directory.
 
-### Build C components only
-```bash
-./libs/scripts/build_c.sh
-```
+## 5. Implementation
+Implemented Sprint 1 scripts:
+- `libs/scripts/build.sh`
+- `libs/scripts/build_c.sh`
+- `libs/scripts/clean.sh`
+- `libs/scripts/generate-plantuml-diagrams.sh`
+- `libs/scripts/run_placeholder.sh`
 
-### Clean build artifacts
-```bash
-./libs/scripts/clean.sh
-```
+Validation performed at documentation level:
+- Script scope matches Sprint 1 constraints.
+- Responsibilities are clearly separated.
+- Runtime/database scripts are deferred until relevant features exist.
 
-### Generate diagrams
-```bash
-./libs/scripts/generate-plantuml-diagrams.sh
-```
-
-### Run placeholder
-```bash
-./libs/scripts/run_placeholder.sh
-```
-
-## Documentation
-
-- [Requirements](01.requirements-engineering/US005-requirements.md)
-- [Analysis](02.analysis/US005-analysis.md)
-- [Design](03.design/US005-design.md)
-- [Tests and Implementation](04.tests-and-implementation/US005-tests-an-implementation.md)
