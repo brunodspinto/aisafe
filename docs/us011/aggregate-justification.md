@@ -84,7 +84,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 
 * **Aggregate Root:** `AirControlArea`
 * **Value Objects:** `GeoBoundary`
-* **Scenario:** Register an air control area.
+* **Scenario:** Register an air control area (US050).
 * **Invariant (Business Rule):** The geographic boundaries of the area must be valid.
 * **Justification:** Acts as the root entity representing a designated airspace. It encapsulates the `GeoBoundary` Value Object and guarantees internal consistency by strictly validating that the coordinate boundaries form a logically correct geographical space upon creation.
 * **Sequence Diagram:**
