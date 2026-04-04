@@ -39,7 +39,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Justification:** Acts as a standalone catalog root entity defined entirely by primitive attributes. It ensures internal consistency and serves strictly as an independent external reference for the AircraftModel and EngineModel aggregates, ensuring low coupling.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_3/aggregate-3_3.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). It relies strictly on RegisterMakerController, the Maker domain class, and MakerRepository. A repetitive diagram is omitted.
+  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
 
 ---
 
@@ -52,7 +52,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Justification:** Acts as a standalone catalog root entity defined entirely by primitive data types and an `EngineType` enum. It guarantees internal consistency and ensures low coupling by relying strictly on an independent external reference to the `Maker` aggregate to enforce its uniqueness rule.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_4/aggregate-3_4.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). It relies strictly on CreateEngineModelController, the EngineModel domain class, and EngineModelRepository. A repetitive diagram is omitted.
+  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
 ---
 
 ### 3.5. Aggregate: Aircraft Model
@@ -64,7 +64,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Justification:** Acts as a catalog root entity characterized by primitive attributes and an `AircraftType` enum. It maintains internal consistency by validating its aerodynamic data upon creation, and ensures low coupling by holding only external references to its `Maker` and the certified `EngineModel` aggregates.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_5/aggregate-3_5.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). It relies strictly on CreateAircraftModelController, the AircraftModel domain class, and AircraftModelRepository. A repetitive diagram is omitted. 
+  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted. 
 * 
 ---
 

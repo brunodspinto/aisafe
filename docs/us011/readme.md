@@ -5,11 +5,12 @@
 
 It is being executed alongside the definition of the Domain Model. The purpose of this User Story is to provide explicit justification for the architectural design decisions made during the Domain-Driven Design (DDD) process, making it easier for the Project Manager and the team to review the responsibilities of each aggregate.
 
+
 ### 1.1 List of issues
 
 * **Analysis:** Identify all the Aggregate Roots from the Domain Model and extract their core business rules (*invariants*).
 * **Implement:** Write the markdown documentation structuring the justifications (Aggregate Catalog).
-* **Design:** Design a PlantUML Sequence Diagram (SD) for a representative scenario of each aggregate, showcasing the EAPLI framework persistence and domain patterns (e.g., Builders, Factories, Repositories).
+* **Design:** Design simplified Sequence Diagrams (SDs) to illustrate the invariant enforcement and core responsibility of each aggregate.
 
 
 ## 2. Requirements
