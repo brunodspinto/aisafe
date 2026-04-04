@@ -10,7 +10,7 @@ It is being executed alongside the definition of the Domain Model. The purpose o
 
 * **Analysis:** Identify all the Aggregate Roots from the Domain Model and extract their core business rules (*invariants*).
 * **Implement:** Write the markdown documentation structuring the justifications (Aggregate Catalog).
-* **Design:** Design simplified Sequence Diagrams (SDs) to illustrate the invariant enforcement and core responsibility of each aggregate.
+* **Design:** Design simplified Sequence Diagrams (SDs) to illustrate the invariant enforcement and core responsibility of each aggregate if needed.
 
 
 ## 2. Requirements

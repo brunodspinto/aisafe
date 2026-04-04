@@ -10,10 +10,10 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Aggregate Root:** `AirTransportCompany`
 * **Scenario:** Register a new air transport company in the system (US060).
 * **Invariant (Business Rule):** An air transport company must have a valid name, and its IATA code (2 letters) and ICAO code (2-3 letters) must be strictly formatted and globally unique.
-* **Justification:** Acts as the root entity representing an airline, defined entirely by primitive attributes. Following DDD best practices, it ensures loose coupling by holding only external references to the `User`, `Aircraft`, and `FlightRoute` aggregates, preventing heavy database memory loads.
+* **Justification:** Acts as the root entity representing an airline, defined entirely by primitive attributes. It ensures loose coupling by holding only external references to the `User`, `Aircraft`, and `FlightRoute` aggregates, preventing heavy database memory loads.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_1/aggregate-3_1.puml)*
-  * Note: As per Section 7.2 of the Application Engineering Process guidelines, this diagram also serves as the standard "Register X" architectural flow for other simple catalog aggregates in the system (such as Maker, Aircraft Model, and Engine Model)
+  * Note: This diagram also serves as the standard "Register X" architectural flow for other simple catalog aggregates in the system (such as Maker, Aircraft Model, and Engine Model)
 
 
 ---
@@ -38,8 +38,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** A manufacturer must have a valid and unique name to correctly identify the maker of aircraft and engine models.
 * **Justification:** Acts as a standalone catalog root entity defined entirely by primitive attributes. It ensures internal consistency and serves strictly as an independent external reference for the AircraftModel and EngineModel aggregates, ensuring low coupling.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_3/aggregate-3_3.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
 
 ---
 
@@ -51,8 +50,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** The combination of the engine model's name and its manufacturer (`Maker`) must be unique.
 * **Justification:** Acts as a standalone catalog root entity defined entirely by primitive data types and an `EngineType` enum. It guarantees internal consistency and ensures low coupling by relying strictly on an independent external reference to the `Maker` aggregate to enforce its uniqueness rule.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_4/aggregate-3_4.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company).  A repetitive diagram is omitted.
 ---
 
 ### 3.5. Aggregate: Aircraft Model
@@ -63,8 +61,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** An aircraft model must have a unique combination of model name and manufacturer, and it must have at least one certified engine model associated with it.
 * **Justification:** Acts as a catalog root entity characterized by primitive attributes and an `AircraftType` enum. It maintains internal consistency by validating its aerodynamic data upon creation, and ensures low coupling by holding only external references to its `Maker` and the certified `EngineModel` aggregates.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_5/aggregate-3_5.puml)*
-  * Following Section 7.2 of the Application Engineering Process guidelines , this aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted. 
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted. 
 * 
 ---
 
@@ -121,7 +118,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Enums:** `SimulationStatus`
 * **Scenario:** Simulate flights in a given area and generate a validation report (US109/US111).
 * **Invariant (Business Rule):** A simulation must successfully produce a report that accurately records any safety violations detected between the included flights.
-* **Justification:** Acts as the root entity managing simulation execution. By team design decision, it directly references the included `FlightPlan` Value Objects to access operational data, while simultaneously encapsulating the `SimulationReport`. Internal `SafetyViolation` entities maintain low coupling by using `FlightId` strictly as an external reference to identify involved flights.
+* **Justification:** Acts as the root entity managing simulation execution. It ensures internal consistency by encapsulating the `SimulationReport`. It maintains low coupling by holding external references strictly to the `Flight` aggregate root (via `FlightId`), completely avoiding direct coupling to internal Value Objects of other aggregates.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_10/aggregate-3_10.puml)*
 ---
@@ -144,8 +141,9 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Value Objects:** `FlightPlan`, `FlightSegment`, `Node`, `AirportCode`
 * **Enums:** `FlightType`, `FlightPlanStatus`
 * **Scenario:** Instantiate/schedule a flight for a specific flight route and register/validate its flight plans (US080).
-* **Invariant (Business Rule):** A flight must belong to a valid flight route, be properly typed (Regular or Charter), and encapsulate its flight plans. The flight plan itself is responsible for gathering all operational data, including the assigned aircraft, the pilot, weather data, and its specific validation status.
-* **Justification:** Acts as the root entity representing an operational flight. It encapsulates the highly cohesive `FlightPlan` Value Object (which delegates all complex external references like Pilot and Aircraft). It guarantees internal consistency and ensures low coupling by holding only an external reference to the `FlightRoute` and using `AirportCode`s for geographic locations.
+* **Invariant (Business Rule):** A flight must belong to a valid flight route, be properly typed (Regular or Charter), and maintain valid operational resources (Aircraft, Pilot) and its geographical flight plan.
+* **Justification:** Acts as the root entity representing an operational flight. It encapsulates the geometric `FlightPlan` Value Object (segments and nodes). It guarantees internal consistency and ensures low coupling by holding external references directly to its operational resources (`Aircraft`, `User`, and `WeatherData`) and using `AirportCode`s for geographic locations.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_12/aggregate-3_12.puml)*
+
 ---
