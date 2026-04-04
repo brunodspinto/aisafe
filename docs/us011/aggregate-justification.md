@@ -62,7 +62,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Justification:** Acts as a catalog root entity characterized by primitive attributes and an `AircraftType` enum. It maintains internal consistency by validating its aerodynamic data upon creation, and ensures low coupling by holding only external references to its `Maker` and the certified `EngineModel` aggregates.
 * **Sequence Diagram:**
   * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted. 
-* 
+
 ---
 
 ### 3.6. Aggregate: Aircraft
@@ -74,7 +74,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** The total number of seats configured in the cabin must not exceed the maximum capacity defined by the associated `AircraftModel`.
 * **Justification:** Acts as the root entity representing a physical aircraft. It encapsulates the `CabinConfiguration` Value Object and ensures internal consistency by validating its capacity. It maintains low coupling by holding only an external reference to the `AircraftModel` aggregate to enforce this limit.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_6/aggregate-3_6.puml)*
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted.
 
 ---
 ### 3.7. Aggregate: Air Control Area
@@ -85,7 +85,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** The geographic boundaries of the area must be valid.
 * **Justification:** Acts as the root entity representing a designated airspace. It encapsulates the `GeoBoundary` Value Object and guarantees internal consistency by strictly validating that the coordinate boundaries form a logically correct geographical space upon creation.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_7/aggregate-3_7.puml)*
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted.
 
 ---
 ### 3.8. Aggregate: Airport
@@ -95,7 +95,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** An airport must have globally unique IATA and ICAO codes. Its geographic coordinates (latitude and longitude) must fall strictly within the rectangular boundaries of its associated `AirControlArea`.
 * **Justification:** Acts as an independent root entity representing a physical location, defined entirely by primitive attributes. It guarantees internal consistency upon creation and ensures low coupling by holding only an external reference to the `AirControlArea` aggregate to validate its geographic boundaries.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_8/aggregate-3_8.puml)*
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted. 
 ---
 ### 3.9. Aggregate: WeatherData
 
@@ -105,8 +105,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** Weather data must be recorded for a valid and existing air control area, and its origin must be tracked by a known weather source.
 * **Justification:** Acts as the root entity encapsulating environmental readings and the `WeatherSource` Value Object. It guarantees internal consistency and ensures low coupling by relying strictly on an external reference to the `AirControlArea` aggregate.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_9/aggregate-3_9.puml)*
-
+  * This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted.
 
 ---
 
@@ -132,7 +131,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Invariant (Business Rule):** The route must originate and end at different airports, and its name must follow the required format (e.g., TP123) and be unique.
 * **Justification:** Acts as an independent root entity defined by simple attributes. It guarantees internal consistency and ensures strict low coupling by using `AirportCode` Value Objects solely as external references for its origin and destination, entirely avoiding heavy dependencies on the `Airport` aggregate.
 * **Sequence Diagram:**
-  *[Sequence Diagram](aggregate-3_11/aggregate-3_11.puml)*
+  *  This aggregate adopts the standard "Register X" flow illustrated in Section 3.1 (Air Transport Company). A repetitive diagram is omitted.
 ---
 
 ### 3.12. Aggregate: Flight
