@@ -10,24 +10,75 @@ AISafe is a prototype flight control and management system developed for a start
 
 ## 3. How to Build
 
-*To Do*
+US005 defines Unix-compatible automation scripts under `libs/scripts`.
+
+Prerequisites:
+- Bash (Linux/macOS/WSL)
+- Maven (`mvn` in `PATH`)
+- GCC (`gcc` in `PATH`) for C build step
+
+From the repository root, run:
+
+```bash
+bash libs/scripts/build.sh
+```
+
+This script executes:
+- `libs/scripts/clean.sh`
+- Java build with Maven (`mvn install -DskipTests`)
+- C build (`libs/scripts/build_c.sh`)
 
 ## 4. How to Execute Tests
 
-*To Do*
+In US005 (Sprint 1), there is no dedicated test script yet.
+
+To run Maven tests manually from the repository root:
+
+```bash
+mvn test
+```
+
+Note: the US005 build script skips tests (`-DskipTests`) by design.
 
 ## 5. How to Run
 
-*To Do*
+US005 provides a temporary run entry point only (no functional application runtime in Sprint 1):
+
+```bash
+bash libs/scripts/run_placeholder.sh
+```
+
+This script exits successfully and documents that real runtime scripts are deferred to later sprints.
 
 ## 6. How to Install/Deploy into Another Machine (or Virtual Machine)
 
-*To Do*
+For US005 scope, deployment is limited to setting up a Unix-compatible environment and running scripts.
+
+Minimum setup:
+- Clone the repository.
+- Install Bash, Maven, and GCC.
+- Ensure Java 11+ is available if you need PlantUML generation.
+
+Typical sequence from repository root:
+
+```bash
+bash libs/scripts/clean.sh
+bash libs/scripts/build.sh
+bash libs/scripts/run_placeholder.sh
+```
+
+There is no application/database deployment script yet in Sprint 1.
 
 ## 7. How to Generate PlantUML Diagrams
 
-To generate plantuml diagrams for documentation execute the script (for the moment, only for linux/unix/macos):
+To generate PlantUML diagrams for documentation, run:
 
-    ./generate-plantuml-diagrams.sh
+```bash
+bash libs/scripts/generate-plantuml-diagrams.sh
+```
+
+Requirements:
+- Java 11+
+- `libs/plantuml-1.2026.2.jar` available in the repository
 
 
