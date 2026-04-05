@@ -18,12 +18,6 @@ activate UI
 UI -> Controller : registerCompany(name, iata, icao)
 activate Controller
 
-note right of Controller
-  **US011 Invariant:** The Aggregate Root's constructor
-  strictly validates the formatting: IATA must have
-  2 letters and ICAO must have 2 to 3 letters.
-  Global uniqueness will be guaranteed by the DB (Unique).
-end note
 
 Controller -> Domain : create(name, iata, icao)
 activate Domain

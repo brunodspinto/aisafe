@@ -17,7 +17,7 @@ It is being executed alongside the definition of the Domain Model. The purpose o
 
 In this section we present the functionality that is being developed and how the team understands it.
 
-**US 011** As Project Manager, I want the team to illustrate one representative scenario per aggregate with a sequence diagram and a short explanation, so that the aggregate’s responsibility is demonstrated through an invariant it enforces.
+**US 011 -** As Project Manager, I want the team to illustrate one representative scenario per aggregate with a sequence diagram and a short explanation, so that the aggregate’s responsibility is demonstrated through an invariant it enforces.
 
 **Acceptance Criteria:**
 
