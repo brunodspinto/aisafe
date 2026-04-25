@@ -6,7 +6,7 @@ AISafe is a prototype flight control and management system developed for a start
 
 ## 2. Planning and Technical Documentation
 
-[Planning and Technical Documentation](docs/README.md)
+[Planning and Technical Documentation](aisafe.base/docs/README.md)
 
 ## 3. How to Build
 
