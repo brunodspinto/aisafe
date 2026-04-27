@@ -38,15 +38,15 @@ The script design follows a single-responsibility approach so each script can ev
 - `generate-plantuml-diagrams.sh` converts `.puml` artifacts into SVG diagrams.
 - `run_placeholder.sh` provides a temporary run entry point until real applications exist.
 
-All scripts are located in `libs/scripts` and are designed to be invoked from any directory.
+All scripts are located in `aisafe.base/libs/scripts` and are designed to be invoked from any directory.
 
 ## 5. Implementation
 Implemented Sprint 1 scripts:
-- `libs/scripts/build.sh`
-- `libs/scripts/build_c.sh`
-- `libs/scripts/clean.sh`
-- `libs/scripts/generate-plantuml-diagrams.sh`
-- `libs/scripts/run_placeholder.sh`
+- `aisafe.base/libs/scripts/build.sh`
+- `aisafe.base/libs/scripts/build_c.sh`
+- `aisafe.base/libs/scripts/clean.sh`
+- `aisafe.base/libs/scripts/generate-plantuml-diagrams.sh`
+- `aisafe.base/libs/scripts/run_placeholder.sh`
 
 Validation performed at documentation level:
 - Script scope matches Sprint 1 constraints.

@@ -2,8 +2,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-DOCS_ROOT="$REPO_ROOT/docs"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
+DOCS_ROOT="$PROJECT_ROOT/docs"
 
 echo "LOG: Generate Plantuml Diagrams"
 exportFormat="svg"
@@ -73,8 +74,9 @@ case "$OS" in
     if command -v wslpath >/dev/null 2>&1; then
       win_user="$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')"
       if [ -n "$win_user" ]; then
-        java_candidates+=("/mnt/c/Users/$win_user/.jdks/openjdk-23/bin/java.exe")
-        java_candidates+=("/mnt/c/Users/$win_user/.jdks/ms-11/bin/java.exe")
+        while IFS= read -r j; do
+          java_candidates+=("$j")
+        done < <(find "/mnt/c/Users/$win_user/.jdks" -path "*/bin/java.exe" -type f 2>/dev/null | sort -rV)
         java_candidates+=("/mnt/c/Program Files/Eclipse Adoptium/jdk-21/bin/java.exe")
         java_candidates+=("/mnt/c/Program Files/Eclipse Adoptium/jdk-17/bin/java.exe")
         java_candidates+=("/mnt/c/Program Files/Eclipse Adoptium/jdk-11/bin/java.exe")
@@ -82,6 +84,11 @@ case "$OS" in
     fi
     ;;
   windows)
+    if [ -d "/c/Users/$USERNAME/.jdks" ]; then
+      while IFS= read -r j; do
+        java_candidates+=("$j")
+      done < <(find "/c/Users/$USERNAME/.jdks" -path "*/bin/java.exe" -type f 2>/dev/null | sort -rV)
+    fi
     java_candidates+=("/c/Program Files/Eclipse Adoptium/jdk-21/bin/java.exe")
     java_candidates+=("/c/Program Files/Eclipse Adoptium/jdk-17/bin/java.exe")
     java_candidates+=("/c/Program Files/Eclipse Adoptium/jdk-11/bin/java.exe")
@@ -116,18 +123,44 @@ fi
 
 echo "LOG: Using Java: $JAVA_BIN"
 
+PLANTUML_JAR_RAW="$PROJECT_ROOT/libs/plantuml-1.2026.2.jar"
+if [ ! -f "$PLANTUML_JAR_RAW" ]; then
+  PLANTUML_JAR_RAW="$REPO_ROOT/libs/plantuml-1.2026.2.jar"
+fi
+
+if [ ! -f "$PLANTUML_JAR_RAW" ]; then
+  PLANTUML_JAR_RAW="$PROJECT_ROOT/libs/plantuml.jar"
+  if [ ! -f "$PLANTUML_JAR_RAW" ]; then
+    mkdir -p "$(dirname "$PLANTUML_JAR_RAW")"
+    echo "[WARN] PlantUML jar not found. Attempting automatic download..."
+
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL "https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar" -o "$PLANTUML_JAR_RAW"
+    elif command -v wget >/dev/null 2>&1; then
+      wget -q "https://github.com/plantuml/plantuml/releases/latest/download/plantuml.jar" -O "$PLANTUML_JAR_RAW"
+    else
+      echo "[ERROR] Cannot download PlantUML jar automatically (curl/wget not found)."
+      echo "[INFO] Place a jar at: $PROJECT_ROOT/libs/plantuml.jar"
+      exit 1
+    fi
+
+    if [ ! -s "$PLANTUML_JAR_RAW" ]; then
+      echo "[ERROR] Failed to download PlantUML jar."
+      exit 1
+    fi
+
+    echo "[INFO] Downloaded PlantUML jar to $PLANTUML_JAR_RAW"
+  fi
+fi
+
 if [[ "$JAVA_BIN" == *.exe ]] && command -v wslpath >/dev/null 2>&1; then
-  PLANTUML_JAR="$(wslpath -w "$REPO_ROOT/libs/plantuml-1.2026.2.jar")"
+  PLANTUML_JAR="$(wslpath -w "$PLANTUML_JAR_RAW")"
   to_java_path() { wslpath -w "$1"; }
 else
-  PLANTUML_JAR="$REPO_ROOT/libs/plantuml-1.2026.2.jar"
+  PLANTUML_JAR="$PLANTUML_JAR_RAW"
   to_java_path() { printf '%s\n' "$1"; }
 fi
 
-if [ ! -f "$REPO_ROOT/libs/plantuml-1.2026.2.jar" ]; then
-  echo "[ERROR] PlantUML jar not found at $REPO_ROOT/libs/plantuml-1.2026.2.jar"
-  exit 1
-fi
 
 # Recolher ficheiros válidos (compatível com bash e zsh)
 puml_files=()
@@ -175,7 +208,6 @@ done
 
 # Uma invocação por svg_dir
 for svg_dir in "${svg_dirs[@]}"; do
-  puml_dir="$(dirname "$svg_dir")/puml"
   group_files=()
   for aFile in "${valid_files[@]}"; do
     file_svg_dir="$(cd "$(dirname "$aFile")/../svg" && pwd)"

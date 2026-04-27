@@ -78,14 +78,14 @@ This ensures that every commit is validated automatically and that the nightly b
 All documentation is maintained in the `docs/` folder in Markdown format. PlantUML is used for all diagrams. A script generates PNG exports automatically:
 
 ```bash
-bash libs/scripts/generate-plantuml-diagrams.sh
+bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
 ```
 
 Requirements: Java 11+, `libs/plantuml-1.2026.2.jar`.
 
 ### Unix Scripts (NFR07)
 
-Unix-compatible scripts are available under `libs/scripts/`:
+Unix-compatible scripts are available under `aisafe.base/libs/scripts/`:
 
 | Script | Purpose |
 |--------|---------|
@@ -117,14 +117,14 @@ The CI pipeline is active and visible in the **Actions** tab of the GitHub repos
 To build and test locally:
 
 ```bash
-bash libs/scripts/build.sh
+bash aisafe.base/libs/scripts/build.sh
 mvn test
 ```
 
 To generate documentation diagrams:
 
 ```bash
-bash libs/scripts/generate-plantuml-diagrams.sh
+bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
 ```
 
 ---

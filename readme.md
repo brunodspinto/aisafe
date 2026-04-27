@@ -10,7 +10,7 @@ AISafe is a prototype flight control and management system developed for a start
 
 ## 3. How to Build
 
-US005 defines Unix-compatible automation scripts under `libs/scripts`.
+US005 defines Unix-compatible automation scripts under `aisafe.base/libs/scripts`.
 
 Prerequisites:
 - Bash (Linux/macOS/WSL)
@@ -20,13 +20,13 @@ Prerequisites:
 From the repository root, run:
 
 ```bash
-bash libs/scripts/build.sh
+bash aisafe.base/libs/scripts/build.sh
 ```
 
 This script executes:
-- `libs/scripts/clean.sh`
+- `aisafe.base/libs/scripts/clean.sh`
 - Java build with Maven (`mvn install -DskipTests`)
-- C build (`libs/scripts/build_c.sh`)
+- C build (`aisafe.base/libs/scripts/build_c.sh`)
 
 ## 4. How to Execute Tests
 
@@ -45,7 +45,7 @@ Note: the US005 build script skips tests (`-DskipTests`) by design.
 US005 provides a temporary run entry point only (no functional application runtime in Sprint 1):
 
 ```bash
-bash libs/scripts/run_placeholder.sh
+bash aisafe.base/libs/scripts/run_placeholder.sh
 ```
 
 This script exits successfully and documents that real runtime scripts are deferred to later sprints.
@@ -62,9 +62,9 @@ Minimum setup:
 Typical sequence from repository root:
 
 ```bash
-bash libs/scripts/clean.sh
-bash libs/scripts/build.sh
-bash libs/scripts/run_placeholder.sh
+bash aisafe.base/libs/scripts/clean.sh
+bash aisafe.base/libs/scripts/build.sh
+bash aisafe.base/libs/scripts/run_placeholder.sh
 ```
 
 There is no application/database deployment script yet in Sprint 1.
@@ -74,11 +74,11 @@ There is no application/database deployment script yet in Sprint 1.
 To generate PlantUML diagrams for documentation, run:
 
 ```bash
-bash libs/scripts/generate-plantuml-diagrams.sh
+bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
 ```
 
 Requirements:
 - Java 11+
-- `libs/plantuml-1.2026.2.jar` available in the repository
+- `aisafe.base/libs/plantuml.jar` (auto-downloaded on first run if missing)
 
 

@@ -1,6 +1,6 @@
 # Planning and Technical Documentation
 
-This folder contains all technical documentation produced throughout the project, organised by sprint and type of artifact.
+This folder contains all technical documentation produced throughout the project, organised by type of artifact.
 
 ---
 
@@ -12,6 +12,7 @@ docs/
 ├── globalArtifacts/
 │   ├── domain_model.puml
 │   └── ...
+├── user-stories/
 │   ├── us010/
 │   ├── us011/
 │   └── ...
@@ -47,4 +48,5 @@ The following artifacts are produced per user story, where applicable:
 ## References
 
 - [GlobalArtifacts](global-artifacts)
+- [UserStories](user-stories)
   
