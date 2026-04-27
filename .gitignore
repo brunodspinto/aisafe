@@ -3,7 +3,6 @@
 
 # Build outputs
 bin/
-gen/
 **/target/
 
 # Logs and temporary files

@@ -43,7 +43,6 @@
                         </goals>
                         <configuration>
                             <arguments>
-                                <argument>-visitor</argument>
                                 <argument>-package</argument>
                                 <argument>aisafe.dsl.generated</argument>
                             </arguments>

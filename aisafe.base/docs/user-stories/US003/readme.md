@@ -33,6 +33,9 @@ To fulfill the outlined architecture, the design focused on two main fronts:
 ## 5. Implementation
 The folder structure was generated and accompanied by empty `.gitkeep`.
 
+For the Flight Plan DSL lexical and syntactic informal specification, see:
+- [Flight Plan DSL Specification](flight-plan-dsl-spec.md)
+
 The main `pom.xml` file was updated and consolidated. Below are the crucial build environment definitions and some essential dependencies injected into the configuration:
 
 ```xml

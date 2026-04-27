@@ -19,4 +19,3 @@ mvn -f aisafe.base/pom.xml test
 - lexical + syntactic validation
 - syntax error collection with line/column details
 - internal AST-like domain representation (`aisafe.dsl.ast`)
-
