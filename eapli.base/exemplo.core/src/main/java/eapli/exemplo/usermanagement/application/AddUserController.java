@@ -23,7 +23,12 @@ package eapli.exemplo.usermanagement.application;
 import java.util.Calendar;
 import java.util.Set;
 
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
+import eapli.exemplo.userbackoffice.domain.MecanographicNumber;
+import eapli.exemplo.userbackoffice.domain.SecurityClearance;
+import eapli.exemplo.userbackoffice.domain.User;
+import eapli.exemplo.userbackoffice.repositories.AiSafeUserRepository;
+import eapli.exemplo.infrastructure.persistence.PersistenceContext;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
@@ -31,7 +36,9 @@ import eapli.framework.infrastructure.authz.application.UserManagementService;
 import eapli.framework.infrastructure.authz.domain.model.Role;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.time.util.CurrentTimeCalendars;
+import eapli.exemplo.userbackoffice.domain.Email;
 
+import java.time.LocalDate;
 /**
  *
  * Created by nuno on 21/03/16.
@@ -41,28 +48,33 @@ public class AddUserController {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
     private final UserManagementService userSvc = AuthzRegistry.userService();
+    private final AiSafeUserRepository utenteRepo = PersistenceContext.repositories().utentes();
 
-    /**
-     * Get existing RoleTypes available to the user.
-     *
-     * @return a list of RoleTypes
-     */
     public Role[] getRoleTypes() {
-        return ExemploRoles.nonUserValues();
+        return AiSafeRoles.nonUserValues();
     }
 
-    public SystemUser addUser(final String username, final String password, final String firstName,
-            final String lastName,
-            final String email, final Set<Role> roles, final Calendar createdOn) {
-        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
+    public User addUser(final String username, final String password,
+                          final String firstName, final String lastName,
+                          final String emailStr, final Set<Role> roles,
+                          final String phoneNumber, final String position,
+                          final Email email,
+                          final SecurityClearance securityClearance,
+                          final LocalDate skillsAssessmentDate) {
 
-        return userSvc.registerNewUser(username, password, firstName, lastName, email, roles,
-                createdOn);
-    }
+        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN);
 
-    public SystemUser addUser(final String username, final String password, final String firstName,
-            final String lastName,
-            final String email, final Set<Role> roles) {
-        return addUser(username, password, firstName, lastName, email, roles, CurrentTimeCalendars.now());
+        final SystemUser systemUser = userSvc.registerNewUser(
+                username, password, firstName, lastName, emailStr, roles,
+                CurrentTimeCalendars.now());
+
+        // gera número mecanográfico simples baseado em timestamp
+        final MecanographicNumber mecNumber =
+                MecanographicNumber.valueOf(String.valueOf(System.currentTimeMillis()));
+
+        final User utente = new User(systemUser, mecNumber, phoneNumber, email,
+                position, securityClearance, skillsAssessmentDate);
+
+        return utenteRepo.save(utente);
     }
 }

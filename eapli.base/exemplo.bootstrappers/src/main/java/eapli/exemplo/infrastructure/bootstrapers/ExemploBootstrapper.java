@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eapli.exemplo.infrastructure.persistence.PersistenceContext;
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.exemplo.usermanagement.domain.UserBuilderHelper;
 import eapli.framework.actions.Action;
 import eapli.framework.domain.repositories.ConcurrencyException;
@@ -80,7 +80,7 @@ public class ExemploBootstrapper implements Action {
 	private boolean registerPowerUser() {
 		final var userBuilder = UserBuilderHelper.builder();
 		userBuilder.withUsername(POWERUSER).withPassword(POWERUSER_PWD).withName("joe", "power")
-				.withEmail("joe@email.org").withRoles(ExemploRoles.POWER_USER);
+				.withEmail("joe@email.org").withRoles(AiSafeRoles.ADMIN);
 		final var newUser = userBuilder.build();
 
 		SystemUser poweruser;

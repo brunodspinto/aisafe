@@ -23,7 +23,7 @@ package eapli.exemplo.usermanagement.application.eventhandlers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eapli.exemplo.utentemanagement.domain.events.SignupAcceptedEvent;
+import eapli.exemplo.userbackoffice.domain.events.SignupAcceptedEvent;
 import eapli.framework.domain.events.DomainEvent;
 import eapli.framework.domain.repositories.IntegrityViolationException;
 import eapli.framework.infrastructure.pubsub.EventHandler;

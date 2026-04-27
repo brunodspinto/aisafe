@@ -24,10 +24,10 @@
 package eapli.exemplo.usermanagement.application.eventhandlers;
 
 import eapli.exemplo.infrastructure.persistence.PersistenceContext;
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.exemplo.usermanagement.domain.UserBuilderHelper;
-import eapli.exemplo.utentemanagement.domain.events.NewUserRegisteredFromSignupEvent;
-import eapli.exemplo.utentemanagement.domain.events.SignupAcceptedEvent;
+import eapli.exemplo.userbackoffice.domain.events.NewUserRegisteredFromSignupEvent;
+import eapli.exemplo.userbackoffice.domain.events.SignupAcceptedEvent;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.domain.events.DomainEvent;
 import eapli.framework.domain.repositories.ConcurrencyException;
@@ -44,7 +44,7 @@ import eapli.framework.infrastructure.pubsub.impl.inprocess.service.InProcessPub
  */
 @UseCaseController
 /* package */ class AddUserOnSignupAcceptedController {
-    private final UserRepository userRepository = PersistenceContext.repositories().users();
+    private final eapli.framework.infrastructure.authz.domain.repositories.UserRepository userRepository = PersistenceContext.repositories().users();
     private final EventPublisher dispatcher = InProcessPubSub.publisher();
 
     /**
@@ -59,7 +59,7 @@ import eapli.framework.infrastructure.pubsub.impl.inprocess.service.InProcessPub
         final SystemUserBuilder userBuilder = UserBuilderHelper.builder();
         userBuilder.withUsername(theSignupRequest.username())
                 .withPassword(theSignupRequest.password()).withName(theSignupRequest.name())
-                .withEmail(theSignupRequest.email()).withRoles(ExemploRoles.UTENTE);
+                .withEmail(theSignupRequest.email()).withRoles(AiSafeRoles.BACKOFFICE_OPERATOR);
         final SystemUser newUser = userRepository.save(userBuilder.build());
 
         // notify interested parties

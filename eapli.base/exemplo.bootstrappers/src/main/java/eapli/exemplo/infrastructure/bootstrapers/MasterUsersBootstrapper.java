@@ -23,7 +23,7 @@ package eapli.exemplo.infrastructure.bootstrapers;
 import java.util.HashSet;
 import java.util.Set;
 
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.framework.actions.Action;
 import eapli.framework.infrastructure.authz.domain.model.Role;
 
@@ -45,7 +45,7 @@ public class MasterUsersBootstrapper extends AbstractUserBootstrapper implements
     private void registerAdmin(final String username, final String password, final String firstName,
             final String lastName, final String email) {
         final Set<Role> roles = new HashSet<>();
-        roles.add(ExemploRoles.ADMIN);
+        roles.add(AiSafeRoles.ADMIN);
 
         registerUser(username, password, firstName, lastName, email, roles);
     }

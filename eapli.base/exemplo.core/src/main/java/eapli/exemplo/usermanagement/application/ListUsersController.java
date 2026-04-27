@@ -25,7 +25,7 @@ package eapli.exemplo.usermanagement.application;
 
 import java.util.Optional;
 
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
@@ -44,7 +44,7 @@ public class ListUsersController{
     private final UserManagementService userSvc = AuthzRegistry.userService();
 
     public Iterable<SystemUser> allUsers() {
-        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
+        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN, AiSafeRoles.ADMIN);
 
         return userSvc.allUsers();
     }

@@ -25,9 +25,9 @@ import org.slf4j.LoggerFactory;
 
 import eapli.exemplo.infrastructure.bootstrapers.TestDataConstants;
 import eapli.exemplo.myutente.application.SignupController;
-import eapli.exemplo.utentemanagement.application.AcceptRefuseSignupFactory;
-import eapli.exemplo.utentemanagement.application.AcceptRefuseSignupRequestController;
-import eapli.exemplo.utentemanagement.domain.SignupRequest;
+import eapli.exemplo.userbackoffice.application.AcceptRefuseSignupFactory;
+import eapli.exemplo.userbackoffice.application.AcceptRefuseSignupRequestController;
+import eapli.exemplo.userbackoffice.domain.SignupRequest;
 import eapli.framework.actions.Action;
 import eapli.framework.domain.repositories.ConcurrencyException;
 import eapli.framework.domain.repositories.IntegrityViolationException;

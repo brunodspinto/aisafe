@@ -23,7 +23,7 @@
  */
 package eapli.exemplo.usermanagement.domain;
 
-import eapli.exemplo.utentemanagement.domain.SignupRequestBuilder;
+import eapli.exemplo.userbackoffice.domain.SignupRequestBuilder;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import eapli.framework.util.Utility;

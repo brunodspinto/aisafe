@@ -23,9 +23,9 @@ package eapli.exemplo.app.backoffice.console.presentation.utente;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eapli.exemplo.utentemanagement.application.AcceptRefuseSignupFactory;
-import eapli.exemplo.utentemanagement.application.AcceptRefuseSignupRequestController;
-import eapli.exemplo.utentemanagement.domain.SignupRequest;
+import eapli.exemplo.userbackoffice.application.AcceptRefuseSignupFactory;
+import eapli.exemplo.userbackoffice.application.AcceptRefuseSignupRequestController;
+import eapli.exemplo.userbackoffice.domain.SignupRequest;
 import eapli.framework.domain.repositories.ConcurrencyException;
 import eapli.framework.domain.repositories.IntegrityViolationException;
 import eapli.framework.io.util.Console;
