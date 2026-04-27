@@ -20,7 +20,7 @@
  */
 package eapli.exemplo.app.backoffice.console.presentation.utente;
 
-import eapli.exemplo.utentemanagement.domain.SignupRequest;
+import eapli.exemplo.userbackoffice.domain.SignupRequest;
 import eapli.framework.visitor.Visitor;
 
 /**

@@ -21,8 +21,8 @@
 package eapli.exemplo.persistence.impl.jpa;
 
 import eapli.exemplo.Application;
-import eapli.exemplo.utentemanagement.domain.SignupRequest;
-import eapli.exemplo.utentemanagement.repositories.SignupRequestRepository;
+import eapli.exemplo.userbackoffice.domain.SignupRequest;
+import eapli.exemplo.userbackoffice.repositories.SignupRequestRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.Username;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
@@ -44,6 +44,6 @@ class JpaSignupRequestRepository extends JpaAutoTxRepository<SignupRequest, User
 
 	@Override
 	public Iterable<SignupRequest> pendingSignupRequests() {
-		return match("e.approvalStatus=eapli.exemplo.utentemanagement.domain.ApprovalStatus.PENDING");
+		return match("e.approvalStatus=eapli.exemplo.userbackoffice.domain.ApprovalStatus.PENDING");
 	}
 }

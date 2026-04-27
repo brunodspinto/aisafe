@@ -26,7 +26,7 @@ package eapli.exemplo.app.utente.console.presentation;
 import eapli.exemplo.app.common.console.presentation.authz.LoginUI;
 import eapli.exemplo.app.utente.console.presentation.myuser.SignupRequestAction;
 import eapli.exemplo.infrastructure.authz.AuthenticationCredentialHandler;
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.framework.actions.ChainedAction;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.presentation.console.AbstractUI;
@@ -58,13 +58,13 @@ public class FrontMenu extends AbstractUI {
 	public boolean doShow() {
 		final var menu = new Menu();
 		menu.addItem(LOGIN_OPTION, "Login",
-				new ChainedAction(new LoginUI(new AuthenticationCredentialHandler(), ExemploRoles.UTENTE)::show, () -> {
+				new ChainedAction(new LoginUI(new AuthenticationCredentialHandler(), AiSafeRoles.BACKOFFICE_OPERATOR)::show, () -> {
 					new MainMenu().mainLoop();
 					return true;
 				}));
 		// TODO: instead of leaving the app, return to the main menu again
 		menu.addItem(SIGNUP_OPTION, "Sign up", new SignupRequestAction());
-		menu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Bye, Bye"));
+		menu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Session closed. Goodbye!"));
 
 		final MenuRenderer renderer = new VerticalMenuRenderer(menu, MenuItemRenderer.DEFAULT);
 		return renderer.render();

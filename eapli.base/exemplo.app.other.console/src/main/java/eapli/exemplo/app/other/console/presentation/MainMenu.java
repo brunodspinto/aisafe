@@ -25,7 +25,7 @@ package eapli.exemplo.app.other.console.presentation;
 
 import eapli.exemplo.Application;
 import eapli.exemplo.app.common.console.presentation.authz.MyUserMenu;
-import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.usermanagement.domain.AiSafeRoles;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -94,14 +94,14 @@ public class MainMenu extends AbstractUI {
 	private Menu buildMainMenu() {
 		final var mainMenu = new Menu();
 
-		final Menu myUserMenu = new MyUserMenu(ExemploRoles.OTHER_EXAMPLE);
+		final Menu myUserMenu = new MyUserMenu(AiSafeRoles.BACKOFFICE_OPERATOR);
 		mainMenu.addSubMenu(MY_USER_OPTION, myUserMenu);
 
 		if (!Application.settings().isMenuLayoutHorizontal()) {
 			mainMenu.addItem(MenuItem.separator(SEPARATOR_LABEL));
 		}
 
-		if (authz.isAuthenticatedUserAuthorizedTo(ExemploRoles.OTHER_EXAMPLE)) {
+		if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.BACKOFFICE_OPERATOR)) {
 			final var cashierMenu = buildCashierMenu();
 			mainMenu.addSubMenu(SALES_OPTION, cashierMenu);
 		}
@@ -110,7 +110,7 @@ public class MainMenu extends AbstractUI {
 			mainMenu.addItem(MenuItem.separator(SEPARATOR_LABEL));
 		}
 
-		mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Bye, Bye"));
+		mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Session closed. Goodbye!"));
 
 		return mainMenu;
 	}

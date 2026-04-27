@@ -71,7 +71,7 @@ class MainMenu extends UtenteBaseUI {
 
         mainMenu.addItem(MenuItem.separator(SEPARATOR_LABEL));
 
-        mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Bye, Bye"));
+        mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Session closed. Goodbye!"));
 
         return mainMenu;
     }
