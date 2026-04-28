@@ -20,7 +20,6 @@
  */
 package eapli.exemplo.usermanagement.application;
 
-import java.util.Calendar;
 import java.util.Set;
 
 import eapli.exemplo.usermanagement.domain.AiSafeRoles;

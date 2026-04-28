@@ -29,7 +29,7 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
 
     @Override
     public AiSafeUserRepository aiSafeUsers(final TransactionalContext tx) {
-        return new eapli.exemplo.persistence.impl.inmemory.InMemoryUserRepository();
+        return new InMemoryAiSafeUserRepository();
     }
 
     @Override
@@ -39,7 +39,7 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
 
     @Override
     public AiSafeUserRepository utentes(final TransactionalContext tx) {
-        return new eapli.exemplo.persistence.impl.inmemory.InMemoryUserRepository();
+        return new InMemoryAiSafeUserRepository();
     }
 
     @Override

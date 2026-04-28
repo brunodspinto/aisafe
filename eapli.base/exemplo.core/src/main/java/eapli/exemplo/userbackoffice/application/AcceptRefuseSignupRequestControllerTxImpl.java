@@ -47,10 +47,10 @@ import eapli.framework.infrastructure.authz.domain.model.SystemUser;
  * following the guideline that a controller should only change one Aggregate,
  * we shouldn't be changing all these entities here, but should instead use
  * asynchronous events. However in this case we will take advantage of
- * TransactionalContext
- *
- * @todo handle the scenario where in the meantime the username is already used
- *       by some other user
+ * TransactionalContext.
+ * <p>
+ * Note: handle the scenario where in the meantime the username is already used
+ * by some other user.
  *
  * @author AJS on 08/04/2016.
  */
