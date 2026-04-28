@@ -12,9 +12,7 @@ import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.Username;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
-class JpaClientUserRepository
-        extends JpaAutoTxRepository<User, MecanographicNumber, MecanographicNumber>
-        implements AiSafeUserRepository {
+class JpaClientUserRepository extends JpaAutoTxRepository<User, MecanographicNumber, MecanographicNumber> implements AiSafeUserRepository {
 
     public JpaClientUserRepository(final TransactionalContext autoTx) {
         super(autoTx, "mecanographicNumber");
@@ -32,12 +30,6 @@ class JpaClientUserRepository
         return matchOne("e.systemUser.username=:name", params);
     }
 
-    @Override
-    public Optional<User> findByMecanographicNumber(final MecanographicNumber number) {
-        final Map<String, Object> params = new HashMap<>();
-        params.put("number", number);
-        return matchOne("e.mecanographicNumber=:number", params);
-    }
 
     @Override
     public Iterable<User> findAllActive() {
