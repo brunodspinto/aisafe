@@ -19,17 +19,12 @@ package "User Aggregate" <<Rectangle>> {
         address
     }
 
-    class EmailDomain <<value object>> {
-        domain
-    }
-
     class SecurityClearance <<value object>> {
         level
         expirationDate
     }
 
-    class Role <<value object>> {
-    }
+
 
     Enum RoleType {
         ADMIN
@@ -45,8 +40,6 @@ package "AirTransportCompany Aggregate" <<Rectangle>> {
 
     class AirTransportCompany <<entity, aggregate root>> {
         name
-        IATACode
-        ICAOCode
     }
 }
 
@@ -142,8 +135,6 @@ package "Airport Aggregate" <<Rectangle>> {
         name
         town
         country
-        IATACode
-        ICAOCode
         altitude
         latitude
         longitude
@@ -173,9 +164,13 @@ package "Flight Aggregate" <<Rectangle>> {
         scheduledArrival
     }
 
-    class FlightPlan <<value object>> {
+    class FlightPlan <<entity>> {
         totalFuelLoad
         cargoWeight
+        passengerCount
+        crewCount
+        totalWeight
+        estimatedDuration
     }
 
     class FlightSegment <<value object>> {
@@ -239,7 +234,9 @@ package "Simulation Aggregate" <<Rectangle>> {
         generatedAt
     }
 
-    class SafetyViolation <<entity>> {
+    class SafetyViolation <<value object>> {
+        description
+        flightDesignator
         timestamp
         speed
         heading
@@ -257,19 +254,17 @@ package "Simulation Aggregate" <<Rectangle>> {
 }
 
 
-class AirportCode <<value object>> {
+class IATACode <<value object>> {
     code
 }
 
-class FlightId <<value object>> {
-    id
+class ICAOCode <<value object>> {
+    code
 }
 
 User "1" *-- "1" Email : "identified by"
-Email "1" *-- "1" EmailDomain : "belongs to"
 User "1" *-- "1" SecurityClearance : "holds"
-User "1" *-- "1" Role : "has"
-Role "1" --> "1" RoleType : "typed as"
+User "1" --> "1..*" RoleType : "has"
 
 AirTransportCompany "1" --> "0..*" User : "employs"
 AirTransportCompany "1" --> "0..*" Aircraft : "owns"
@@ -283,32 +278,31 @@ AircraftModel "1" --> "1" AircraftType : "classified as"
 AircraftModel "1" --> "1..*" EngineModel : "certified with"
 EngineModel "1" --> "1" EngineType : "classified as"
 
-Aircraft "1" *-- "1" CabinConfiguration : "has"
+Aircraft "1" *-- "0..*" CabinConfiguration : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
 Aircraft "1" --> "1" OperationalStatus : "has"
 
 Airport "0..*" --> "1" AirControlArea : "belongs to"
 AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
 
-FlightRoute "1" --> "1" AirportCode : "originates at"
-FlightRoute "1" --> "1" AirportCode : "ends at"
+FlightRoute "1" --> "2" IATACode : "connects"
 FlightRoute "1" --> "1" FlightRouteStatus : "has"
 
 Flight "1" --> "1" FlightRoute : "instance of"
 Flight "1" --> "1" FlightType : "typed as"
-Flight "1" --> "1" AirportCode : "departs from"
-Flight "1" --> "1" AirportCode : "arrives at"
+Flight "1" --> "2" IATACode : "connects"
 Flight "1" *-- "1..*" FlightPlan : "has"
 Flight "1" --> "1" Aircraft : "uses"
 Flight "1" --> "1" User : "assigned to"
-Flight "1" --> "1" FlightPlanStatus : "has"
 Flight "0..1" --> "1" WeatherData : "uses"
 
 FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
+FlightPlan "1" --> "1" FlightPlanStatus: "has"
+FlightPlan "1" --> "1" IATACode : "alternate airport"
+FlightPlan "1" --> "0..1" User : "reviewed by"
 
 
-FlightSegment "1" *-- "1" Node : "starts at"
-FlightSegment "1" *-- "1" Node : "ends at"
+FlightSegment "1" *-- "2" Node : "has"
 
 WeatherData "1" --> "1" AirControlArea : "recorded for"
 WeatherData "1" *-- "1" WeatherSource : "imported from"
@@ -317,6 +311,11 @@ Simulation "1" --> "1" AirControlArea : "covers"
 Simulation "1" --> "0..*" Flight : "references"
 Simulation "1" *-- "1" SimulationReport : "produces"
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
-SafetyViolation "0..*" --> "1" FlightId : "references"
+
+Airport "1" --> "1" IATACode : "identified by"
+Airport "1" --> "1" ICAOCode : "identified by"
+
+AirTransportCompany "1" --> "1" IATACode : "identified by"
+AirTransportCompany "1" --> "1" ICAOCode : "identified by"
 
 @enduml
