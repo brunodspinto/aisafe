@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"eapli.exemplo.persistence.impl.inmemory"},{"l":"eapli.exemplo.persistence.impl.jpa"}];updateSearchResults();
