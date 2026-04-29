@@ -20,7 +20,6 @@
  */
 package eapli.exemplo.infrastructure.persistence;
 
-import eapli.exemplo.userbackoffice.repositories.AiSafeUserRepository;
 import eapli.exemplo.utentemanagement.repositories.UtenteRepository;
 import eapli.exemplo.utentemanagement.repositories.SignupRequestRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
@@ -84,5 +83,4 @@ public interface RepositoryFactory {
      */
     SignupRequestRepository signupRequests();
 
-    AiSafeUserRepository aiSafeUsers();
 }
