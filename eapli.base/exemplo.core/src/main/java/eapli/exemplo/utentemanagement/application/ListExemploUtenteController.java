@@ -21,29 +21,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package eapli.exemplo.usermanagement.domain;
+package eapli.exemplo.utentemanagement.application;
 
-import eapli.exemplo.utentemanagement.domain.SignupRequestBuilder;
-import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
-import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
-import eapli.framework.util.Utility;
+import eapli.exemplo.infrastructure.persistence.PersistenceContext;
+import eapli.exemplo.usermanagement.domain.ExemploRoles;
+import eapli.exemplo.utentemanagement.domain.Utente;
+import eapli.exemplo.utentemanagement.repositories.UtenteRepository;
+import eapli.framework.infrastructure.authz.application.AuthorizationService;
+import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
 /**
  *
- * @author Paulo Gandra de Sousa 27/05/2019
- *
+ * @author losa
  */
-@Utility
-public class UserBuilderHelper {
-    private UserBuilderHelper() {
-        // ensure utility
-    }
+public class ListExemploUtenteController {
+    private final AuthorizationService authz = AuthzRegistry.authorizationService();
 
-    public static SystemUserBuilder builder() {
-        return new SystemUserBuilder(new ExemploPasswordPolicy(), new PlainTextEncoder());
-    }
+    private final UtenteRepository repo = PersistenceContext.repositories().utentes();
 
-    public static SignupRequestBuilder signupBuilder() {
-        return new SignupRequestBuilder(new ExemploPasswordPolicy(), new PlainTextEncoder());
+    public Iterable<Utente> activeExemploUtente() {
+        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
+
+        return this.repo.findAllActive();
     }
 }

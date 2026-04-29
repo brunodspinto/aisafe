@@ -23,27 +23,51 @@
  */
 package eapli.exemplo.usermanagement.domain;
 
-import eapli.exemplo.utentemanagement.domain.SignupRequestBuilder;
-import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
-import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
-import eapli.framework.util.Utility;
+import eapli.framework.infrastructure.authz.domain.model.Role;
 
 /**
- *
- * @author Paulo Gandra de Sousa 27/05/2019
+ * TODO you must adpat this enum to the roles that make sense for your
+ * application.
+ * 
+ * @author Paulo Gandra Sousa
  *
  */
-@Utility
-public class UserBuilderHelper {
-    private UserBuilderHelper() {
-        // ensure utility
-    }
+public final class ExemploRoles {
+	/**
+	 * poweruser
+	 */
+	public static final Role POWER_USER = Role.valueOf("POWER_USER");
+	/**
+	 * Utente
+	 */
+	public static final Role UTENTE = Role.valueOf("UTENTE");
+	/**
+	 * Administrator
+	 */
+	public static final Role ADMIN = Role.valueOf("ADMIN");
+	/**
+	 *
+	 */
+	public static final Role SAMPLE_1_MANAGER = Role.valueOf("SAMPLE_1_MANAGER");
+	/**
+	 *
+	 */
+	public static final Role ANOTHER_EXAMPLE_MANAGER = Role.valueOf("ANOTHER_EXAMPLE_MANAGER");
+	/**
+	 *
+	 */
+	public static final Role OTHER_EXAMPLE = Role.valueOf("OTHER_EXAMPLE");
 
-    public static SystemUserBuilder builder() {
-        return new SystemUserBuilder(new ExemploPasswordPolicy(), new PlainTextEncoder());
-    }
+	/**
+	 * get available role types for adding new users
+	 *
+	 * @return
+	 */
+	public static Role[] nonUserValues() {
+		return new Role[] { ADMIN, SAMPLE_1_MANAGER, ANOTHER_EXAMPLE_MANAGER, OTHER_EXAMPLE };
+	}
 
-    public static SignupRequestBuilder signupBuilder() {
-        return new SignupRequestBuilder(new ExemploPasswordPolicy(), new PlainTextEncoder());
-    }
+	public boolean isCollaborator(final Role role) {
+		return role != UTENTE;
+	}
 }

@@ -24,7 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import eapli.exemplo.infrastructure.bootstrapers.AbstractUserBootstrapper;
-import eapli.exemplo.usermanagement.domain.AiSafeRoles;
+import eapli.exemplo.usermanagement.domain.ExemploRoles;
 import eapli.framework.actions.Action;
 import eapli.framework.infrastructure.authz.domain.model.Role;
 
@@ -47,7 +47,7 @@ public class BackofficeUsersBootstrapper extends AbstractUserBootstrapper implem
     private void registerOtherExample(final String username, final String password,
             final String firstName, final String lastName, final String email) {
         final Set<Role> roles = new HashSet<>();
-        roles.add(AiSafeRoles.BACKOFFICE_OPERATOR);
+        roles.add(ExemploRoles.OTHER_EXAMPLE);
 
         registerUser(username, password, firstName, lastName, email, roles);
     }
@@ -55,7 +55,7 @@ public class BackofficeUsersBootstrapper extends AbstractUserBootstrapper implem
     private void registerSample1Manager(final String username, final String password,
             final String firstName, final String lastName, final String email) {
         final Set<Role> roles = new HashSet<>();
-        roles.add(AiSafeRoles.BACKOFFICE_OPERATOR);
+        roles.add(ExemploRoles.SAMPLE_1_MANAGER);
 
         registerUser(username, password, firstName, lastName, email, roles);
     }
@@ -63,7 +63,7 @@ public class BackofficeUsersBootstrapper extends AbstractUserBootstrapper implem
     private void registerAnotherExampleManager(final String username, final String password,
             final String firstName, final String lastName, final String email) {
         final Set<Role> roles = new HashSet<>();
-        roles.add(AiSafeRoles.BACKOFFICE_OPERATOR);
+        roles.add(ExemploRoles.ANOTHER_EXAMPLE_MANAGER);
 
         registerUser(username, password, firstName, lastName, email, roles);
     }

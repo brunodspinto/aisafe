@@ -29,7 +29,7 @@ import eapli.exemplo.app.backoffice.console.presentation.authz.DeactivateUserAct
 import eapli.exemplo.app.backoffice.console.presentation.authz.ListUsersAction;
 import eapli.exemplo.app.backoffice.console.presentation.utente.AcceptRefuseSignupRequestAction;
 import eapli.exemplo.app.common.console.presentation.authz.MyUserMenu;
-import eapli.exemplo.usermanagement.domain.AiSafeRoles;
+import eapli.exemplo.usermanagement.domain.ExemploRoles;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -110,7 +110,7 @@ public class MainMenu extends AbstractUI {
 			mainMenu.addItem(MenuItem.separator(SEPARATOR_LABEL));
 		}
 
-		if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ADMIN, AiSafeRoles.ADMIN)) {
+		if (authz.isAuthenticatedUserAuthorizedTo(ExemploRoles.POWER_USER, ExemploRoles.ADMIN)) {
 			final var usersMenu = buildUsersMenu();
 			mainMenu.addSubMenu(USERS_OPTION, usersMenu);
 			final var settingsMenu = buildAdminSettingsMenu();
@@ -121,7 +121,7 @@ public class MainMenu extends AbstractUI {
 			mainMenu.addItem(MenuItem.separator(SEPARATOR_LABEL));
 		}
 
-		mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Session closed. Goodbye!"));
+		mainMenu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Bye, Bye"));
 
 		return mainMenu;
 	}

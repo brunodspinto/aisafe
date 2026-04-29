@@ -23,7 +23,7 @@
  */
 package eapli.exemplo.usermanagement.application;
 
-import eapli.exemplo.usermanagement.domain.AiSafeRoles;
+import eapli.exemplo.usermanagement.domain.ExemploRoles;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
@@ -41,13 +41,13 @@ public class DeactivateUserController {
     private final UserManagementService userSvc = AuthzRegistry.userService();
 
     public Iterable<SystemUser> activeUsers() {
-        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN, AiSafeRoles.ADMIN);
+        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
 
         return userSvc.activeUsers();
     }
 
     public SystemUser deactivateUser(final SystemUser user) {
-        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN, AiSafeRoles.ADMIN);
+        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
 
         return userSvc.deactivateUser(user);
     }

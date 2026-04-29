@@ -18,51 +18,41 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package eapli.exemplo.usermanagement.application;
+package eapli.exemplo.myutente.application;
 
-import java.util.Calendar;
-import java.util.Set;
+import java.util.Optional;
 
+import eapli.exemplo.infrastructure.persistence.PersistenceContext;
 import eapli.exemplo.usermanagement.domain.ExemploRoles;
-import eapli.framework.application.UseCaseController;
+import eapli.exemplo.utentemanagement.domain.Utente;
+import eapli.exemplo.utentemanagement.repositories.UtenteRepository;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
-import eapli.framework.infrastructure.authz.application.UserManagementService;
-import eapli.framework.infrastructure.authz.domain.model.Role;
+import eapli.framework.infrastructure.authz.application.UserSession;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
-import eapli.framework.time.util.CurrentTimeCalendars;
 
 /**
  *
- * Created by nuno on 21/03/16.
+ * @author Paulo Gandra de Sousa
  */
-@UseCaseController
-public class AddUserController {
+public class MyUtenteService {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
-    private final UserManagementService userSvc = AuthzRegistry.userService();
+    private final UtenteRepository repo = PersistenceContext.repositories().utentes();
 
-    /**
-     * Get existing RoleTypes available to the user.
-     *
-     * @return a list of RoleTypes
-     */
-    public Role[] getRoleTypes() {
-        return ExemploRoles.nonUserValues();
+    public Utente me() {
+        final UserSession s = authz.session().orElseThrow(IllegalStateException::new);
+        final SystemUser myUser = s.authenticatedUser();
+        // TODO cache the client user object
+        final Optional<Utente> me = repo.findByUsername(myUser.identity());
+        return me.orElseThrow(IllegalStateException::new);
     }
 
-    public SystemUser addUser(final String username, final String password, final String firstName,
-            final String lastName,
-            final String email, final Set<Role> roles, final Calendar createdOn) {
-        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
-
-        return userSvc.registerNewUser(username, password, firstName, lastName, email, roles,
-                createdOn);
+    public Utente myUser() {
+        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.UTENTE);
+        final UserSession s = authz.session().orElseThrow(IllegalStateException::new);
+        final SystemUser me = s.authenticatedUser();
+        return repo.findByUsername(me.identity()).orElseThrow(IllegalStateException::new);
     }
 
-    public SystemUser addUser(final String username, final String password, final String firstName,
-            final String lastName,
-            final String email, final Set<Role> roles) {
-        return addUser(username, password, firstName, lastName, email, roles, CurrentTimeCalendars.now());
-    }
 }

@@ -21,35 +21,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package eapli.exemplo.usermanagement.application;
+package eapli.exemplo.utentemanagement.application;
 
 import java.util.Optional;
 
+import eapli.exemplo.infrastructure.persistence.PersistenceContext;
 import eapli.exemplo.usermanagement.domain.ExemploRoles;
-import eapli.framework.application.UseCaseController;
+import eapli.exemplo.utentemanagement.domain.Utente;
+import eapli.exemplo.utentemanagement.domain.MecanographicNumber;
+import eapli.exemplo.utentemanagement.repositories.UtenteRepository;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
-import eapli.framework.infrastructure.authz.application.UserManagementService;
-import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.infrastructure.authz.domain.model.Username;
 
 /**
- *
- * @author losa
+ * @author mcn
  */
-@UseCaseController
-public class ListUsersController{
+public class UtenteService {
 
-    private final AuthorizationService authz = AuthzRegistry.authorizationService();
-    private final UserManagementService userSvc = AuthzRegistry.userService();
+	private final AuthorizationService authz = AuthzRegistry.authorizationService();
+	private final UtenteRepository repo = PersistenceContext.repositories().utentes();
 
-    public Iterable<SystemUser> allUsers() {
-        authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
+	public Optional<Utente> findExemploUtenteByMecNumber(final String mecNumber) {
+		authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN, ExemploRoles.OTHER_EXAMPLE);
+		return repo.ofIdentity(MecanographicNumber.valueOf(mecNumber));
+	}
 
-        return userSvc.allUsers();
-    }
-
-    public Optional<SystemUser> find(final Username u) {
-        return userSvc.userOfIdentity(u);
-    }
+	public Optional<Utente> findExemploUtenteByUsername(final Username user) {
+		authz.ensureAuthenticatedUserHasAnyOf(ExemploRoles.POWER_USER, ExemploRoles.ADMIN);
+		return repo.findByUsername(user);
+	}
 }

@@ -24,7 +24,7 @@ import eapli.exemplo.app.common.console.presentation.authz.LoginAction;
 import eapli.exemplo.app.other.console.presentation.MainMenu;
 import eapli.exemplo.infrastructure.persistence.PersistenceContext;
 import eapli.exemplo.usermanagement.domain.ExemploPasswordPolicy;
-import eapli.exemplo.usermanagement.domain.AiSafeRoles;
+import eapli.exemplo.usermanagement.domain.ExemploRoles;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 
@@ -51,7 +51,7 @@ public final class OtherApp {
 				new PlainTextEncoder());
 
 		// login and go to main menu
-		if (new LoginAction(AiSafeRoles.BACKOFFICE_OPERATOR).execute()) {
+		if (new LoginAction(ExemploRoles.OTHER_EXAMPLE).execute()) {
 			final var menu = new MainMenu();
 			menu.mainLoop();
 		}

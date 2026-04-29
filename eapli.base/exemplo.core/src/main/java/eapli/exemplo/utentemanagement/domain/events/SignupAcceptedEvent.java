@@ -18,32 +18,52 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package eapli.exemplo.persistence.impl.jpa;
+package eapli.exemplo.utentemanagement.domain.events;
 
-import eapli.exemplo.Application;
+import eapli.exemplo.utentemanagement.domain.MecanographicNumber;
 import eapli.exemplo.utentemanagement.domain.SignupRequest;
-import eapli.exemplo.utentemanagement.repositories.SignupRequestRepository;
-import eapli.framework.domain.repositories.TransactionalContext;
+import eapli.framework.domain.events.DomainEventBase;
+import eapli.framework.general.domain.model.EmailAddress;
+import eapli.framework.infrastructure.authz.domain.model.Name;
+import eapli.framework.infrastructure.authz.domain.model.Password;
 import eapli.framework.infrastructure.authz.domain.model.Username;
-import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
 /**
+ * @author Paulo Gandra de Sousa
  *
- * @author Jorge Santos ajs@isep.ipp.pt 02/04/2016
  */
-class JpaSignupRequestRepository extends JpaAutoTxRepository<SignupRequest, Username, Username>
-		implements SignupRequestRepository {
+public class SignupAcceptedEvent extends DomainEventBase {
 
-	public JpaSignupRequestRepository(final TransactionalContext autoTx) {
-		super(autoTx, "username");
-	}
+    private static final long serialVersionUID = 1L;
 
-	public JpaSignupRequestRepository(final String puname) {
-		super(puname, Application.settings().getExtendedPersistenceProperties(), "username");
-	}
+    private final SignupRequest theSignupRequest;
 
-	@Override
-	public Iterable<SignupRequest> pendingSignupRequests() {
-		return match("e.approvalStatus=eapli.exemplo.utentemanagement.domain.ApprovalStatus.PENDING");
-	}
+    public SignupAcceptedEvent(final SignupRequest theSignupRequest) {
+        this.theSignupRequest = theSignupRequest;
+    }
+
+    public Username username() {
+        return theSignupRequest.username();
+    }
+
+    public Password password() {
+        return theSignupRequest.password();
+    }
+
+    public Name name() {
+        return theSignupRequest.name();
+    }
+
+    public EmailAddress email() {
+        return theSignupRequest.email();
+    }
+
+    public MecanographicNumber mecanographicNumber() {
+        return theSignupRequest.mecanographicNumber();
+    }
+
+    @Override
+    public String toString() {
+        return "SignupAccepted(" + username() + ")";
+    }
 }

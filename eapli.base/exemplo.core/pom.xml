@@ -6,7 +6,7 @@
     <parent>
         <groupId>eapli</groupId>
         <artifactId>exemplo</artifactId>
-        <relativePath>../pom.xml</relativePath>
+        <relativePath>../</relativePath>
         <version>1.4.0-SNAPSHOT</version>
     </parent>
     
@@ -26,36 +26,6 @@
 			<artifactId>exemplo.infrastructure.application</artifactId>
 			<version>${project.parent.version}</version>
 		</dependency>
-        <dependency>
-            <groupId>org.antlr</groupId>
-            <artifactId>antlr4-runtime</artifactId>
-            <version>4.13.2</version>
-        </dependency>
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4-maven-plugin</artifactId>
-                <version>4.13.2</version>
-                <executions>
-                    <execution>
-                        <id>generate-flight-dsl-parser</id>
-                        <goals>
-                            <goal>antlr4</goal>
-                        </goals>
-                        <configuration>
-                            <visitor>true</visitor>
-                            <listener>true</listener>
-                            <arguments>
-                                <argument>-package</argument>
-                                <argument>eapli.exemplo.flightdsl.parser</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>
+

@@ -27,9 +27,9 @@ import java.util.Calendar;
 
 import eapli.exemplo.infrastructure.persistence.PersistenceContext;
 import eapli.exemplo.usermanagement.domain.UserBuilderHelper;
-import eapli.exemplo.userbackoffice.domain.SignupRequest;
-import eapli.exemplo.userbackoffice.domain.SignupRequestBuilder;
-import eapli.exemplo.userbackoffice.repositories.SignupRequestRepository;
+import eapli.exemplo.utentemanagement.domain.SignupRequest;
+import eapli.exemplo.utentemanagement.domain.SignupRequestBuilder;
+import eapli.exemplo.utentemanagement.repositories.SignupRequestRepository;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.time.util.CurrentTimeCalendars;
 
