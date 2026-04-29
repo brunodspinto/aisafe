@@ -55,8 +55,7 @@ public final class AuthenticationContext {
 	 */
 	public static boolean hasRole(final Role role) {
 		return currentUser()
-				.map(user -> user.roleAssignments().stream()
-						.anyMatch(assignment -> assignment.role().equals(role)))
+				.map(user -> user.hasAny(role))
 				.orElse(false);
 	}
 
@@ -68,15 +67,7 @@ public final class AuthenticationContext {
 			return false;
 		}
 		return currentUser()
-				.map(user -> user.roleAssignments().stream()
-						.anyMatch(assignment -> {
-							for (final Role role : roles) {
-								if (assignment.role().equals(role)) {
-									return true;
-								}
-							}
-							return false;
-						}))
+				.map(user -> user.hasAny(roles))
 				.orElse(false);
 	}
 
