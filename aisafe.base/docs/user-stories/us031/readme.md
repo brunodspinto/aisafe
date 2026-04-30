@@ -230,6 +230,8 @@ The implementation is distributed across the following packages in `aisafe.base`
 | `aisafe.usermanagement.application` | `AddUserController` | Use case orchestrator |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryAiSafeUserRepository` | In-memory persistence |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryRepositoryFactory` | Factory + bootstrap |
+| `aisafe.infrastructure.persistence.jpa` | `JpaUserRepository` | JPA repository implementation for `User` aggregate |
+| `aisafe.infrastructure.persistence.jpa` | `JpaRepositoryFactory` | JPA factory — creates JPA repositories using H2 database |
 | `aisafe.app.console.presentation.authz` | `AddUserUI` | Console UI with per-field validation |
 
 The `AddUserController.addUser()` receives both `emailStr : String` (for the EAPLI `SystemUser`) and `email : Email` (for the AISafe `User`) because the two layers require different types of the same data.
@@ -248,9 +250,20 @@ The test suite comprises **38 unit tests** (30 in `UserTest`, 8 in `AiSafePasswo
 # Compile and run all tests
 mvn clean test
 
-# Run the console application
-mvn exec:java -Dexec.mainClass="aisafe.app.console.AiSafeConsoleApp"
+
+# Run with In-Memory persistence (data is lost when the application exits)
+./run-inmemory.sh
+
+# Run with JPA persistence (data persists between sessions)
+./run-jpa.sh
 ```
+
+**Persistence modes:**
+
+| Mode | Script | Data |
+|------|--------|------|
+| In-Memory | `./run-inmemory.sh` | Lost on exit |
+| JPA (H2) | `./run-jpa.sh` | Persists between sessions |
 
 **Bootstrap credentials (created automatically on startup):**
 
