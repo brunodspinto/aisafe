@@ -38,6 +38,9 @@ public class AddUserController {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN);
 
+        if (roles == null || roles.isEmpty())
+            throw new IllegalArgumentException("At least one role must be assigned");
+
         final SystemUser systemUser = userSvc.registerNewUser(
                 username, password, firstName, lastName, emailStr, roles,
                 CurrentTimeCalendars.now());

@@ -2,6 +2,8 @@ package aisafe.usermanagement.domain;
 
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
 @Embeddable
@@ -9,15 +11,16 @@ public class SecurityClearance implements ValueObject {
 
     private static final long serialVersionUID = 1L;
 
-    private String level;
+    @Enumerated(EnumType.STRING)
+    private SecurityLevel level;
     private LocalDate expirationDate;
 
-    public SecurityClearance(final String level, final LocalDate expirationDate) {
-        if (level == null || level.isBlank())
-            throw new IllegalArgumentException("Security clearance level cannot be empty");
+    public SecurityClearance(final SecurityLevel level, final LocalDate expirationDate) {
+        if (level == null)
+            throw new IllegalArgumentException("Security clearance level cannot be null");
         if (expirationDate == null || expirationDate.isBefore(LocalDate.now()))
             throw new IllegalArgumentException("Expiration date must be in the future");
-        this.level = level.trim();
+        this.level = level;
         this.expirationDate = expirationDate;
     }
 
@@ -26,10 +29,10 @@ public class SecurityClearance implements ValueObject {
     }
 
     public boolean isActive() {
-        return LocalDate.now().isBefore(expirationDate);
+        return !LocalDate.now().isAfter(expirationDate);
     }
 
-    public String level() {
+    public SecurityLevel level() {
         return level;
     }
 
@@ -38,7 +41,20 @@ public class SecurityClearance implements ValueObject {
     }
 
     @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (!(o instanceof SecurityClearance)) return false;
+        final SecurityClearance other = (SecurityClearance) o;
+        return level == other.level && expirationDate.equals(other.expirationDate);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * level.hashCode() + expirationDate.hashCode();
+    }
+
+    @Override
     public String toString() {
-        return level + " (expires: " + expirationDate + ")";
+        return level.name() + " (expires: " + expirationDate + ")";
     }
 }

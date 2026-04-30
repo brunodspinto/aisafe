@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class UserTest {
 
     private static final SecurityClearance DUMMY_CLEARANCE =
-            new SecurityClearance("SECRET", LocalDate.now().plusYears(1));
+            new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
 
     static SystemUser dummySystemUser(final String username, final Role... roles) {
         return new SystemUserBuilder(new NilPasswordPolicy(), new PlainTextEncoder())
@@ -140,14 +140,14 @@ class UserTest {
     @Test
     void ensureSecurityClearanceIsActiveWhenDateIsInFuture() {
         final SecurityClearance clearance =
-                new SecurityClearance("TOP_SECRET", LocalDate.now().plusDays(30));
+                new SecurityClearance(SecurityLevel.CRITICAL, LocalDate.now().plusDays(30));
         assertTrue(clearance.isActive());
     }
 
     @Test
     void ensureSecurityClearanceRejectsPastExpirationDate() {
         assertThrows(IllegalArgumentException.class, () ->
-                new SecurityClearance("SECRET", LocalDate.now().minusDays(1)));
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().minusDays(1)));
     }
 
     @Test
@@ -157,9 +157,75 @@ class UserTest {
     }
 
     @Test
-    void ensureSecurityClearanceRejectsBlankLevel() {
+    void ensureElevatedAndAboveRequireBodyScan() {
+        assertTrue(SecurityLevel.ELEVATED.requiresBodyScan());
+        assertTrue(SecurityLevel.HIGH.requiresBodyScan());
+        assertTrue(SecurityLevel.CRITICAL.requiresBodyScan());
+    }
+
+    @Test
+    void ensureLowAndGuardedDoNotRequireBodyScan() {
+        assertFalse(SecurityLevel.LOW.requiresBodyScan());
+        assertFalse(SecurityLevel.GUARDED.requiresBodyScan());
+    }
+
+    @Test
+    void ensureIsAtLeastRespectsOrder() {
+        assertTrue(SecurityLevel.HIGH.isAtLeast(SecurityLevel.LOW));
+        assertTrue(SecurityLevel.HIGH.isAtLeast(SecurityLevel.HIGH));
+        assertFalse(SecurityLevel.LOW.isAtLeast(SecurityLevel.HIGH));
+    }
+
+    @Test
+    void ensureSecurityLevelFromCodeThrowsOnInvalidCode() {
+        assertThrows(IllegalArgumentException.class, () -> SecurityLevel.fromCode(99));
+    }
+
+    @Test
+    void ensureSecurityClearanceNullExpiryIsRejected() {
         assertThrows(IllegalArgumentException.class, () ->
-                new SecurityClearance("   ", LocalDate.now().plusYears(1)));
+                new SecurityClearance(SecurityLevel.LOW, null));
+    }
+
+    @Test
+    void ensureSecurityClearanceEqualityBasedOnLevelAndDate() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, date);
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.HIGH, date);
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureSecurityClearanceWithDifferentLevelIsNotEqual() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, date);
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.LOW, date);
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    void ensureSecurityClearanceIsActiveOnExpirationDay() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.LOW, LocalDate.now());
+        assertTrue(clearance.isActive());
+    }
+
+    // --- Email ---
+
+    @Test
+    void ensureEmailEqualityBasedOnAddress() {
+        final Email a = new Email("user@aisafe.com");
+        final Email b = new Email("user@aisafe.com");
+        assertEquals(a, b);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureEmailsWithDifferentAddressesAreNotEqual() {
+        final Email a = new Email("user@aisafe.com");
+        final Email b = new Email("other@aisafe.com");
+        assertNotEquals(a, b);
     }
 
     // --- MecanographicNumber ---
@@ -181,5 +247,14 @@ class UserTest {
         final MecanographicNumber a = MecanographicNumber.valueOf("12345");
         final MecanographicNumber b = new MecanographicNumber("12345");
         assertEquals(a, b);
+    }
+
+    @Test
+    void ensureMecanographicNumberCompareToOrdering() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("10000");
+        final MecanographicNumber b = MecanographicNumber.valueOf("20000");
+        assertTrue(a.compareTo(b) < 0);
+        assertTrue(b.compareTo(a) > 0);
+        assertEquals(0, a.compareTo(MecanographicNumber.valueOf("10000")));
     }
 }
