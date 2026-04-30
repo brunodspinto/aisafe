@@ -1,0 +1,40 @@
+@startuml sd30-login
+skinparam shadowing false
+autonumber
+
+actor User as user
+participant "AiSafeConsoleApp" as app
+participant "LoginUI" as loginUI
+participant "AuthenticationService\n(EAPLI)" as authSvc
+participant "AuthzRegistry\n(EAPLI)" as registry
+
+app -> loginUI : show()
+activate loginUI
+
+loop up to 3 attempts
+    loginUI -> user : prompt username + password
+    user -> loginUI : username, password
+
+    loginUI -> registry : authenticationService()
+    registry --> loginUI : authSvc
+
+    loginUI -> authSvc : authenticate(username, password, null)
+    activate authSvc
+    authSvc --> loginUI : Optional<UserSession>
+    deactivate authSvc
+
+    alt credentials valid
+        loginUI --> app : true (login successful)
+    else credentials invalid
+        loginUI -> user : "Wrong username or password.\nX attempts left."
+    end
+end
+
+alt all attempts exhausted
+    loginUI --> app : false (login failed)
+    app -> user : "Unable to authenticate."
+end
+
+deactivate loginUI
+
+@enduml

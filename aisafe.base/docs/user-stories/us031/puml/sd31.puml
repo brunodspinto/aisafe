@@ -1,0 +1,43 @@
+@startuml sd31
+skinparam shadowing false
+autonumber
+
+actor Administrator as admin
+participant "AddUserUI" as ui
+participant "AddUserController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "UserManagementService\n(EAPLI)" as userSvc
+participant "UserRepository" as repo
+
+admin -> ui : fill in user data\n(username, password, firstName,\nlastName, phoneNumber, email,\nposition, clearance, skillsDate, roles)
+activate ui
+
+ui -> ctrl : addUser(username, password,\nfirstName, lastName, emailStr,\nroles, phoneNumber, position,\nemail, securityClearance, skillsDate)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(ADMIN)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+
+ctrl -> userSvc : registerNewUser(username, password,\nfirstName, lastName, emailStr,\nroles, currentTime)
+activate userSvc
+userSvc --> ctrl : systemUser : SystemUser
+deactivate userSvc
+
+ctrl -> ctrl : mecNumber = MecanographicNumber.valueOf(\n  String.valueOf(currentTimeMillis()))
+
+ctrl -> ctrl : user = new User(systemUser, mecNumber,\n  phoneNumber, email, position,\n  securityClearance, skillsDate)
+
+ctrl -> repo : save(user)
+activate repo
+repo --> ctrl : savedUser : User
+deactivate repo
+
+ctrl --> ui : savedUser
+deactivate ctrl
+
+ui -> admin : "User successfully registered."
+deactivate ui
+
+@enduml

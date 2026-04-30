@@ -1,19 +1,12 @@
-# US 31
+# US031 — Register Backoffice User
 
 ## 1. Context
 
-*This US allows the Administrator to register new backoffice users in the AISafe system.*
+This US was implemented in Sprint 2 and allows the Administrator to register new backoffice users in the AISafe system. It depends on US030 (Authentication and Authorization), which must be in place so that only an authenticated Admin can invoke this feature.
 
-### 1.1 List of issues
+The implementation follows a DDD layered architecture: a UI layer collects input, an application controller orchestrates the use case, the domain enforces invariants, and the repository persists the aggregate.
 
-Analysis: Define the domain model for User aggregate.
-
-Design: Design the sequence diagram and class diagram.
-
-Implement:
-
-Test: Unit tests for User, Email and SecurityClearance.
-
+---
 
 ## 2. Requirements
 
@@ -21,89 +14,267 @@ Test: Unit tests for User, Email and SecurityClearance.
 
 **Acceptance Criteria:**
 
-- US031.1 The system must allow the Administrator to register a new backoffice user with username, password, first name, last name, phone number, email, position, security clearance and skills assessment date.
-- US031.2 The email must be valid (correct format).
-- US031.3 The password must have at least 6 characters, one digit and one capital letter.
-- US031.4 The user must have at least one role assigned.
-- US031.5 The username must be unique in the system.
-- US031.6 This must also be achievable by a bootstrap process.
+- **AC031.1** The system must allow the Administrator to register a new backoffice user with username, password, first name, last name, phone number, email, position, security clearance and skills assessment date.
+- **AC031.2** The email must be valid (correct format).
+- **AC031.3** The password must have at least 6 characters, one digit and one capital letter.
+- **AC031.4** The user must have one role assigned.
+- **AC031.5** The username must be unique in the system.
+- **AC031.6** This must also be achievable by a bootstrap process.
 
 **Dependencies/References:**
 
-- US030 - Authentication and Authorization must be implemented first.
+- US030 — Authentication and Authorization must be implemented first.
+
+---
 
 ## 3. Analysis
 
-The User aggregate was designed following DDD principles. The main entities and value objects identified are:
+The `User` aggregate was designed following DDD principles. The domain distinguishes between two user concepts:
 
-- `User` — aggregate root
-- `Email` — value object with format validation
-- `SecurityClearance` — value object with level and expiration date
-- `RoleType` — enum with the available roles in the system
+- **SystemUser** (from the EAPLI framework) — handles authentication (username, password, roles). Managed entirely by the framework.
+- **User** (AISafe aggregate root) — holds AISafe-specific business data and references a `SystemUser` via a `@OneToOne` association.
 
-The `User` references a `SystemUser` from the EAPLI framework, which handles authentication. The AISafe-specific data (phone number, position, security clearance, skills assessment date) is stored in the `User` aggregate.
+This separation avoids duplicating authentication logic while still allowing the domain to store business-specific fields.
 
-The following diagram shows the relevant excerpt of the domain model:
+The main classes identified are:
 
-![domain-model31](svg/domain-model31.svg)
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `User` | Entity / Aggregate Root | Holds AISafe-specific user data |
+| `MecanographicNumber` | Identity (Value Object) | Unique identifier for a `User` |
+| `Email` | Value Object | Validates and stores email in lowercase |
+| `SecurityClearance` | Value Object | Level + expiration date (today or future accepted) |
+| `SecurityLevel` | Enumeration | Five clearance levels: LOW, GUARDED, ELEVATED, HIGH, CRITICAL |
+| `AiSafeRoles` | Utility | Defines the 6 roles of the system |
+| `AiSafePasswordPolicy` | Domain Service | Enforces password rules (AC031.3) |
+
+The following diagram shows the domain model excerpt for this US:
+
+![Domain Model](svg/domain-model31.svg)
+
+---
 
 ## 4. Design
 
 ### 4.1. Realization
 
-The following sequence diagram shows the flow of the Register User use case:
+The use case follows the standard layered flow: the UI (`AddUserUI`) collects all input fields with inline validation, then delegates to `AddUserController`. The controller first verifies that the authenticated user has the ADMIN role, then creates the `SystemUser` via EAPLI's `UserManagementService`, constructs the AISafe `User` aggregate, and persists it via `UserRepository`.
+
+The following sequence diagram illustrates this flow:
 
 ![Sequence Diagram](svg/sd31.svg)
 
-
 The following class diagram shows the classes involved:
 
-![a class diagram](class-diagram-01.svg "A Class Diagram")
-
+![Class Diagram](svg/class-diagram-01.svg)
 
 ### 4.2. Acceptance Tests
 
-Include here the main tests used to validate the functionality. Focus on how they relate to the acceptance criteria. May be automated or manual tests.
+All tests are automated with JUnit 5 and located in `src/test/java/aisafe/usermanagement/domain/`.
 
-**Test 1:** *Verifies that it is not possible to ...*
+---
 
-**Refers to Acceptance Criteria:** US666.1
+**AC031.2 — Email validation**
 
+**Test:** `ensureEmailRejectsInvalidFormat` — verifies that an email without `@` is rejected.
 
-```
-@Test(expected = IllegalArgumentException.class)
-public void ensureXxxxYyyy() {
-	...
+```java
+@Test
+void ensureEmailRejectsInvalidFormat() {
+    assertThrows(IllegalArgumentException.class, () -> new Email("not-an-email"));
 }
-````
+```
+
+**Test:** `ensureEmailRejectsMissingDomain` — verifies that `user@` (no domain) is rejected.
+
+```java
+@Test
+void ensureEmailRejectsMissingDomain() {
+    assertThrows(IllegalArgumentException.class, () -> new Email("user@"));
+}
+```
+
+**Test:** `ensureEmailIsSavedLowercase` — verifies that the address is normalised to lowercase.
+
+```java
+@Test
+void ensureEmailIsSavedLowercase() {
+    final Email email = new Email("User@AiSafe.COM");
+    assertEquals("user@aisafe.com", email.address());
+}
+```
+
+---
+
+**AC031.3 — Password policy**
+
+**Test:** `ensurePasswordWithoutDigitIsRejected`
+
+```java
+@Test
+void ensurePasswordWithoutDigitIsRejected() {
+    assertFalse(policy.isSatisfiedBy("Password"));
+}
+```
+
+**Test:** `ensurePasswordWithoutCapitalLetterIsRejected`
+
+```java
+@Test
+void ensurePasswordWithoutCapitalLetterIsRejected() {
+    assertFalse(policy.isSatisfiedBy("password1"));
+}
+```
+
+**Test:** `ensurePasswordShorterThanSixCharsIsRejected`
+
+```java
+@Test
+void ensurePasswordShorterThanSixCharsIsRejected() {
+    assertFalse(policy.isSatisfiedBy("Pa1"));
+}
+```
+
+**Test:** `ensureValidPasswordIsAccepted`
+
+```java
+@Test
+void ensureValidPasswordIsAccepted() {
+    assertTrue(policy.isSatisfiedBy("Password1"));
+}
+```
+
+---
+
+**User aggregate identity (AC031.5 support)**
+
+**Test:** `ensureUsersWithSameMecanographicNumberAreEqual`
+
+```java
+@Test
+void ensureUsersWithSameMecanographicNumberAreEqual() {
+    final User a = baseBuilder().withMecanographicNumber("DUMMY")
+            .withSystemUser(dummySystemUser("user1", AiSafeRoles.ADMIN)).build();
+    final User b = baseBuilder().withMecanographicNumber("DUMMY")
+            .withSystemUser(dummySystemUser("user2", AiSafeRoles.ADMIN)).build();
+    assertEquals(a, b);
+}
+```
+
+**Test:** `ensureUserConstructorRejectsNullSystemUser` — guards against incomplete construction.
+
+```java
+@Test
+void ensureUserConstructorRejectsNullSystemUser() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new User(null, MecanographicNumber.valueOf("123"),
+                    "910000000", new Email("a@b.com"), "Pilot",
+                    DUMMY_CLEARANCE, LocalDate.now()));
+}
+```
+
+---
+
+**SecurityClearance and SecurityLevel**
+
+**Test:** `ensureSecurityClearanceIsActiveOnExpirationDay` — today is accepted (clearance is active on the expiration day itself).
+
+```java
+@Test
+void ensureSecurityClearanceIsActiveOnExpirationDay() {
+    final SecurityClearance clearance =
+            new SecurityClearance(SecurityLevel.LOW, LocalDate.now());
+    assertTrue(clearance.isActive());
+}
+```
+
+**Test:** `ensureElevatedAndAboveRequireBodyScan` — verifies business rule encoded in `SecurityLevel`.
+
+```java
+@Test
+void ensureElevatedAndAboveRequireBodyScan() {
+    assertTrue(SecurityLevel.ELEVATED.requiresBodyScan());
+    assertTrue(SecurityLevel.HIGH.requiresBodyScan());
+    assertTrue(SecurityLevel.CRITICAL.requiresBodyScan());
+}
+```
+
+**Test:** `ensureIsAtLeastRespectsOrder` — verifies the level ordering used for access-control decisions.
+
+```java
+@Test
+void ensureIsAtLeastRespectsOrder() {
+    assertTrue(SecurityLevel.HIGH.isAtLeast(SecurityLevel.LOW));
+    assertTrue(SecurityLevel.HIGH.isAtLeast(SecurityLevel.HIGH));
+    assertFalse(SecurityLevel.LOW.isAtLeast(SecurityLevel.HIGH));
+}
+```
+
+---
 
 ## 5. Implementation
 
-*In this section the team should present, if necessary, some evidencies that the implementation is according to the design. It should also describe and explain other important artifacts necessary to fully understand the implementation like, for instance, configuration files.*
+The implementation is distributed across the following packages in `aisafe.base`:
 
-*It is also a best practice to include a listing (with a brief summary) of the major commits regarding this requirement.*
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.usermanagement.domain` | `User` | Aggregate root, table `T_AISAFE_USER` |
+| `aisafe.usermanagement.domain` | `MecanographicNumber` | Aggregate identity |
+| `aisafe.usermanagement.domain` | `Email` | Email value object |
+| `aisafe.usermanagement.domain` | `SecurityClearance` | Clearance value object (holds `SecurityLevel` + expiration date) |
+| `aisafe.usermanagement.domain` | `SecurityLevel` | Enum: LOW, GUARDED, ELEVATED, HIGH, CRITICAL (with ordinal, body-scan rule, ordering) |
+| `aisafe.usermanagement.domain` | `AiSafePasswordPolicy` | Password rule enforcement |
+| `aisafe.usermanagement.domain` | `AiSafeRoles` | Role constants |
+| `aisafe.usermanagement.domain` | `UserBuilder` | Fluent builder (DomainFactory) |
+| `aisafe.usermanagement.repositories` | `UserRepository` | Repository interface |
+| `aisafe.usermanagement.application` | `AddUserController` | Use case orchestrator |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryAiSafeUserRepository` | In-memory persistence |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryRepositoryFactory` | Factory + bootstrap |
+| `aisafe.app.console.presentation.authz` | `AddUserUI` | Console UI with per-field validation |
+
+The `AddUserController.addUser()` receives both `emailStr : String` (for the EAPLI `SystemUser`) and `email : Email` (for the AISafe `User`) because the two layers require different types of the same data.
+
+The `MecanographicNumber` is generated using `System.currentTimeMillis()` at the controller level, which guarantees uniqueness in single-threaded scenarios and is sufficient for the current in-memory implementation.
+
+The test suite comprises **38 unit tests** (30 in `UserTest`, 8 in `AiSafePasswordPolicyTest`), all passing.
+
+---
 
 ## 6. Integration/Demonstration
 
-To run the application:
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21.
 
 ```bash
-# Run bootstrap first (creates tables and admin user)
-./run-bootstrap.sh
+# Compile and run all tests
+mvn clean test
 
-# Run backoffice
-./run-backoffice.sh
-
-# Login with:
-# Username: admin
-# Password: Password1
+# Run the console application
+mvn exec:java -Dexec.mainClass="aisafe.app.console.AiSafeConsoleApp"
 ```
 
-Then navigate to **Users > Add User** to register a new user.
+**Bootstrap credentials (created automatically on startup):**
+
+| Field | Value |
+|-------|-------|
+| Username | `admin` |
+| Password | `Password1` |
+| Role | `ADMIN` |
+
+**To register a new user:**
+
+1. Login with the admin credentials.
+2. Select **2 — Users >** from the main menu.
+3. Select **1 — Add User**.
+4. Fill in all fields as prompted.
+5. Select a role from the numbered list (one role per user).
+6. The system confirms: `User successfully registered.`
+
+---
 
 ## 7. Observations
-* The `User` table is named `T_USER` to avoid conflict with the reserved SQL keyword `USER`.
-* The `Email` value object validates format using a regex pattern.
-* The `SecurityClearance` expiration date must be in the future.
-* The password policy requires at least 6 characters, one digit and one capital letter (enforced by `ExemploPasswordPolicy`).
-  
+
+- The `User` table is named `T_AISAFE_USER` to avoid conflict with the reserved SQL keyword `USER`.
+- The `Email` value object stores the address normalised to lowercase and validates format via regex `^[\w.-]+@[\w.-]+\.[a-zA-Z]{2,}$`.
+- The `SecurityClearance` expiration date must be today or in the future (today is accepted — the clearance is active on its expiration day).
+- The password policy is implemented in `AiSafePasswordPolicy` (min 6 chars, ≥ 1 digit, ≥ 1 uppercase letter) and registered with EAPLI's `AuthzRegistry` at application startup.
+- Username uniqueness (AC031.5) is enforced by EAPLI's `UserManagementService`, which throws `IntegrityViolationException` on duplicate usernames. This is caught in `AddUserUI` and shown to the user as a friendly message.

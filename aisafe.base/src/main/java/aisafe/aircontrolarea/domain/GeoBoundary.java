@@ -1,5 +1,5 @@
 package aisafe.aircontrolarea.domain;
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 import java.util.Objects;
 
 

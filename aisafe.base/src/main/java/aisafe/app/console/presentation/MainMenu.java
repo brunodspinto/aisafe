@@ -1,0 +1,75 @@
+package aisafe.app.console.presentation;
+
+import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.authz.ListUsersUI;
+import aisafe.app.console.presentation.authz.LogoutUI;
+import aisafe.usermanagement.domain.AiSafeRoles;
+import eapli.framework.actions.Actions;
+import eapli.framework.actions.menu.Menu;
+import eapli.framework.actions.menu.MenuItem;
+import eapli.framework.infrastructure.authz.application.AuthorizationService;
+import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+import eapli.framework.presentation.console.AbstractUI;
+import eapli.framework.presentation.console.ExitWithMessageAction;
+import eapli.framework.presentation.console.menu.MenuItemRenderer;
+import eapli.framework.presentation.console.menu.MenuRenderer;
+import eapli.framework.presentation.console.menu.VerticalMenuRenderer;
+
+public class MainMenu extends AbstractUI {
+
+    private static final int EXIT_OPTION = 0;
+    private static final int MY_ACCOUNT_OPTION = 1;
+    private static final int USERS_OPTION = 2;
+    private static final String SEPARATOR = "--------------";
+
+    private final AuthorizationService authz = AuthzRegistry.authorizationService();
+
+    @Override
+    public boolean show() {
+        drawFormTitle();
+        return doShow();
+    }
+
+    @Override
+    protected boolean doShow() {
+        final MenuRenderer renderer = new VerticalMenuRenderer(buildMainMenu(), MenuItemRenderer.DEFAULT);
+        return renderer.render();
+    }
+
+    @Override
+    public String headline() {
+        return authz.session()
+                .map(s -> "AISafe [ @" + s.authenticatedUser().identity() + " ]")
+                .orElse("AISafe");
+    }
+
+    private Menu buildMainMenu() {
+        final var menu = new Menu();
+
+        menu.addSubMenu(MY_ACCOUNT_OPTION, buildMyAccountMenu());
+        menu.addItem(MenuItem.separator(SEPARATOR));
+
+        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ADMIN)) {
+            menu.addSubMenu(USERS_OPTION, buildUsersMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+        }
+
+        menu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Goodbye!"));
+        return menu;
+    }
+
+    private Menu buildMyAccountMenu() {
+        final var menu = new Menu("My Account >");
+        menu.addItem(1, "Logout", new LogoutUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildUsersMenu() {
+        final var menu = new Menu("Users >");
+        menu.addItem(1, "Add User", new AddUserUI()::show);
+        menu.addItem(2, "List Users", new ListUsersUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+}

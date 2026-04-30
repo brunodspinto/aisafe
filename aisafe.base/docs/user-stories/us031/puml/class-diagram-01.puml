@@ -1,0 +1,120 @@
+@startuml class-diagram-01
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class AddUserUI {
+        +doShow() : boolean
+        -readUsername() : String
+        -readPassword() : String
+        -readName(prompt) : String
+        -readPhoneNumber() : String
+        -readPosition() : String
+        -readEmail() : Email
+        -readSecurityClearance() : SecurityClearance
+        -readDate(prompt) : LocalDate
+        -readRoles() : Set<Role>
+    }
+}
+
+package "Application Layer" {
+    class AddUserController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -userSvc : UserManagementService
+        -userRepo : UserRepository
+        +getRoleTypes() : Role[]
+        +addUser(...) : User
+    }
+}
+
+package "Domain Layer" {
+    class User <<entity, aggregate root>> {
+        -phoneNumber : String
+        -position : String
+        -skillsAssessmentDate : LocalDate
+        +sameAs(other) : boolean
+        +identity() : MecanographicNumber
+    }
+
+    class MecanographicNumber <<identity>> {
+        -value : String
+        +valueOf(value) : MecanographicNumber
+    }
+
+    class Email <<value object>> {
+        -address : String
+        +address() : String
+    }
+
+    class SecurityClearance <<value object>> {
+        -level : SecurityLevel
+        -expirationDate : LocalDate
+        +isActive() : boolean
+    }
+
+    enum SecurityLevel {
+        LOW
+        GUARDED
+        ELEVATED
+        HIGH
+        CRITICAL
+        +getCode() : int
+        +fromCode(code) : SecurityLevel
+        +requiresBodyScan() : boolean
+        +isAtLeast(other) : boolean
+    }
+
+    class AiSafePasswordPolicy <<domain service>> {
+        +isSatisfiedBy(rawPassword) : boolean
+    }
+
+    class AiSafeRoles {
+        +{static} ADMIN : Role
+        +{static} BACKOFFICE_OPERATOR : Role
+        +{static} ATCC : Role
+        +{static} PILOT : Role
+        +{static} FLIGHT_CONTROL_OPERATOR : Role
+        +{static} WEATHER_PERSON : Role
+        +{static} nonUserValues() : Role[]
+    }
+}
+
+package "Repository Layer" {
+    interface UserRepository {
+        +findAllActive() : Iterable<User>
+        +findByUsername(username) : Optional<User>
+    }
+
+    class InMemoryAiSafeUserRepository {
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class SystemUser
+    class UserManagementService
+    class AuthorizationService
+}
+
+package "Infrastructure" {
+    class InMemoryRepositoryFactory {
+        +systemUsers() : UserRepository
+        +users() : UserRepository
+    }
+}
+
+AddUserUI ..> AddUserController : uses
+AddUserController ..> AuthorizationService : checks ADMIN role
+AddUserController ..> UserManagementService : creates SystemUser
+AddUserController ..> UserRepository : saves User
+AddUserController ..> User : creates
+
+User *-- MecanographicNumber : identity
+User *-- Email : has
+User *-- SecurityClearance : has
+User --> SystemUser : references
+SecurityClearance --> SecurityLevel : uses
+
+UserRepository <|.. InMemoryAiSafeUserRepository
+InMemoryRepositoryFactory ..|> UserRepository : creates
+
+@enduml

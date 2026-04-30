@@ -1,0 +1,35 @@
+@startuml sd30-menu
+skinparam shadowing false
+autonumber
+
+actor User as user
+participant "MainMenu" as menu
+participant "AuthorizationService\n(EAPLI)" as authz
+
+user -> menu : mainLoop()
+activate menu
+
+menu -> authz : session()
+authz --> menu : Optional<UserSession>
+
+menu -> authz : isAuthenticatedUserAuthorizedTo(ADMIN)
+authz --> menu : boolean
+
+alt user has ADMIN role
+    menu -> user : show "Users >" submenu option
+else other roles
+    menu -> user : show only "My Account >" and "Exit"
+end
+
+user -> menu : select option
+
+alt "My Account > Logout"
+    menu -> authz : clearSession()
+    menu -> user : session cleared
+else "Users > Add User" (ADMIN only)
+    menu -> user : open AddUserUI
+end
+
+deactivate menu
+
+@enduml

@@ -1,0 +1,80 @@
+@startuml class-diagram-30
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Console Application" {
+    class AiSafeConsoleApp {
+        +{static} main(args : String[]) : void
+    }
+
+    class LoginUI {
+        -MAX_ATTEMPTS : int = 3
+        +doShow() : boolean
+        +headline() : String
+    }
+
+    class MainMenu {
+        +show() : boolean
+        +doShow() : boolean
+        +headline() : String
+        -buildMainMenu() : Menu
+        -buildMyAccountMenu() : Menu
+        -buildUsersMenu() : Menu
+    }
+
+    class LogoutUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Domain" {
+    class AiSafeRoles {
+        +{static} ADMIN : Role
+        +{static} BACKOFFICE_OPERATOR : Role
+        +{static} ATCC : Role
+        +{static} PILOT : Role
+        +{static} FLIGHT_CONTROL_OPERATOR : Role
+        +{static} WEATHER_PERSON : Role
+        +{static} nonUserValues() : Role[]
+    }
+
+    class AiSafePasswordPolicy {
+        +isSatisfiedBy(rawPassword : String) : boolean
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthzRegistry {
+        +{static} configure(repo, policy, encoder)
+        +{static} authenticationService() : AuthenticationService
+        +{static} authorizationService() : AuthorizationService
+    }
+
+    class AuthenticationService {
+        +authenticate(username, password, role) : Optional<UserSession>
+    }
+
+    class AuthorizationService {
+        +isAuthenticatedUserAuthorizedTo(roles) : boolean
+        +ensureAuthenticatedUserHasAnyOf(roles) : void
+        +clearSession() : void
+        +session() : Optional<UserSession>
+        +hasSession() : boolean
+    }
+}
+
+AiSafeConsoleApp ..> LoginUI : creates
+AiSafeConsoleApp ..> MainMenu : creates
+AiSafeConsoleApp ..> AuthzRegistry : configures
+
+LoginUI ..> AuthzRegistry : uses
+MainMenu ..> AuthzRegistry : uses
+MainMenu ..> AiSafeRoles : checks roles
+MainMenu ..> LogoutUI : creates
+LogoutUI ..> AuthzRegistry : clearSession()
+
+AuthzRegistry --> AuthenticationService : provides
+AuthzRegistry --> AuthorizationService : provides
+
+@enduml
