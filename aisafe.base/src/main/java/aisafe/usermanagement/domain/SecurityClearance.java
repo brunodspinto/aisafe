@@ -6,7 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
-@E mbeddable
+@Embeddable
 public class SecurityClearance implements ValueObject {
 
     private static final long serialVersionUID = 1L;
