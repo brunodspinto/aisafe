@@ -9,6 +9,7 @@
     <class>eapli.framework.infrastructure.authz.domain.model.RoleAssignment</class>
     <class>aisafe.usermanagement.domain.User</class>
     <class>aisafe.aircontrolarea.domain.AirControlArea</class>
+    <class>aisafe.airtransportcompany.domain.AirTransportCompany</class>
 
     <properties>
       <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:~/aisafe"/>

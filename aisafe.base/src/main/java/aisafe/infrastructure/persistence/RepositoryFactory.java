@@ -1,5 +1,7 @@
 package aisafe.infrastructure.persistence;
 
+import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
+import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.usermanagement.repositories.UserRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
@@ -14,6 +16,8 @@ public interface RepositoryFactory {
     UserRepository users(TransactionalContext tx);
 
     UserRepository users();
+
+    AirTransportCompanyRepository airTransportCompanies();
 
     AirControlAreaRepository airControlAreas();
 }

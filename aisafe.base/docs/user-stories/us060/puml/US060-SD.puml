@@ -1,0 +1,36 @@
+@startuml
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as op
+participant "RegisterAirTransportCompanyUI" as ui
+participant "RegisterAirTransportCompanyController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "AirTransportCompanyRepository" as repo
+
+op -> ui : register company
+activate ui
+
+ui -> ctrl : registerCompany(name, iataCode, icaoCode)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+
+ctrl -> ctrl : new AirTransportCompany(name, IATACode.valueOf(iataCode), ICAOCode.valueOf(icaoCode))
+note right: domain invariants validated\ninside constructors/value objects
+
+ctrl -> repo : save(company)
+activate repo
+repo --> ctrl : saved company
+deactivate repo
+
+ctrl --> ui : company : AirTransportCompany
+deactivate ctrl
+
+ui -> op : "Company '...' registered successfully."
+deactivate ui
+
+@enduml

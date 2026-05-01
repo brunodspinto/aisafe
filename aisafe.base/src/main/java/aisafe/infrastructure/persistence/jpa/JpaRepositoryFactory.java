@@ -1,5 +1,7 @@
 package aisafe.infrastructure.persistence.jpa;
 
+import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
+import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.usermanagement.repositories.UserRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
@@ -30,6 +32,16 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public UserRepository users() {
         return new JpaUserRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AirTransportCompanyRepository airTransportCompanies() {
+        return new JpaAirTransportCompanyRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AirControlAreaRepository airControlAreas() {
+        return new JpaAirControlAreaRepository(PERSISTENCE_UNIT);
     }
 
     @Override

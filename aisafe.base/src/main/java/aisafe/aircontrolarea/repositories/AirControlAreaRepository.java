@@ -8,7 +8,4 @@ import eapli.framework.domain.repositories.DomainRepository;
  * The entity ID is a String (areaCode).
  */
 public interface AirControlAreaRepository extends DomainRepository<String, AirControlArea> {
-
-    AirControlArea save(AirControlArea entity);
-
 }
