@@ -14,4 +14,6 @@ public interface RepositoryFactory {
     UserRepository users(TransactionalContext tx);
 
     UserRepository users();
+
+    AirControlAreaRepository airControlAreas();
 }
