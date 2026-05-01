@@ -4,13 +4,16 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import java.util.Objects;
+import eapli.framework.domain.model.AggregateRoot;
+import eapli.framework.domain.model.DomainEntities;
+
 
 
 /**
  * Entity and Aggregate Root representing an Air Control Area.
  */
 @Entity
-public class AirControlArea {
+public class AirControlArea implements AggregateRoot<String> {
 
     // The @Id annotation tells JPA that this is the unique identifier (Primary Key).
     @Id
@@ -85,14 +88,14 @@ public class AirControlArea {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(areaCode);
+    public boolean sameAs(final Object other) {
+        return DomainEntities.areEqual(this, other);
     }
 
     @Override
-    public String toString() {
-        return String.format("AirControlArea [Code: %s, Name: %s, Min Fuel: %.2f, %s]",
-                areaCode, name, minimumFuelRequired, boundaries.toString());
+    public String identity() {
+        // Retorna o identificador único desta entidade
+        return this.areaCode;
     }
 
 }
