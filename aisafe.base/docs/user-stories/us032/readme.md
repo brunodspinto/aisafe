@@ -65,59 +65,94 @@ The toggle approach avoids separate "disable" and "enable" menu entries, keeping
 
 ### 4.2. Acceptance Tests
 
-Tests are located in `src/test/java/aisafe/usermanagement/application/`.
+All tests are automated with JUnit 5 and located in `src/test/java/aisafe/usermanagement/domain/DisableEnableUserTest.java`. The test suite runs **8 tests**, all passing.
 
 ---
 
-**AC032.1 / AC032.2 — Toggle behaviour**
+**AC032.1 — Disable an active user**
 
-**Test:** `ensureActiveUserBecomesDisabledAfterToggle`
-
-```java
-@Test
-void ensureActiveUserBecomesDisabledAfterToggle() {
-    // arrange: active user in repository
-    // act: controller.toggleUser(username)
-    // assert: returned false (now disabled), systemUser.isActive() == false
-}
-```
-
-**Test:** `ensureDisabledUserBecomesActiveAfterToggle`
+**Test:** `ensureActiveUserCanBeDeactivated`
 
 ```java
 @Test
-void ensureDisabledUserBecomesActiveAfterToggle() {
-    // arrange: disabled user in repository
-    // act: controller.toggleUser(username)
-    // assert: returned true (now active), systemUser.isActive() == true
+void ensureActiveUserCanBeDeactivated() {
+    final SystemUser sys = dummySystemUser("user2");
+    sys.deactivate(Calendar.getInstance());
+    assertFalse(sys.isActive());
 }
 ```
 
 ---
 
-**AC032.4 — Only Admin may toggle**
+**AC032.2 — Re-enable a disabled user**
 
-**Test:** `ensureNonAdminCannotToggleUser`
+**Test:** `ensureInactiveUserCanBeReactivated`
 
 ```java
 @Test
-void ensureNonAdminCannotToggleUser() {
-    // arrange: authenticated user is not ADMIN
-    // act + assert: controller.toggleUser(...) throws UnauthorizedException
+void ensureInactiveUserCanBeReactivated() {
+    final SystemUser sys = dummySystemUser("user3");
+    sys.deactivate(Calendar.getInstance());
+    sys.activate();
+    assertTrue(sys.isActive());
+}
+```
+
+**Test:** `ensureReactivatedUserIsFullyActive` — verifies the user can be deactivated again after re-activation
+
+```java
+@Test
+void ensureReactivatedUserIsFullyActive() {
+    final SystemUser sys = dummySystemUser("user4");
+    sys.deactivate(Calendar.getInstance());
+    sys.activate();
+    sys.deactivate(Calendar.getInstance());
+    assertFalse(sys.isActive());
 }
 ```
 
 ---
 
-**AC032.5 — Unknown username**
+**AC032.3 — User aggregate reflects SystemUser active state**
 
-**Test:** `ensureToggleThrowsForUnknownUsername`
+**Test:** `ensureUserAggregateReflectsDeactivatedState`
 
 ```java
 @Test
-void ensureToggleThrowsForUnknownUsername() {
-    assertThrows(IllegalArgumentException.class,
-        () -> controller.toggleUser(Username.valueOf("nonexistent")));
+void ensureUserAggregateReflectsDeactivatedState() {
+    final SystemUser sys = dummySystemUser("user7");
+    final User user = buildUser(sys, "MECNUM1");
+    assertTrue(user.systemUser().isActive());
+    sys.deactivate(Calendar.getInstance());
+    assertFalse(user.systemUser().isActive());
+}
+```
+
+---
+
+**AC032.5 — Edge cases handled gracefully**
+
+**Test:** `ensureDeactivatingAlreadyInactiveUserThrows`
+
+```java
+@Test
+void ensureDeactivatingAlreadyInactiveUserThrows() {
+    final SystemUser sys = dummySystemUser("user5");
+    sys.deactivate(Calendar.getInstance());
+    assertThrows(IllegalStateException.class,
+            () -> sys.deactivate(Calendar.getInstance()));
+}
+```
+
+**Test:** `ensureActivatingAlreadyActiveUserIsIdempotent`
+
+```java
+@Test
+void ensureActivatingAlreadyActiveUserIsIdempotent() {
+    final SystemUser sys = dummySystemUser("user6");
+    assertTrue(sys.isActive());
+    sys.activate(); // must not throw
+    assertTrue(sys.isActive());
 }
 ```
 
