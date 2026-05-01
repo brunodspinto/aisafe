@@ -1,0 +1,63 @@
+@startuml sd32
+skinparam shadowing false
+autonumber
+
+actor Administrator as admin
+participant "DisableEnableUserUI" as ui
+participant "DisableEnableUserController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "UserRepository" as repo
+participant "UserManagementService\n(EAPLI)" as userSvc
+
+admin -> ui : view user list
+activate ui
+
+ui -> ctrl : allUsers()
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(ADMIN)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+ctrl -> repo : findAll()
+activate repo
+repo --> ctrl : users : Iterable<User>
+deactivate repo
+ctrl --> ui : users : Iterable<User>
+deactivate ctrl
+
+ui -> admin : display table (username, name, status)
+
+admin -> ui : enter username to toggle
+ui -> ctrl : toggleUser(username)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(ADMIN)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+
+ctrl -> repo : findByUsername(username)
+activate repo
+repo --> ctrl : user : Optional<User>
+deactivate repo
+
+alt user is active
+    ctrl -> userSvc : deactivateUser(systemUser)
+    activate userSvc
+    userSvc --> ctrl : updated SystemUser
+    deactivate userSvc
+    ctrl --> ui : false (now DISABLED)
+else user is inactive
+    ctrl -> userSvc : activateUser(systemUser)
+    activate userSvc
+    userSvc --> ctrl : updated SystemUser
+    deactivate userSvc
+    ctrl --> ui : true (now ACTIVE)
+end
+
+deactivate ctrl
+
+ui -> admin : "User '...' is now ACTIVE/DISABLED."
+deactivate ui
+
+@enduml

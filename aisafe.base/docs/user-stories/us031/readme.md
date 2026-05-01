@@ -50,7 +50,7 @@ The main classes identified are:
 
 The following diagram shows the domain model excerpt for this US:
 
-![Domain Model](svg/domain-model31.svg)
+![Domain Model](svg/US031-domain-model.svg)
 
 ---
 
@@ -62,11 +62,11 @@ The use case follows the standard layered flow: the UI (`AddUserUI`) collects al
 
 The following sequence diagram illustrates this flow:
 
-![Sequence Diagram](svg/sd31.svg)
+![Sequence Diagram](svg/US031-SD.svg)
 
 The following class diagram shows the classes involved:
 
-![Class Diagram](svg/class-diagram-01.svg)
+![Class Diagram](svg/US031-class-diagram.svg)
 
 ### 4.2. Acceptance Tests
 

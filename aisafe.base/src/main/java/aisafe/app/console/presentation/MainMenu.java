@@ -1,6 +1,7 @@
 package aisafe.app.console.presentation;
 
 import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.authz.DisableEnableUserUI;
 import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -69,6 +70,7 @@ public class MainMenu extends AbstractUI {
         final var menu = new Menu("Users >");
         menu.addItem(1, "Add User", new AddUserUI()::show);
         menu.addItem(2, "List Users", new ListUsersUI()::show);
+        menu.addItem(3, "Disable/Enable User", new DisableEnableUserUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
