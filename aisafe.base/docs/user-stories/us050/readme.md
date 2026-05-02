@@ -15,12 +15,11 @@
 
 ## 2. Requirements
 
-**US050**  
-As a Backoffice Operator, I want to register an air control area. The area code must be unique in the system. Geographic boundaries must be valid. This must also be achievable by a bootstrap process.
+**US050** As a Backoffice Operator, I want to register an air control area. The area code must be unique in the system. Geographic boundaries must be valid. This must also be achievable by a bootstrap process.
 
 ### Acceptance Criteria
 
-- **US050.1:** The system must allow the Backoffice Operator to register a new air control area by providing a unique area code and its geographic boundaries.
+- **US050.1:** The system must allow the Backoffice Operator to register a new air control area by providing a unique area code, a name, the minimum fuel required, and its geographic boundaries.
 - **US050.2:** The area code must be globally unique in the system.
 - **US050.3:** The geographic boundaries must be logically valid (e.g., North latitude cannot be inferior to South latitude).
 - **US050.4:** The registration must be achievable by a bootstrap process upon system startup.
@@ -41,24 +40,25 @@ The `AirControlArea` aggregate was designed following Domain-Driven Design (DDD)
 ### Main Components
 
 - `AirControlArea` — Aggregate root representing the airspace.
-- `AirControlAreaCode` — Value object acting as business identity with validation.
 - `GeoBoundary` — Value object encapsulating geographic coordinates.
 
-The `GeoBoundary` ensures that:
+> **Architectural Decision:** Initially considered, the `AirControlAreaCode` was discarded as a dedicated Value Object. Since its only business rule is "uniqueness", this validation is better delegated to the database constraint (Primary Key). Thus, `areaCode` is modeled as a primitive `String`.
 
+The `GeoBoundary` ensures that:
 - North latitude > South latitude
-- Coordinates form a valid rectangular area
+- Latitudes are between -90 and 90
+- Longitudes are between -180 and 180
 
 ### Persistence (JPA)
 
 - `GeoBoundary` → `@Embeddable`
 - Used inside `AirControlArea` with `@Embedded`
-- Avoids unnecessary joins
+- Avoids unnecessary joins by keeping the boundaries in the same table as the Air Control Area.
+
 
 ### Domain Model
 
-
-> **Note:** To be added.
+![Domain Model](svg/US050-domain-model.svg)
 
 ---
 
@@ -66,17 +66,17 @@ The `GeoBoundary` ensures that:
 
 ### 4.1 Realization
 
-This use case follows the standard **"Register X"** architectural pattern.
+This use case follows the standard "Register X" architectural pattern. Following the Application Engineering Process guidelines, the Sequence Diagram focuses on the core domain orchestration and omits the explicit fetching of the Persistence Context to avoid UML programming boilerplate.
 
 ### Sequence Diagram
 
+![Sequence Diagram](svg/US050-SD.svg)
 
-> **Note:** To be added.
 
 ### Class Diagram
 
+![Class Diagram](svg/US050-class-diagram.svg)
 
-> **Note:** To be added.
 
 ---
 
@@ -109,11 +109,13 @@ public void ensureAirControlAreaMustHaveValidCodeAndBoundaries() {
 
 ### Key Implementation Details
 
-- `AirControlArea` → `@Entity`
-- `AirControlAreaCode` → `@Column(unique = true)`
-- `GeoBoundary` → `@Embeddable`
-- Used with `@Embedded` inside `AirControlArea`
-- Created `AirControlAreaBootstrapper` to support system startup initialization
+- `AirControlArea` → Annotated with `@Entity` and implements `AggregateRoot<String>`.
+- `areaCode` → Annotated with `@Id` to enforce global uniqueness at the database level.
+- `GeoBoundary` → Implements `ValueObject` and uses `@Embeddable`.
+- Mapped inside `AirControlArea` using the `@Embedded` annotation.
+- Two repository implementations were provided:
+    - `InMemoryAirControlAreaRepository` (for testing)
+    - `JpaAirControlAreaRepository` (for production)
 
 ## 6. Integration / Demonstration
 
@@ -129,6 +131,9 @@ public void ensureAirControlAreaMustHaveValidCodeAndBoundaries() {
 # Login with:
 # Username: admin (or a backoffice operator credentials)
 # Password: Password1
+
+# Navigate to: 
+# Air Control Management -> Register Air Control Area
 
 ````
 ## 7. Observations

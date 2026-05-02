@@ -1,0 +1,25 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US050 - Sub-Domain Model (Air Control Area)
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+        minimumFuelRequired
+    }
+
+    class GeoBoundary <<value object>> {
+        northLatitude
+        southLatitude
+        eastLongitude
+        westLongitude
+    }
+}
+
+AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
+
+@enduml
