@@ -1,5 +1,6 @@
 package aisafe.app.console.presentation;
 
+import aisafe.app.console.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
@@ -23,6 +24,7 @@ public class MainMenu extends AbstractUI {
     private static final int MY_ACCOUNT_OPTION = 1;
     private static final int USERS_OPTION = 2;
     private static final int COMPANIES_OPTION = 3;
+    private static final int AIR_CONTROL_OPTION = 4;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -60,6 +62,9 @@ public class MainMenu extends AbstractUI {
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.BACKOFFICE_OPERATOR)) {
             menu.addSubMenu(COMPANIES_OPTION, buildCompaniesMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
+
+            menu.addSubMenu(AIR_CONTROL_OPTION, buildAirControlMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
         menu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Goodbye!"));
@@ -85,6 +90,13 @@ public class MainMenu extends AbstractUI {
     private Menu buildCompaniesMenu() {
         final var menu = new Menu("Companies >");
         menu.addItem(1, "Register Air Transport Company", new RegisterAirTransportCompanyUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildAirControlMenu() {
+        final var menu = new Menu("Air Control >");
+        menu.addItem(1, "Register Air Control Area", new RegisterAirControlAreaUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
