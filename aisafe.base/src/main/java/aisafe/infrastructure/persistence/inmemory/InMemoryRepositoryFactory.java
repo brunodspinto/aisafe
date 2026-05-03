@@ -1,5 +1,7 @@
 package aisafe.infrastructure.persistence.inmemory;
 
+import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
+import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -36,6 +38,16 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public aisafe.usermanagement.repositories.UserRepository users() {
         return users(null);
+    }
+
+    @Override
+    public AirTransportCompanyRepository airTransportCompanies() {
+        return new InMemoryAirTransportCompanyRepository();
+    }
+
+    @Override
+    public AirControlAreaRepository airControlAreas() {
+        return new InMemoryAirControlAreaRepository();
     }
 
     @Override

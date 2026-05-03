@@ -1,0 +1,45 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US050 - Class Diagram
+
+class RegisterAirControlAreaUI {
+    # doShow() : boolean
+}
+
+class RegisterAirControlAreaController {
+    + registerAirControlArea(areaCode, name, minimumFuel, northLat, southLat, eastLong, westLong) : AirControlArea
+}
+
+class AirControlArea <<entity>> <<aggregate root>> {
+    - areaCode : String
+    - name : String
+    - minimumFuelRequired : double
+    + AirControlArea(areaCode, name, minimumFuel, boundaries)
+}
+
+class GeoBoundary <<value object>> {
+    - northLatitude : double
+    - southLatitude : double
+    - eastLongitude : double
+    - westLongitude : double
+    + GeoBoundary(north, south, east, west)
+}
+
+interface AirControlAreaRepository <<repository>> {
+    + save(entity: AirControlArea) : AirControlArea
+}
+
+' Relações de Dependência da Aplicação
+RegisterAirControlAreaUI .down.> RegisterAirControlAreaController
+RegisterAirControlAreaController .down.> AirControlArea
+RegisterAirControlAreaController .down.> GeoBoundary
+RegisterAirControlAreaController .down.> AirControlAreaRepository
+
+' Relações do Domínio
+AirControlArea "1" *-- "1" GeoBoundary : bounded by >
+AirControlAreaRepository "1" --> "*" AirControlArea : stores >
+
+@enduml

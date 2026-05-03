@@ -1,0 +1,35 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model — AirTransportCompany Aggregate
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name : String
+    }
+
+    class IATACode <<value object, identity>> {
+        code : String
+    }
+
+    class ICAOCode <<value object>> {
+        code : String
+    }
+}
+
+note right of IATACode
+  Company IATA: exactly 2
+  uppercase letters (e.g. "TP")
+end note
+
+note right of ICAOCode
+  Company ICAO: 2 or 3
+  uppercase letters (e.g. "TAP")
+end note
+
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+AirTransportCompany "1" *-- "1" ICAOCode : "identified by"
+
+@enduml

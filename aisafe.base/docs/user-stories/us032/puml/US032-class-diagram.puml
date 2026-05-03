@@ -1,0 +1,59 @@
+@startuml class-diagram-032
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class DisableEnableUserUI {
+        +doShow() : boolean
+    }
+}
+
+package "Application Layer" {
+    class DisableEnableUserController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -userSvc : UserManagementService
+        -userRepo : UserRepository
+        +allUsers() : Iterable<User>
+        +toggleUser(username : Username) : boolean
+    }
+}
+
+package "Domain Layer" {
+    class User <<entity, aggregate root>> {
+        -phoneNumber : String
+        -position : String
+        +systemUser() : SystemUser
+        +identity() : MecanographicNumber
+    }
+}
+
+package "Repository Layer" {
+    interface UserRepository {
+        +findAll() : Iterable<User>
+        +findAllActive() : Iterable<User>
+        +findByUsername(username) : Optional<User>
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class SystemUser {
+        +isActive() : boolean
+        +deactivate(date) : void
+        +activate() : void
+    }
+    class UserManagementService {
+        +deactivateUser(user) : SystemUser
+        +activateUser(user) : SystemUser
+    }
+    class AuthorizationService
+}
+
+DisableEnableUserUI ..> DisableEnableUserController : uses
+DisableEnableUserController ..> AuthorizationService : checks ADMIN role
+DisableEnableUserController ..> UserRepository : findAll, findByUsername
+DisableEnableUserController ..> UserManagementService : deactivate/activate
+
+User --> SystemUser : references
+UserRepository ..> User : manages
+
+@enduml

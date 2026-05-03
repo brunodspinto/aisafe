@@ -1,0 +1,72 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Admin" as ADM
+
+participant ":RegisterAirControlAreaUI" as UI
+participant ":RegisterAirControlAreaController" as CTRL
+participant "AuthzRegistry" as AUTHZR
+participant "PersistenceContext" as PC
+participant "factory\n:RepositoryFactory" as FACT
+participant "boundaries\n:GeoBoundary" as GEO
+participant "newArea\n:AirControlArea" as ACA
+participant "repository\n:AirControlAreaRepository" as REPO
+
+activate ADM
+ADM -> UI : asks to register a new Air Control Area
+activate UI
+UI --> ADM : requests data (areaCode, name, minimumFuelRequired,\n northLat, southLat, eastLong, westLong)
+deactivate UI
+
+ADM -> UI : inputs the requested data
+activate UI
+
+note right of UI: The Controller is instantiated\nand fetches its dependencies.
+UI -> CTRL** : create()
+activate CTRL
+
+CTRL -> AUTHZR : authorizationService()
+activate AUTHZR
+AUTHZR --> CTRL : authz
+deactivate AUTHZR
+
+CTRL -> PC : repositories()
+activate PC
+PC -> FACT : airControlAreas()
+activate FACT
+FACT --> PC : repository
+deactivate FACT
+PC --> CTRL : factory
+deactivate PC
+deactivate CTRL
+
+note right of UI: Execution of the Use Case
+UI -> CTRL : registerAirControlArea(areaCode, name, minimumFuelRequired,\n northLat, southLat, eastLong, westLong)
+activate CTRL
+
+participant "authz\n:AuthorizationService" as AUTHZ
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> GEO** : create(northLat, southLat, eastLong, westLong)
+
+CTRL -> ACA** : create(areaCode, name, minimumFuelRequired, boundaries)
+
+CTRL -> REPO : save(newArea)
+activate REPO
+REPO --> CTRL : savedArea
+deactivate REPO
+
+CTRL --> UI : savedArea
+deactivate CTRL
+
+UI --> ADM : displays operation success message
+deactivate UI
+deactivate ADM
+
+@enduml

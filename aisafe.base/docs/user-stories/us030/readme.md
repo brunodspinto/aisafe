@@ -67,15 +67,15 @@ The following diagrams illustrate the login flow and the role-based menu flow:
 
 **Login flow:**
 
-![Login Sequence Diagram](svg/sd30-login.svg)
+![Login Sequence Diagram](svg/US030-SD-login.svg)
 
 **Menu authorization flow:**
 
-![Menu Sequence Diagram](svg/sd30-menu.svg)
+![Menu Sequence Diagram](svg/US030-SD-menu.svg)
 
 **Class diagram:**
 
-![Class Diagram](svg/class-diagram-30.svg)
+![Class Diagram](svg/US030-class-diagram.svg)
 
 ### 4.2. Acceptance Tests
 

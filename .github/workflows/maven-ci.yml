@@ -25,4 +25,18 @@ jobs:
         cache: maven
 
     - name: Build and Run Tests with Maven
-      run: mvn -B clean verify
+      run: mvn -B clean verify --file aisafe.base/pom.xml
+
+    - name: Upload Test Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: aisafe.base/target/surefire-reports/
+
+    - name: Upload Coverage Report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: aisafe.base/target/site/jacoco/

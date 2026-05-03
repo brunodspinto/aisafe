@@ -1,0 +1,56 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "aisafe.app.console.presentation.airtransportcompany" {
+    class RegisterAirTransportCompanyUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "aisafe.airtransportcompany.application" {
+    class RegisterAirTransportCompanyController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repo : AirTransportCompanyRepository
+        +registerCompany(name, iataCode, icaoCode) : AirTransportCompany
+    }
+}
+
+package "aisafe.airtransportcompany.repositories" {
+    interface AirTransportCompanyRepository {
+        +findByName(name : String) : Optional<AirTransportCompany>
+        +findByIcaoCode(code : ICAOCode) : Optional<AirTransportCompany>
+    }
+}
+
+package "aisafe.airtransportcompany.domain" {
+    class AirTransportCompany <<entity, aggregate root>> {
+        -name : String
+        -icaoCode : ICAOCode
+        +identity() : IATACode
+        +name() : String
+        +icaoCode() : ICAOCode
+    }
+
+    class IATACode <<value object, identity>> {
+        -code : String
+        +{static} valueOf(code : String) : IATACode
+        +toString() : String
+    }
+
+    class ICAOCode <<value object>> {
+        -code : String
+        +{static} valueOf(code : String) : ICAOCode
+        +toString() : String
+    }
+}
+
+RegisterAirTransportCompanyUI ..> RegisterAirTransportCompanyController : uses
+RegisterAirTransportCompanyController ..> AirTransportCompanyRepository : uses
+RegisterAirTransportCompanyController ..> AirTransportCompany : creates
+AirTransportCompanyRepository ..> AirTransportCompany : persists
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+AirTransportCompany "1" *-- "1" ICAOCode : "holds"
+
+@enduml

@@ -1,5 +1,6 @@
 package aisafe.infrastructure.persistence.inmemory;
 
+import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.usermanagement.domain.MecanographicNumber;
 import aisafe.usermanagement.domain.User;
 import aisafe.usermanagement.repositories.UserRepository;
@@ -31,5 +32,9 @@ public class InMemoryAiSafeUserRepository
             }
         }
         return active;
+    }
+
+    public AirControlAreaRepository airControlAreas() {
+        return new InMemoryAirControlAreaRepository();
     }
 }

@@ -1,4 +1,5 @@
 package aisafe.aircontrolarea.domain;
+import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 import java.util.Objects;
 
@@ -8,7 +9,9 @@ import java.util.Objects;
  * Value Object representing the geographical boundaries of an Air Control Area.
  */
 @Embeddable
-public class GeoBoundary {
+public class GeoBoundary implements ValueObject {
+
+    private static final long serialVersionUID = 1L;
 
     private double northLatitude;
     private double southLatitude;
@@ -80,8 +83,12 @@ public class GeoBoundary {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         GeoBoundary that = (GeoBoundary) o;
         return Double.compare(that.northLatitude, northLatitude) == 0 &&
                 Double.compare(that.southLatitude, southLatitude) == 0 &&
