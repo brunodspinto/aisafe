@@ -8,3 +8,4 @@ bin/
 # Logs and temporary files
 *.log
 *.tmp
+.vscode/settings.json
