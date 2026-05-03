@@ -4,6 +4,8 @@ autonumber
 
 actor User as user
 participant "MainMenu" as menu
+participant "LogoutUI" as logoutUI
+participant "AuthenticationContext\n(AISafe)" as authCtx
 participant "AuthorizationService\n(EAPLI)" as authz
 
 user -> menu : mainLoop()
@@ -24,8 +26,13 @@ end
 user -> menu : select option
 
 alt "My Account > Logout"
-    menu -> authz : clearSession()
-    menu -> user : session cleared
+    menu -> logoutUI : show()
+    activate logoutUI
+    logoutUI -> authCtx : clear()
+    authCtx -> authz : clearSession()
+    authCtx --> logoutUI : session cleared
+    logoutUI --> menu : return
+    deactivate logoutUI
 else "Users > Add User" (ADMIN only)
     menu -> user : open AddUserUI
 end

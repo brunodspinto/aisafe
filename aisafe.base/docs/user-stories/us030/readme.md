@@ -4,7 +4,7 @@
 
 This US was implemented in Sprint 2 and establishes the authentication and authorization infrastructure for the AISafe system. It is a prerequisite for all other US that require user identity or role-based access control (US031, US032, US033, and all operational US).
 
-The implementation leverages the EAPLI Framework's `AuthzRegistry`, which provides authentication and authorization services, and integrates with a console application that enforces role-based access at the menu level.
+The implementation is split between the AISafe `aisafe.auth` facade and the console application. The facade delegates to the EAPLI Framework's `AuthzRegistry`, which provides authentication and authorization services, while the console layer enforces role-based access at the menu level.
 
 ---
 
@@ -51,7 +51,7 @@ The system defines **6 roles**, each with a different permission scope:
 | FLIGHT_CONTROL_OPERATOR | — | ✓ | — | — | ✓ |
 | WEATHER_PERSON | — | ✓ | — | — | — |
 
-Authentication is handled by the EAPLI Framework (`AuthzRegistry`), which manages the active session throughout the application lifecycle. Password validation is delegated to `AiSafePasswordPolicy`.
+Authentication is handled by the EAPLI Framework (`AuthzRegistry`), which manages the active session throughout the application lifecycle. AISafe exposes that flow through `aisafe.auth.AuthenticationContext`, while password validation is delegated to `AiSafePasswordPolicy`.
 
 ---
 
@@ -59,9 +59,11 @@ Authentication is handled by the EAPLI Framework (`AuthzRegistry`), which manage
 
 ### 4.1. Realization
 
-The console application entry point (`AiSafeConsoleApp`) configures the EAPLI `AuthzRegistry` with the system's user repository, password policy, and password encoder. It then shows `LoginUI`, which prompts for credentials and delegates to EAPLI's `AuthenticationService`. On success, the session is set automatically by the framework, and the `MainMenu` is entered.
+The console application entry point (`AiSafeConsoleApp`) configures the EAPLI `AuthzRegistry` with the system's user repository, password policy, and password encoder. It then shows `LoginUI`, which prompts for credentials and delegates to `aisafe.auth.AuthenticationContext.authenticate(...)`. On success, the session is set automatically by the framework, and the `MainMenu` is entered.
 
-`MainMenu` queries `AuthorizationService` at render time to determine which options to display. The "Users >" submenu is only added when the authenticated user has the ADMIN role.
+`MainMenu` queries the EAPLI `AuthorizationService` at render time to determine which options to display. The "Users >" submenu is only added when the authenticated user has the ADMIN role.
+
+`LogoutUI` clears the active session through `aisafe.auth.AuthenticationContext.clear()`.
 
 The following diagrams illustrate the login flow and the role-based menu flow:
 
@@ -80,6 +82,8 @@ The following diagrams illustrate the login flow and the role-based menu flow:
 ### 4.2. Acceptance Tests
 
 Authentication and authorization are infrastructure concerns and are primarily validated by manual integration testing. The `AddUserController` unit-level verification of the authorization check is covered indirectly by the US031 test suite: the controller calls `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)`, which throws `UnauthorizedException` when the session lacks the required role (AC030.6).
+
+Detailed unit-test coverage is documented in [tests.md](tests.md).
 
 **Manual test — AC030.2 (max attempts):**
 
@@ -116,16 +120,16 @@ The authentication and authorization implementation spans two areas:
 | Class | Responsibility |
 |-------|---------------|
 | `AiSafeConsoleApp` | Entry point — configures `AuthzRegistry`, starts login flow |
-| `LoginUI` | Prompts for credentials, max 3 attempts, delegates to EAPLI |
+| `LoginUI` | Prompts for credentials, max 3 attempts, delegates to `aisafe.auth.AuthenticationContext` |
 | `MainMenu` | Role-based menu: only shows "Users >" for ADMIN |
-| `LogoutUI` | Calls `authz.clearSession()` to terminate the session |
+| `LogoutUI` | Calls `aisafe.auth.AuthenticationContext.clear()` to terminate the session |
 
 **Flight plan authorization layer** (`aisafe.auth`):
 
 | Class | Responsibility |
 |-------|---------------|
 | `AiSafeRoles` | Canonical definition of the 6 system roles |
-| `AuthenticationContext` | Thread-local storage for the authenticated `SystemUser` (used by flight plan services) |
+| `AuthenticationContext` | AISafe facade over EAPLI authentication/session handling |
 | `AuthorizationService` | Permission checks for flight plan operations (create, read, update, delete, approve) |
 | `UnauthorizedException` | Thrown when the current user lacks the required role |
 
@@ -184,6 +188,6 @@ Selecting `1 — My Account > 1 — Logout` clears the session and presents two 
 ## 7. Observations
 
 - The `AuthzRegistry` is a singleton provided by the EAPLI Framework; it must be configured exactly once at application startup before any authentication or authorization call is made.
-- `AiSafeRoles` is the canonical class for role constants. The `aisafe.auth.FlightPlanRoles` class re-exports the same constants and is kept only for backward compatibility with existing flight plan code; `AiSafeRoles` should be used for all new code.
-- The `aisafe.auth.AuthenticationContext` (thread-local) is a separate mechanism used by the flight plan authorization service. It is not populated by the console login flow (which uses EAPLI's session). Integration between the two will be addressed when US080 (flight plan submission) is implemented.
+- `AiSafeRoles` is the canonical class for role constants.
+- `aisafe.auth.AuthenticationContext` is a thin AISafe facade over the EAPLI login/session flow and is used by the console login/logout actions.
 - The password encoder uses `PlainTextEncoder` for development. In a production deployment this must be replaced with a hashing encoder (e.g. BCrypt).

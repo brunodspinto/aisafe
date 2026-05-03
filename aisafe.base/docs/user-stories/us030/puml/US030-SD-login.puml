@@ -5,35 +5,29 @@ autonumber
 actor User as user
 participant "AiSafeConsoleApp" as app
 participant "LoginUI" as loginUI
+participant "AuthenticationContext\n(AISafe)" as authCtx
 participant "AuthenticationService\n(EAPLI)" as authSvc
 participant "AuthzRegistry\n(EAPLI)" as registry
 
 app -> loginUI : show()
 activate loginUI
 
-loop up to 3 attempts
-    loginUI -> user : prompt username + password
-    user -> loginUI : username, password
+loginUI -> user : prompt username + password
+user -> loginUI : username, password
 
-    loginUI -> registry : authenticationService()
-    registry --> loginUI : authSvc
+loginUI -> authCtx : authenticate(username, password)
+activate authCtx
+authCtx -> registry : authenticationService()
+registry --> authCtx : authSvc
 
-    loginUI -> authSvc : authenticate(username, password, null)
-    activate authSvc
-    authSvc --> loginUI : Optional<UserSession>
-    deactivate authSvc
+authCtx -> authSvc : authenticate(username, password, null)
+activate authSvc
+authSvc --> authCtx : Optional<UserSession>
+deactivate authSvc
+authCtx --> loginUI : true
+deactivate authCtx
 
-    alt credentials valid
-        loginUI --> app : true (login successful)
-    else credentials invalid
-        loginUI -> user : "Wrong username or password.\nX attempts left."
-    end
-end
-
-alt all attempts exhausted
-    loginUI --> app : false (login failed)
-    app -> user : "Unable to authenticate."
-end
+loginUI --> app : true (login successful)
 
 deactivate loginUI
 

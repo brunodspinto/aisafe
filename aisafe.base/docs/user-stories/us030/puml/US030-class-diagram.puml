@@ -28,6 +28,27 @@ package "Console Application" {
     }
 }
 
+package "AISafe Auth Facade" {
+    class AuthenticationContext {
+        +{static} authenticate(username : String, password : String) : boolean
+        +{static} currentUser() : Optional<SystemUser>
+        +{static} isAuthenticated() : boolean
+        +{static} clear() : void
+        +{static} hasRole(role : Role) : boolean
+        +{static} hasAnyRole(roles : Role[]) : boolean
+    }
+
+    class "AuthorizationService" as AuthFacadeAuthorizationService {
+        +{static} requireCanCreateFlightPlan() : void
+        +{static} requireCanReadFlightPlan() : void
+        +{static} requireCanUpdateFlightPlan() : void
+        +{static} requireCanDeleteFlightPlan() : void
+        +{static} requireCanApproveFlightPlan() : void
+    }
+
+    class UnauthorizedException
+}
+
 package "Domain" {
     class AiSafeRoles {
         +{static} ADMIN : Role
@@ -48,14 +69,14 @@ package "EAPLI Framework" <<frame>> {
     class AuthzRegistry {
         +{static} configure(repo, policy, encoder)
         +{static} authenticationService() : AuthenticationService
-        +{static} authorizationService() : AuthorizationService
+        +{static} authorizationService() : EapliAuthorizationService
     }
 
     class AuthenticationService {
         +authenticate(username, password, role) : Optional<UserSession>
     }
 
-    class AuthorizationService {
+    class "AuthorizationService" as EapliAuthorizationService {
         +isAuthenticatedUserAuthorizedTo(roles) : boolean
         +ensureAuthenticatedUserHasAnyOf(roles) : void
         +clearSession() : void
@@ -68,13 +89,20 @@ AiSafeConsoleApp ..> LoginUI : creates
 AiSafeConsoleApp ..> MainMenu : creates
 AiSafeConsoleApp ..> AuthzRegistry : configures
 
-LoginUI ..> AuthzRegistry : uses
+LoginUI ..> AuthenticationContext : authenticate()
 MainMenu ..> AuthzRegistry : uses
 MainMenu ..> AiSafeRoles : checks roles
 MainMenu ..> LogoutUI : creates
-LogoutUI ..> AuthzRegistry : clearSession()
+LogoutUI ..> AuthenticationContext : clear()
+
+AuthenticationContext ..> AuthzRegistry : uses
+AuthenticationContext ..> AuthenticationService : delegates
+
+AuthFacadeAuthorizationService ..> AuthzRegistry : uses
+AuthFacadeAuthorizationService ..> AiSafeRoles : checks roles
+AuthFacadeAuthorizationService ..> UnauthorizedException : throws
 
 AuthzRegistry --> AuthenticationService : provides
-AuthzRegistry --> AuthorizationService : provides
+AuthzRegistry --> EapliAuthorizationService : provides
 
 @enduml
