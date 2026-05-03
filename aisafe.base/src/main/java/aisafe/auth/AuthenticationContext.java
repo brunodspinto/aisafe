@@ -1,62 +1,67 @@
 package aisafe.auth;
 
+import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.domain.model.Role;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
+
 import java.util.Optional;
 
 /**
- * Manages the currently authenticated user in a thread-local context.
- *
- * Usage:
- *   AuthenticationContext.setCurrentUser(systemUser);  // After login
- *   AuthenticationContext.isAuthenticated();            // Check if logged in
- *   AuthenticationContext.clear();                      // On logout
+ * Adapter over EAPLI authentication context.
  */
 public final class AuthenticationContext {
 
-	private static final ThreadLocal<SystemUser> CURRENT_USER = new ThreadLocal<>();
+	/**
+	 * Authenticate in AISafe using eAPLI infrastructure.
+	 */
+	public static boolean authenticate(final String username, final String password) {
+		return AuthzRegistry.authenticationService().authenticate(username, password, (Role) null).isPresent();
+	}
 
 	/**
-	 * Store the currently authenticated user for this thread.
-	 * Call this after successful login.
-	 * Pass null to clear the user.
+		 * Session creation must be done through authenticate(username, password).
 	 */
 	public static void setCurrentUser(final SystemUser user) {
 		if (user == null) {
-			CURRENT_USER.remove();
-		} else {
-			CURRENT_USER.set(user);
+			clear();
+			return;
 		}
+		if (currentUser().isPresent() && currentUser().get().equals(user)) {
+			return;
+		}
+		throw new UnsupportedOperationException(
+				"Use authenticate(username, password) to create a session for the intended user");
 	}
 
 	/**
 	 * Get the currently authenticated user, if any.
 	 */
 	public static Optional<SystemUser> currentUser() {
-		return Optional.ofNullable(CURRENT_USER.get());
+		return AuthzRegistry.authorizationService().session().map(s -> s.authenticatedUser());
 	}
 
 	/**
 	 * Check if a user is currently authenticated.
 	 */
 	public static boolean isAuthenticated() {
-		return CURRENT_USER.get() != null;
+		return AuthzRegistry.authorizationService().session().isPresent();
 	}
 
 	/**
 	 * Clear the current user. Call this on logout or session end.
 	 */
 	public static void clear() {
-		CURRENT_USER.remove();
+		AuthzRegistry.authorizationService().clearSession();
 	}
 
 	/**
 	 * Check if current user has a specific role.
 	 */
 	public static boolean hasRole(final Role role) {
-		return currentUser()
-				.map(user -> user.hasAny(role))
-				.orElse(false);
+		if (role == null) {
+			return false;
+		}
+		return AuthzRegistry.authorizationService().isAuthenticatedUserAuthorizedTo(role);
 	}
 
 	/**
@@ -66,9 +71,12 @@ public final class AuthenticationContext {
 		if (roles == null || roles.length == 0) {
 			return false;
 		}
-		return currentUser()
-				.map(user -> user.hasAny(roles))
-				.orElse(false);
+		for (final Role role : roles) {
+			if (hasRole(role)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private AuthenticationContext() {}

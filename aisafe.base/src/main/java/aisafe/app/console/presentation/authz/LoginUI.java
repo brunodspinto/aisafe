@@ -1,7 +1,6 @@
 package aisafe.app.console.presentation.authz;
 
-import eapli.framework.infrastructure.authz.application.AuthzRegistry;
-import eapli.framework.infrastructure.authz.domain.model.Role;
+import aisafe.auth.AuthenticationContext;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
@@ -16,7 +15,7 @@ public class LoginUI extends AbstractUI {
             final String username = Console.readNonEmptyLine("Username:", "Please provide a username");
             final String password = Console.readLine("Password:");
 
-            if (AuthzRegistry.authenticationService().authenticate(username, password, (Role) null).isPresent()) {
+            if (AuthenticationContext.authenticate(username, password)) {
                 return true;
             }
             System.out.printf("Wrong username or password. You have %d attempt(s) left.%n%n", MAX_ATTEMPTS - attempt);

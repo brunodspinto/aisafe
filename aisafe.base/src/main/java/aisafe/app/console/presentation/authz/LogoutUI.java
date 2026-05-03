@@ -1,17 +1,14 @@
 package aisafe.app.console.presentation.authz;
 
-import eapli.framework.infrastructure.authz.application.AuthorizationService;
-import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+import aisafe.auth.AuthenticationContext;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
 public class LogoutUI extends AbstractUI {
 
-    private final AuthorizationService authz = AuthzRegistry.authorizationService();
-
     @Override
     protected boolean doShow() {
-        authz.clearSession();
+        AuthenticationContext.clear();
         System.out.println("\nLogged out successfully.");
         System.out.println("\n1 - Login again");
         System.out.println("0 - Exit");
