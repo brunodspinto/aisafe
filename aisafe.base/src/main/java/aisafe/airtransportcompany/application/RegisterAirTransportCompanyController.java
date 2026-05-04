@@ -14,12 +14,10 @@ import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 public class RegisterAirTransportCompanyController {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
-    private final AirTransportCompanyRepository repo =
-            PersistenceContext.repositories().airTransportCompanies();
+    private final AirTransportCompanyRepository repo = PersistenceContext.repositories().airTransportCompanies();
 
-    public AirTransportCompany registerCompany(final String name,
-                                               final String iataCode,
-                                               final String icaoCode) {
+    public AirTransportCompany registerCompany(final String name, final String iataCode, final String icaoCode) {
+
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR);
         final AirTransportCompany company = new AirTransportCompany(
                 name, IATACode.valueOf(iataCode), ICAOCode.valueOf(icaoCode));
