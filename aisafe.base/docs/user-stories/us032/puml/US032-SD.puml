@@ -16,7 +16,7 @@ ui -> ctrl : allUsers()
 activate ctrl
 ctrl -> authz : ensureAuthenticatedUserHasAnyOf(ADMIN)
 activate authz
-authz --> ctrl : ok (or throws UnauthorizedException)
+authz --> ctrl : ok
 deactivate authz
 ctrl -> repo : findAll()
 activate repo

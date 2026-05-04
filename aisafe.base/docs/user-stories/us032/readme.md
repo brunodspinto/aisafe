@@ -67,6 +67,8 @@ The toggle approach avoids separate "disable" and "enable" menu entries, keeping
 
 All tests are automated with JUnit 5 and located in `src/test/java/aisafe/usermanagement/domain/DisableEnableUserTest.java`. The test suite runs **8 tests**, all passing.
 
+Detailed coverage is summarized in [tests.md](tests.md).
+
 ---
 
 **AC032.1 — Disable an active user**
