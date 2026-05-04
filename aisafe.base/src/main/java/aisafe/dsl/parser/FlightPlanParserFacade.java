@@ -53,7 +53,7 @@ public final class FlightPlanParserFacade {
 		}
 
 		try {
-			return ParseResult.valid(toFlightPlan(root.flight()));
+			return ParseResult.valid(toFlightPlan(root.flight().get(0)));
 		} catch (final RuntimeException ex) {
 			return ParseResult.invalid(List.of(new ParseError(
 					0,
@@ -88,18 +88,28 @@ public final class FlightPlanParserFacade {
 				toEndpoint(ctx.arrival().airportCode().getText(), ctx.arrival().dateTime().DATE().getText(), ctx.arrival().dateTime().TIME().getText()),
 				new RouteAst(ctx.route().airportCode(0).getText(), ctx.route().airportCode(1).getText()),
 				List.copyOf(segments),
-				new FuelAst(parseNumber(ctx.fuel().NUMBER().getText()), ctx.fuel().fuelUnit().getText().toUpperCase())
+				new FuelAst(parseSignedNumber(ctx.fuel().signedNumber()), ctx.fuel().fuelUnit().getText().toUpperCase())
 		);
 	}
 
 	private SegmentAst toSegment(final FlightPlanDslParser.SegmentContext ctx) {
+		// Get first altitude slot
+		final FlightPlanDslParser.AltitudeSlotContext altSlot = ctx.altitudeSlot(0);
+		final double altitude = parseSignedNumber(altSlot.altitude().signedNumber());
+		final double width = parseSignedNumber(altSlot.distance().signedNumber());
+		
+		// Get wind declaration
+		final FlightPlanDslParser.WindDeclContext windDecl = ctx.windDecl();
+		final double windDirection = parseSignedNumber(windDecl.windDirection().signedNumber());
+		final double windSpeed = parseSignedNumber(windDecl.windSpeed().signedNumber());
+		
 		return new SegmentAst(
 				toCoordinate(ctx.coordinate(0)),
 				toCoordinate(ctx.coordinate(1)),
-				parseNumber(ctx.NUMBER(0).getText()),
-				parseNumber(ctx.NUMBER(1).getText()),
-				parseNumber(ctx.NUMBER(2).getText()),
-				parseNumber(ctx.NUMBER(3).getText())
+				altitude,
+				width,
+				windSpeed,
+				windDirection
 		);
 	}
 
