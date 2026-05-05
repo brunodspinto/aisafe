@@ -5,6 +5,10 @@ skinparam classAttributeIconSize 0
 
 title US050 - Class Diagram
 
+class AiSafeBootstrap {
+    +{static} main(args : String[]) : void
+}
+
 class RegisterAirControlAreaUI {
     # doShow() : boolean
 }
@@ -37,6 +41,9 @@ RegisterAirControlAreaUI .down.> RegisterAirControlAreaController
 RegisterAirControlAreaController .down.> AirControlArea
 RegisterAirControlAreaController .down.> GeoBoundary
 RegisterAirControlAreaController .down.> AirControlAreaRepository
+AiSafeBootstrap .down.> AirControlArea
+AiSafeBootstrap .down.> GeoBoundary
+AiSafeBootstrap .down.> AirControlAreaRepository
 
 ' Relações do Domínio
 AirControlArea "1" *-- "1" GeoBoundary : bounded by >

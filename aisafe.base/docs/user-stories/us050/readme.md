@@ -82,40 +82,21 @@ This use case follows the standard "Register X" architectural pattern. Following
 
 ### 4.2 Acceptance Tests
 
-#### Test 1 — Invalid GeoBoundary
-
-Verifies that invalid latitude values are rejected.
-
-**Covers:** US050.3
-
-```java
-@Test(expected = IllegalArgumentException.class)
-public void ensureGeoBoundaryCannotHaveInvalidLatitudes() {
-    new GeoBoundary(30.0, 40.0, -10.0, 10.0);
-}
-```
-### Test 2 — Invalid AirControlArea
-
-Verifies that null code or boundaries are not allowed.
-
-```java
-@Test(expected = IllegalArgumentException.class)
-public void ensureAirControlAreaMustHaveValidCodeAndBoundaries() {
-    new AirControlArea(null, new GeoBoundary(40.0, 30.0, -10.0, 10.0));
-}
-````
+Detailed coverage is documented in [tests.md](tests.md).
 
 ## 5. Implementation
 
 ### Key Implementation Details
 
 - `AirControlArea` → Annotated with `@Entity` and implements `AggregateRoot<String>`.
-- `areaCode` → Annotated with `@Id` to enforce global uniqueness at the database level.
+- `areaCode` → Annotated with `@Id` and normalized before persistence; the controller rejects duplicates before save.
 - `GeoBoundary` → Implements `ValueObject` and uses `@Embeddable`.
 - Mapped inside `AirControlArea` using the `@Embedded` annotation.
 - Two repository implementations were provided:
     - `InMemoryAirControlAreaRepository` (for testing)
     - `JpaAirControlAreaRepository` (for production)
+
+Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default valid air control area if it does not already exist.
 
 ## 6. Integration / Demonstration
 
@@ -129,7 +110,7 @@ public void ensureAirControlAreaMustHaveValidCodeAndBoundaries() {
 ./run-backoffice.sh
 
 # Login with:
-# Username: admin (or a backoffice operator credentials)
+# Username: admin (or a backoffice operator account)
 # Password: Password1
 
 # Navigate to: 
