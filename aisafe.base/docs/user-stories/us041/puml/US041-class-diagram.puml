@@ -1,0 +1,91 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US041 - Class Diagram
+
+package "Presentation" {
+    class RegisterWeatherDataUI {
+        # doShow() : boolean
+        + headline() : String
+    }
+}
+
+package "Application" {
+    class RegisterWeatherDataController {
+        + activeAirControlAreas() : Iterable<AirControlArea>
+        + registerWeatherData(areaCode: String, provider: String, format: String, date: Date, temperature: double, windSpeed: double, windDirection: String, pressure: double, visibility: double) : WeatherData
+    }
+}
+
+package "Domain" {
+    class WeatherData <<entity>> <<aggregate root>> {
+        - areaCode : String
+        - date : Date
+        - temperature : double
+        - windSpeed : double
+        - windDirection : String
+        - pressure : double
+        - visibility : double
+        + WeatherData(areaCode, source, date, temp, windSpd, windDir, press, visib)
+    }
+
+    class WeatherSource <<value object>> {
+        - provider : String
+        - format : String
+        + WeatherSource(provider, format)
+    }
+
+    class AirControlArea <<entity>> <<aggregate root>> {
+        - areaCode : String
+        - name : String
+    }
+}
+
+package "Persistence" {
+    interface WeatherDataRepository <<interface>> {
+        + save(weatherData: WeatherData) : WeatherData
+    }
+
+    interface AirControlAreaRepository <<interface>> {
+        + findAll() : Iterable<AirControlArea>
+    }
+
+    class JpaWeatherDataRepository {
+        + save(weatherData: WeatherData) : WeatherData
+    }
+
+    class JpaAirControlAreaRepository {
+        + findAll() : Iterable<AirControlArea>
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+}
+
+' Presentation and Application relationships
+RegisterWeatherDataUI ..> RegisterWeatherDataController
+RegisterWeatherDataController ..> AuthorizationService
+
+' Controller to Domain relationships
+RegisterWeatherDataController ..> WeatherData
+RegisterWeatherDataController ..> WeatherSource
+RegisterWeatherDataController ..> AirControlArea
+
+' Controller dependencies on Repositories (Interfaces)
+RegisterWeatherDataController ..> WeatherDataRepository
+RegisterWeatherDataController ..> AirControlAreaRepository
+
+' Domain relationships
+WeatherData "1" *-- "1" WeatherSource : contains >
+WeatherData ..> AirControlArea : refers via areaCode >
+
+' Persistence implementations (JPA)
+JpaWeatherDataRepository ..|> WeatherDataRepository
+JpaAirControlAreaRepository ..|> AirControlAreaRepository
+
+@enduml
