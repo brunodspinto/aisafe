@@ -1,45 +1,53 @@
 package aisafe.aircontrolarea.domain;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
-public class AirControlAreaTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-    private final GeoBoundary validBoundaries = new GeoBoundary(40.0, 30.0, -5.0, -15.0);
+class AirControlAreaTest {
+
+    private static GeoBoundary validBoundary() {
+        return new GeoBoundary(42.15, 36.95, -6.18, -9.50);
+    }
 
     @Test
-    public void ensureValidAirControlAreaIsCreatedSuccessfully() {
-        // Arrange & Act
-        AirControlArea area = new AirControlArea("PT-N", "Porto Control", 1500.0, validBoundaries);
+    void ensureValidAirControlAreaCanBeCreated() {
+        final AirControlArea area = new AirControlArea("PT-N", "Northern Portugal", 1200.0, validBoundary());
 
-        // Assert
-        assertNotNull(area);
         assertEquals("PT-N", area.areaCode());
-        assertEquals("PT-N", area.identity());
+        assertEquals("Northern Portugal", area.name());
+        assertEquals(1200.0, area.minimumFuelRequired());
+        assertEquals(validBoundary(), area.boundaries());
     }
 
     @Test
-    public void ensureAirControlAreaMustHaveValidCode() {
-        assertThrows(IllegalArgumentException.class, () -> new AirControlArea(null, "Porto Control", 1500.0, validBoundaries));
+    void ensureAreaCodeCannotBeNullOrBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea(null, "Area", 1200.0, validBoundary()));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea("   ", "Area", 1200.0, validBoundary()));
     }
 
     @Test
-    public void ensureAirControlAreaCannotHaveEmptyCode() {
-        assertThrows(IllegalArgumentException.class, () -> new AirControlArea("   ", "Porto Control", 1500.0, validBoundaries));
+    void ensureNameCannotBeNullOrBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea("PT-N", null, 1200.0, validBoundary()));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea("PT-N", "   ", 1200.0, validBoundary()));
     }
 
     @Test
-    public void ensureAirControlAreaMustHaveValidName() {
-        assertThrows(IllegalArgumentException.class, () -> new AirControlArea("PT-N", null, 1500.0, validBoundaries));
+    void ensureMinimumFuelCannotBeNegative() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea("PT-N", "Area", -1.0, validBoundary()));
     }
 
     @Test
-    public void ensureAirControlAreaCannotHaveNegativeFuel() {
-        assertThrows(IllegalArgumentException.class, () -> new AirControlArea("PT-N", "Porto Control", -10.0, validBoundaries));
-    }
-
-    @Test
-    public void ensureAirControlAreaMustHaveBoundaries() {
-        assertThrows(IllegalArgumentException.class, () -> new AirControlArea("PT-N", "Porto Control", 1500.0, null));
+    void ensureBoundariesCannotBeNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AirControlArea("PT-N", "Area", 1200.0, null));
     }
 }

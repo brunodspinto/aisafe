@@ -42,7 +42,7 @@ The `AirControlArea` aggregate was designed following Domain-Driven Design (DDD)
 - `AirControlArea` — Aggregate root representing the airspace.
 - `GeoBoundary` — Value object encapsulating geographic coordinates.
 
-> **Architectural Decision:** Initially considered, the `AirControlAreaCode` was discarded as a dedicated Value Object. Since its only business rule is "uniqueness", this validation is better delegated to the database constraint (Primary Key). Thus, `areaCode` is modeled as a primitive `String`.
+> **Architectural Decision:** Initially considered, the `AirControlAreaCode` was discarded as a dedicated Value Object. The code remains a primitive `String`, but uniqueness is enforced explicitly in the controller before saving and is also backed by the database primary key.
 
 The `GeoBoundary` ensures that:
 - North latitude > South latitude

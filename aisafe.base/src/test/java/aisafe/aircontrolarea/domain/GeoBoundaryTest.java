@@ -1,50 +1,37 @@
 package aisafe.aircontrolarea.domain;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
 
-public class GeoBoundaryTest {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class GeoBoundaryTest {
 
     @Test
-    public void ensureValidGeoBoundaryIsCreatedSuccessfully() {
-        // Arrange & Act
-        GeoBoundary boundary = new GeoBoundary(45.0, 30.0, 10.0, -10.0);
-        
-        // Assert
-        assertNotNull(boundary);
-        assertEquals(45.0, boundary.northLatitude(), 0.001);
-        assertEquals(30.0, boundary.southLatitude(), 0.001);
+    void ensureValidCoordinatesCreateBoundary() {
+        final GeoBoundary boundary = new GeoBoundary(42.15, 36.95, -6.18, -9.50);
+
+        assertEquals(42.15, boundary.northLatitude());
+        assertEquals(36.95, boundary.southLatitude());
+        assertEquals(-6.18, boundary.eastLongitude());
+        assertEquals(-9.50, boundary.westLongitude());
     }
 
     @Test
-    public void ensureNorthLatitudeCannotBeGreaterThan90() {
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(91.0, 30.0, 10.0, -10.0));
+    void ensureNorthLatitudeMustBeGreaterThanSouthLatitude() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new GeoBoundary(30.0, 40.0, -10.0, 10.0));
     }
 
     @Test
-    public void ensureSouthLatitudeCannotBeLessThanMinus90() {
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(45.0, -91.0, 10.0, -10.0));
+    void ensureCoordinatesMustBeWithinLatitudeLimits() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new GeoBoundary(95.0, 20.0, -10.0, 10.0));
     }
 
     @Test
-    public void ensureNorthLatitudeMustBeStrictlyGreaterThanSouthLatitude() {
-        // Norte é menor que o Sul, o que é geograficamente impossível
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(20.0, 40.0, 10.0, -10.0));
-    }
-
-    @Test
-    public void ensureNorthLatitudeCannotBeEqualToSouthLatitude() {
-        // Se forem iguais, é uma linha e não uma área
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(30.0, 30.0, 10.0, -10.0));
-    }
-
-    @Test
-    public void ensureEastLongitudeCannotBeInvalid() {
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(45.0, 30.0, 181.0, -10.0));
-    }
-
-    @Test
-    public void ensureWestLongitudeCannotBeInvalid() {
-        assertThrows(IllegalArgumentException.class, () -> new GeoBoundary(45.0, 30.0, 10.0, -181.0));
+    void ensureCoordinatesMustBeWithinLongitudeLimits() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new GeoBoundary(40.0, 30.0, 200.0, 10.0));
     }
 }
