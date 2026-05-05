@@ -4,7 +4,7 @@ skinparam packageStyle rectangle
 skinparam shadowing false
 
 autonumber
-actor "Admin" as ADM
+actor "Backoffice Operator" as ADM
 
 participant ":RegisterAirControlAreaUI" as UI
 participant ":RegisterAirControlAreaController" as CTRL
@@ -68,5 +68,7 @@ deactivate CTRL
 UI --> ADM : displays operation success message
 deactivate UI
 deactivate ADM
+
+note bottom of diagram: Bootstrap registration follows the same validation and persistence rules.
 
 @enduml
