@@ -1,4 +1,4 @@
-package aisafe.app.console.aircontrolarea;
+package aisafe.app.console.presentation.aircontrolarea;
 
 import aisafe.aircontrolarea.application.RegisterAirControlAreaController;
 import eapli.framework.io.util.Console;

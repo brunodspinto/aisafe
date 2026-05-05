@@ -1,6 +1,6 @@
 package aisafe.app.console.presentation;
 
-import aisafe.app.console.aircontrolarea.RegisterAirControlAreaUI;
+import aisafe.app.console.presentation.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;

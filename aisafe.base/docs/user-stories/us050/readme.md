@@ -82,7 +82,7 @@ This use case follows the standard "Register X" architectural pattern. Following
 
 ### 4.2 Acceptance Tests
 
-Detailed coverage is documented in [tests.md](tests.md).
+Detailed coverage is documented in [tests.md](testsUS050.md).
 
 ## 5. Implementation
 
