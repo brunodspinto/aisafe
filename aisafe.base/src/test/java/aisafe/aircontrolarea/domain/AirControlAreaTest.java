@@ -15,7 +15,7 @@ public class AirControlAreaTest {
         // Assert
         assertNotNull(area);
         assertEquals("PT-N", area.areaCode());
-        assertEquals("PT-N", area.identity()); // Testa o método da interface AggregateRoot
+        assertEquals("PT-N", area.identity());
     }
 
     @Test
