@@ -1,5 +1,7 @@
 package aisafe.app.console;
 
+import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.GeoBoundary;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -22,6 +24,7 @@ public final class AiSafeBootstrap {
         System.out.println("=====================================");
 
         bootstrapAdmin();
+        bootstrapAirControlAreas();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -46,6 +49,25 @@ public final class AiSafeBootstrap {
             System.out.println("Admin user created.");
         } else {
             System.out.println("Admin user already exists.");
+        }
+    }
+
+    private static void bootstrapAirControlAreas() {
+        final var areaRepo = PersistenceContext.repositories().airControlAreas();
+        final String defaultAreaCode = "PT-N";
+
+        if (areaRepo.ofIdentity(defaultAreaCode).isEmpty()) {
+            final GeoBoundary boundaries = new GeoBoundary(42.15, 36.95, -6.18, -9.50);
+            final AirControlArea area = new AirControlArea(
+                    defaultAreaCode,
+                    "Northern Portugal Control Area",
+                    1200.0,
+                    boundaries
+            );
+            areaRepo.save(area);
+            System.out.println("Default air control area created: " + defaultAreaCode);
+        } else {
+            System.out.println("Default air control area already exists: " + defaultAreaCode);
         }
     }
 }

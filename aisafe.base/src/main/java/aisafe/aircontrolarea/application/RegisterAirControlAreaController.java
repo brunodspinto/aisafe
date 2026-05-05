@@ -10,10 +10,6 @@ import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
 
-
-
-
-
 /**
  * Controller responsible for the use case
  * "Register an Air Control Area" (US050).
@@ -41,8 +37,12 @@ public class RegisterAirControlAreaController {
                                                  final double eastLong, final double westLong) {
 
         // Check permissions
-        // Adjust the role (AiSafeRoles.ADMIN or another) according to the use case requirements
-        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN);
+                authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
+
+                final String normalizedAreaCode = normalizeAreaCode(areaCode);
+                if (repository.ofIdentity(normalizedAreaCode).isPresent()) {
+                        throw new IllegalArgumentException("Air Control Area code already exists: " + normalizedAreaCode);
+                }
 
         // Instantiate domain objects
         // First the Value Object
@@ -51,9 +51,16 @@ public class RegisterAirControlAreaController {
 
         // Then the Aggregate Root entity
         final AirControlArea newArea =
-                new AirControlArea(areaCode, name, minimumFuelRequired, boundaries);
+                                new AirControlArea(normalizedAreaCode, name == null ? null : name.trim(), minimumFuelRequired, boundaries);
 
         // Save in the repository (persist to database)
         return repository.save(newArea);
     }
+
+        private String normalizeAreaCode(final String areaCode) {
+                if (areaCode == null) {
+                        return null;
+                }
+                return areaCode.trim().toUpperCase();
+        }
 }
