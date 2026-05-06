@@ -1,0 +1,148 @@
+@startuml class-diagram-us081
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class CreateFlightPlanFromFileUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application Layer" {
+    class CreateFlightPlanFromFileController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : FlightPlanRepository
+        -parser : FlightPlanParserFacade
+        +createFromFile(filePath) : FlightPlan
+        -readFile(filePath) : String
+        -buildErrorMessage(errors) : String
+    }
+}
+
+package "DSL Layer" {
+    class FlightPlanParserFacade {
+        +parse(inputDsl) : ParseResult
+        -toFlightPlan(ctx) : FlightPlanAst
+        -toLeg(ctx) : LegAst
+        -toSegment(ctx) : SegmentAst
+    }
+
+    class FlightPlanSemanticValidator <<domain service>> {
+        +validate(plan) : List<ParseError>
+        -validateLegs(plan, errors)
+        -validateSegment(seg, legN, segN, errors)
+        -validateRouteCoherence(plan, errors)
+        -validateNoAirportVisitedTwice(plan, errors)
+        -validateDateTime(date, time, ctx, errors)
+    }
+
+    class ParseResult {
+        -ast : FlightPlanAst
+        -errors : List<ParseError>
+        +isValid() : boolean
+        +ast() : Optional<FlightPlanAst>
+        +errors() : List<ParseError>
+        +{static} valid(ast) : ParseResult
+        +{static} invalid(errors) : ParseResult
+    }
+
+    class ParseError <<record>> {
+        -line : int
+        -column : int
+        -message : String
+        -offendingSymbol : String
+    }
+}
+
+package "DSL AST" {
+    class FlightPlanAst <<record>> {
+        -identifier : String
+        -flightType : FlightType
+        -legs : List<LegAst>
+    }
+
+    class LegAst <<record>> {
+        -departure : EndpointAst
+        -arrival : EndpointAst
+        -route : RouteAst
+        -segments : List<SegmentAst>
+        -fuel : FuelAst
+    }
+
+    class SegmentAst <<record>> {
+        -from : CoordinateAst
+        -to : CoordinateAst
+        -altitudeMeters : double
+        -widthMeters : double
+        -windSpeed : double
+        -windDirection : double
+    }
+
+    enum FlightType {
+        REGULAR
+        CHARTER
+    }
+}
+
+package "Domain Layer" {
+    class FlightPlan <<entity, aggregate root>> {
+        -designator : String
+        -flightType : String
+        -status : FlightPlanStatus
+        -dslContent : String
+        +{static} fromDsl(ast, dslContent) : FlightPlan
+        +designator() : String
+        +flightType() : String
+        +status() : FlightPlanStatus
+        +dslContent() : String
+        +identity() : String
+        +sameAs(other) : boolean
+    }
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+}
+
+package "Repository Layer" {
+    interface FlightPlanRepository {
+    }
+
+    class InMemoryFlightPlanRepository {
+    }
+
+    class JpaFlightPlanRepository {
+        +JpaFlightPlanRepository(puName)
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
+
+CreateFlightPlanFromFileUI ..> CreateFlightPlanFromFileController : uses
+CreateFlightPlanFromFileController ..> AuthorizationService : checks PILOT role
+CreateFlightPlanFromFileController ..> FlightPlanParserFacade : parses DSL
+CreateFlightPlanFromFileController ..> FlightPlanRepository : saves FlightPlan
+CreateFlightPlanFromFileController ..> FlightPlan : creates
+
+FlightPlanParserFacade ..> FlightPlanSemanticValidator : validates AST
+FlightPlanParserFacade ..> ParseResult : returns
+FlightPlanParserFacade ..> FlightPlanAst : builds
+
+ParseResult *-- FlightPlanAst
+ParseResult *-- ParseError
+
+FlightPlanAst *-- LegAst
+FlightPlanAst --> FlightType
+LegAst *-- SegmentAst
+
+FlightPlan --> FlightPlanStatus : has
+
+FlightPlanRepository <|.. InMemoryFlightPlanRepository
+FlightPlanRepository <|.. JpaFlightPlanRepository
+
+@enduml

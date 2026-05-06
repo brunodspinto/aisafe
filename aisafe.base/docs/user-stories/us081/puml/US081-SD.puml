@@ -1,0 +1,71 @@
+@startuml sd081
+skinparam shadowing false
+autonumber
+
+actor Pilot as pilot
+participant "CreateFlightPlanFromFileUI" as ui
+participant "CreateFlightPlanFromFileController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "FlightPlanParserFacade" as facade
+participant "FlightPlanSemanticValidator" as validator
+participant "FlightPlanRepository" as repo
+
+pilot -> ui : enter file path
+activate ui
+
+ui -> ctrl : createFromFile(filePath)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+
+ctrl -> ctrl : dslContent = readFile(filePath)
+
+ctrl -> facade : parse(dslContent)
+activate facade
+
+facade -> facade : run ANTLR lexer + parser
+alt lexical/syntactic errors
+    facade --> ctrl : ParseResult.invalid(errors)
+    ctrl --> ui : throw IllegalArgumentException(errorMessage)
+    ui -> pilot : "Validation Error: ..."
+end
+
+facade -> validator : validate(ast)
+activate validator
+validator -> validator : validateLegs()
+validator -> validator : validateRouteCoherence()
+validator -> validator : validateNoAirportVisitedTwice()
+validator --> facade : List<ParseError>
+deactivate validator
+
+alt semantic errors
+    facade --> ctrl : ParseResult.invalid(semanticErrors)
+    ctrl --> ui : throw IllegalArgumentException(errorMessage)
+    ui -> pilot : "Validation Error: ..."
+end
+
+facade --> ctrl : ParseResult.valid(ast)
+deactivate facade
+
+ctrl -> repo : ofIdentity(ast.identifier())
+activate repo
+repo --> ctrl : Optional.empty()
+deactivate repo
+
+ctrl -> ctrl : flightPlan = FlightPlan.fromDsl(ast, dslContent)
+
+ctrl -> repo : save(flightPlan)
+activate repo
+repo --> ctrl : savedFlightPlan
+deactivate repo
+
+ctrl --> ui : savedFlightPlan
+deactivate ctrl
+
+ui -> pilot : "Flight plan successfully created!\nDesignator: TP1234 | Type: REGULAR | Status: DRAFT"
+deactivate ui
+
+@enduml
