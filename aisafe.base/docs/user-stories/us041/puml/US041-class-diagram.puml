@@ -15,14 +15,16 @@ package "Presentation" {
 package "Application" {
     class RegisterWeatherDataController {
         + activeAirControlAreas() : Iterable<AirControlArea>
-        + registerWeatherData(areaCode: String, provider: String, format: String, date: Date, temperature: double, windSpeed: double, windDirection: String, pressure: double, visibility: double) : WeatherData
+        + registerWeatherData(areaCode: String, provider: String, format: String, date: LocalDateTime, temperature: double, windSpeed: double, windDirection: String, pressure: double, visibility: double) : WeatherData
     }
 }
 
 package "Domain" {
     class WeatherData <<entity>> <<aggregate root>> {
+        - id : Long
         - areaCode : String
-        - date : Date
+        - source : WeatherSource
+        - date : LocalDateTime
         - temperature : double
         - windSpeed : double
         - windDirection : String
@@ -50,6 +52,9 @@ package "Persistence" {
 
     interface AirControlAreaRepository <<interface>> {
         + findAll() : Iterable<AirControlArea>
+    }
+
+    class InMemoryWeatherDataRepository {
     }
 
     class JpaWeatherDataRepository {
@@ -84,7 +89,8 @@ RegisterWeatherDataController ..> AirControlAreaRepository
 WeatherData "1" *-- "1" WeatherSource : contains >
 WeatherData ..> AirControlArea : refers via areaCode >
 
-' Persistence implementations (JPA)
+' Persistence implementations
+InMemoryWeatherDataRepository ..|> WeatherDataRepository
 JpaWeatherDataRepository ..|> WeatherDataRepository
 JpaAirControlAreaRepository ..|> AirControlAreaRepository
 
