@@ -5,6 +5,7 @@ import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
+import aisafe.flightplan.repositories.FlightPlanRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
@@ -48,6 +49,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public AirControlAreaRepository airControlAreas() {
         return new InMemoryAirControlAreaRepository();
+    }
+
+    @Override
+    public FlightPlanRepository flightPlans() {
+        return new InMemoryFlightPlanRepository();
     }
 
     @Override

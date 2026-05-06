@@ -4,6 +4,7 @@ import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.usermanagement.repositories.UserRepository;
+import aisafe.flightplan.repositories.FlightPlanRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.repositories.impl.jpa.JpaAutoTxUserRepository;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
@@ -42,6 +43,11 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public AirControlAreaRepository airControlAreas() {
         return new JpaAirControlAreaRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public FlightPlanRepository flightPlans() {
+        return new JpaFlightPlanRepository(PERSISTENCE_UNIT);
     }
 
     @Override

@@ -20,4 +20,6 @@ public interface RepositoryFactory {
     AirTransportCompanyRepository airTransportCompanies();
 
     AirControlAreaRepository airControlAreas();
+
+    FlightPlanRepository flightPlans();
 }

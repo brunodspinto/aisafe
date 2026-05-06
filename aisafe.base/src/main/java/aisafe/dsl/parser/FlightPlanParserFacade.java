@@ -53,7 +53,13 @@ public final class FlightPlanParserFacade {
 		}
 
 		try {
-			return ParseResult.valid(toFlightPlan(root.flight().get(0)));
+			final FlightPlanAst ast = toFlightPlan(root.flight().get(0));
+			final List<ParseError> semanticErrors =
+					new FlightPlanSemanticValidator().validate(ast);
+			if (!semanticErrors.isEmpty()) {
+				return ParseResult.invalid(semanticErrors);
+			}
+			return ParseResult.valid(ast);
 		} catch (final RuntimeException ex) {
 			return ParseResult.invalid(List.of(new ParseError(
 					0,
