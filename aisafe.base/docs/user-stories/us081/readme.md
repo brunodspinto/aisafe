@@ -45,6 +45,7 @@ Validation is performed in three stages:
 2. **Syntactic analysis** — verifies the structure of the DSL against the ANTLR grammar (ANTLR parser).
 3. **Semantic analysis** — verifies domain-level rules, implemented in `FlightPlanSemanticValidator`.
 
+
 The semantic rules implemented are:
 
 | Rule | Description |
@@ -61,6 +62,7 @@ The semantic rules implemented are:
 | Route destination coherence | Route destination must match the last leg's arrival airport |
 | No airport visited twice | The same airport cannot appear more than once in the flight plan |
 | Valid date/time values | All date and time values must be valid calendar values |
+
 
 All semantic errors are collected in a single execution pass — validation does not stop at the first error found.
 
@@ -79,6 +81,13 @@ The main classes identified are:
 | `FlightPlanParserFacade` | Service | Lexical + syntactic parsing via ANTLR |
 | `FlightPlanSemanticValidator` | Domain Service | Semantic validation of the parsed AST |
 | `FlightPlanAst` | Value Object (DSL) | Internal representation of the flight plan |
+
+
+The following diagram shows the domain model excerpt for this US:
+
+![Domain Model](svg/US081-domain-model.svg)
+
+---
 
 ## 4. Design
 

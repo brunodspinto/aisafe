@@ -1,0 +1,82 @@
+@startuml domain_model_us081
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Flight Aggregate" <<Rectangle>> {
+    class Flight <<entity, aggregate root>> {
+        flightDesignator
+        departureDateTime
+        scheduledArrival
+    }
+    class FlightPlan <<entity>> {
+        totalFuelLoad
+        cargoWeight
+        passengerCount
+        crewCount
+        totalWeight
+        estimatedDuration
+        dslContent
+    }
+    class FlightSegment <<value object>> {
+        allowedAltitudeSlots
+        widthPerAltitudeSlot
+        windDirection
+        windSpeed
+    }
+    class Node <<value object>> {
+        latitude
+        longitude
+        altitude
+    }
+    Enum FlightType {
+        REGULAR
+        CHARTER
+    }
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
+    }
+}
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        name
+        phoneNumber
+        position
+    }
+    Enum RoleType {
+        PILOT
+    }
+}
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+    class FlightRoute <<entity, aggregate root>> {
+        name
+        activeUntil
+    }
+}
+
+package "Aircraft Aggregate" <<Rectangle>> {
+    class Aircraft <<entity, aggregate root>> {
+        registrationNumber
+    }
+}
+
+class IATACode <<value object>> {
+    code
+}
+
+Flight "1" --> "1" FlightRoute : "instance of"
+Flight "1" --> "1" FlightType : "typed as"
+Flight "1" *-- "1..*" FlightPlan : "has"
+Flight "1" --> "1" Aircraft : "uses"
+Flight "1" --> "1" User : "assigned to (Pilot)"
+FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
+FlightPlan "1" --> "1" FlightPlanStatus : "has"
+FlightSegment "1" *-- "2" Node : "has"
+User "1" --> "1" RoleType : "has"
+FlightRoute "1" --> "2" IATACode : "connects"
+
+@enduml
