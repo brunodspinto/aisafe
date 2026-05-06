@@ -38,4 +38,4 @@ public class CreateFlightPlanFromFileUI extends AbstractUI {
         return "Create Flight Plan from DSL File";
     }
 }
-EOF
+

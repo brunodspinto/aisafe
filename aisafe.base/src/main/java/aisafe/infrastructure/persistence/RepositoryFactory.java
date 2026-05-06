@@ -3,6 +3,7 @@ package aisafe.infrastructure.persistence;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.usermanagement.repositories.UserRepository;
+import aisafe.flightplan.repositories.FlightPlanRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
 public interface RepositoryFactory {

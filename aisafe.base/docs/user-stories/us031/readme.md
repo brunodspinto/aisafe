@@ -29,14 +29,15 @@ The implementation follows a DDD layered architecture: a UI layer collects input
 
 ## 3. Analysis
 
-The `User` aggregate was designed following DDD principles. The domain distinguishes between two user concepts:
+The Core Flight DSL describes a flight plan in a hierarchical, block-based textual format. A flight plan contains one or more legs, each with departure, arrival, route, segments and fuel information.
 
-- **SystemUser** (from the EAPLI framework) — handles authentication (username, password, roles). Managed entirely by the framework.
-- **User** (AISafe aggregate root) — holds AISafe-specific business data and references a `SystemUser` via a `@OneToOne` association.
+Validation is performed in three stages:
 
-This separation avoids duplicating authentication logic while still allowing the domain to store business-specific fields.
+1. Lexical analysis - tokenises the input and detects unrecognised tokens (ANTLR lexer).
+2. Syntactic analysis — verifies the structure of the DSL against the ANTLR grammar (ANTLR parser).
+3. Semantic analysis — verifies domain-level rules, implemented in FlightPlanSemanticValidator.
 
-The main classes identified are:
+The semantic rules implemented are:
 
 | Class | Type | Responsibility |
 |-------|------|----------------|
