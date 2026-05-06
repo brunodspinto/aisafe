@@ -3,6 +3,7 @@ package aisafe.infrastructure.persistence.inmemory;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
+import aisafe.weatherdata.repositories.WeatherDataRepository;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.flightplan.repositories.FlightPlanRepository;
@@ -54,6 +55,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public FlightPlanRepository flightPlans() {
         return new InMemoryFlightPlanRepository();
+    }
+
+    @Override
+    public WeatherDataRepository weatherData() {
+        return new InMemoryWeatherDataRepository();
     }
 
     @Override

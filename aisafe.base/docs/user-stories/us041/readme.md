@@ -6,10 +6,10 @@ This US allows the Weather Person to register weather data in the AISafe system 
 
 ### 1.1 List of Issues
 
-- **Analysis:** Define the domain model for the `WeatherData` aggregate and its external relationship with the `AirControlArea`.
-- **Design:** Design the standard "Register X" sequence diagram and class diagram for the domain and persistence layers, including the querying of existing areas.
-- **Implement:** Create the `WeatherData` entity, JPA repositories, Controller, UI, and enforce authorization.
-- **Test:** Unit tests for `WeatherData` instantiation and business validations.
+- **Analysis:** Define the domain model for the `WeatherData` aggregate and its external relationship with the `AirControlArea`. ✅
+- **Design:** Design the standard "Register X" sequence diagram and class diagram for the domain and persistence layers, including the querying of existing areas. ✅
+- **Implement:** Create the `WeatherData` entity, JPA repositories, Controller, UI, and enforce authorization. ✅
+- **Test:** Unit tests for `WeatherData` instantiation and business validations. ✅
 
 ---
 
@@ -50,8 +50,9 @@ The `WeatherData` ensures that:
 
 - Wind speed cannot be negative.
 - Visibility cannot be negative.
-- The Air Control Area reference cannot be null or empty.
-- The date and time of the record are valid.
+- The Air Control Area reference (`areaCode`) cannot be null or blank; it is normalised to uppercase on construction.
+- The `WeatherSource` cannot be null.
+- The date and time of the record cannot be null.
 
 ### Persistence (JPA)
 
@@ -87,7 +88,16 @@ The controller must query the `AirControlAreaRepository` first, allowing the use
 
 ### 4.2 Acceptance Tests
 
-Detailed coverage is documented in `tests.md`.
+Unit tests are in `aisafe.weatherdata.domain.WeatherDataTest` and cover:
+
+- Valid `WeatherData` creation with all fields.
+- `areaCode` null or blank → `IllegalArgumentException`.
+- `source` null → `IllegalArgumentException`.
+- `date` null → `IllegalArgumentException`.
+- `windSpeed` negative → `IllegalArgumentException`.
+- `visibility` negative → `IllegalArgumentException`.
+- `windSpeed` and `visibility` of zero are accepted (boundary cases).
+- `areaCode` is normalised to uppercase.
 
 ---
 
@@ -95,41 +105,54 @@ Detailed coverage is documented in `tests.md`.
 
 ### Key Implementation Details
 
-- `WeatherData` → Annotated with `@Entity` and implements `AggregateRoot<Long>`
-- `areaCode` → Simple `@Column` (external reference)
-- `WeatherSource` → Implements `ValueObject` and uses `@Embeddable`
-- Mapped using `@Embedded` inside `WeatherData`
+- `WeatherData` → Annotated with `@Entity`, implements `AggregateRoot<Long>`, identity is a `@GeneratedValue Long id` (surrogate key).
+- `date` → Stored as `LocalDateTime` (Java 8+ type, natively supported by JPA/Hibernate).
+- `areaCode` → Simple `@Column` (external reference), normalised to uppercase on construction.
+- `WeatherSource` → Implements `ValueObject` and uses `@Embeddable`, mapped with `@Embedded` inside `WeatherData`.
+
+### Source Locations
+
+| Class | Package |
+|---|---|
+| `WeatherData` | `aisafe.weatherdata.domain` |
+| `WeatherSource` | `aisafe.weatherdata.domain` |
+| `WeatherDataRepository` | `aisafe.weatherdata.repositories` |
+| `RegisterWeatherDataController` | `aisafe.weatherdata.application` |
+| `RegisterWeatherDataUI` | `aisafe.app.console.presentation.weatherdata` |
+| `InMemoryWeatherDataRepository` | `aisafe.infrastructure.persistence.inmemory` |
+| `JpaWeatherDataRepository` | `aisafe.infrastructure.persistence.jpa` |
 
 ### Repositories
 
-- `InMemoryWeatherDataRepository` (testing)
-- `JpaWeatherDataRepository` (production)
+- `InMemoryWeatherDataRepository` — used during testing (extends `InMemoryDomainRepository<WeatherData, Long>`).
+- `JpaWeatherDataRepository` — production persistence (extends `JpaAutoTxRepository<WeatherData, Long, Long>`).
+
+Both are registered in `RepositoryFactory` and wired in `InMemoryRepositoryFactory` and `JpaRepositoryFactory` via the `weatherData()` method.
 
 ### Security
 
-- `AuthorizationService` ensures only users with `WEATHER_PERSON` role can execute the operation.
+- `AuthorizationService` enforces `WEATHER_PERSON` role in both `activeAirControlAreas()` and `registerWeatherData()` of the controller.
 
-#### 6. Integration / Demonstration
+## 6. Integration / Demonstration
 
-##### Run Instructions
+### Run Instructions
 
-To test this functionality, ensure the system has been bootstrapped first so that at least one Air Control Area exists in the database.
+To test this functionality, ensure the system has been bootstrapped first so that at least one Air Control Area exists in the database. The bootstrap also creates the `weather_person` user.
 
 ```bash
-# Run bootstrap (creates initial data, including Air Control Areas and default users)
+# Run bootstrap (creates Air Control Areas and default users including weather_person)
 ./run-bootstrap.sh
 
 # Run backoffice
 ./run-backoffice.sh
 
 # Login with:
-# Username: weather_person (or the specific username created in your bootstrap)
+# Username: weather_person
 # Password: Password1
 
-# Navigate to: 
-# Weather Management -> Register Weather Data
-
-````
+# Navigate to:
+# Weather > -> Register Weather Data
+```
 ---
 
 ## 7. Observations
