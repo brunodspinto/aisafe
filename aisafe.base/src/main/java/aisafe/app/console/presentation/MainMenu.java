@@ -3,6 +3,7 @@ package aisafe.app.console.presentation;
 import aisafe.app.console.presentation.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.weatherdata.RegisterWeatherDataUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
 import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
@@ -25,6 +26,7 @@ public class MainMenu extends AbstractUI {
     private static final int USERS_OPTION = 2;
     private static final int COMPANIES_OPTION = 3;
     private static final int AIR_CONTROL_OPTION = 4;
+    private static final int WEATHER_OPTION = 5;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -67,6 +69,11 @@ public class MainMenu extends AbstractUI {
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
+        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.WEATHER_PERSON)) {
+            menu.addSubMenu(WEATHER_OPTION, buildWeatherMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+        }
+
         menu.addItem(EXIT_OPTION, "Exit", new ExitWithMessageAction("Goodbye!"));
         return menu;
     }
@@ -97,6 +104,13 @@ public class MainMenu extends AbstractUI {
     private Menu buildAirControlMenu() {
         final var menu = new Menu("Air Control >");
         menu.addItem(1, "Register Air Control Area", new RegisterAirControlAreaUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildWeatherMenu() {
+        final var menu = new Menu("Weather >");
+        menu.addItem(1, "Register Weather Data", new RegisterWeatherDataUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

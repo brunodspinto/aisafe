@@ -24,6 +24,7 @@ public final class AiSafeBootstrap {
         System.out.println("=====================================");
 
         bootstrapAdmin();
+        bootstrapWeatherPerson();
         bootstrapAirControlAreas();
 
         System.out.println("Bootstrap completed successfully!");
@@ -49,6 +50,29 @@ public final class AiSafeBootstrap {
             System.out.println("Admin user created.");
         } else {
             System.out.println("Admin user already exists.");
+        }
+    }
+
+    private static void bootstrapWeatherPerson() {
+        final var userRepo = PersistenceContext.repositories().systemUsers();
+        final var username = "weather_person";
+
+        if (userRepo.ofIdentity(
+                eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username))
+                .isEmpty()) {
+
+            final var builder = new SystemUserBuilder(
+                    new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                    .withPassword("Password1")
+                    .withName("Weather", "Person")
+                    .withEmail("weather@aisafe.com")
+                    .withRoles(AiSafeRoles.WEATHER_PERSON);
+
+            userRepo.save(builder.build());
+            System.out.println("Weather person user created.");
+        } else {
+            System.out.println("Weather person user already exists.");
         }
     }
 

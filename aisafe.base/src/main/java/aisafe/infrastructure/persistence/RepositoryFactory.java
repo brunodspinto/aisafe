@@ -3,6 +3,7 @@ package aisafe.infrastructure.persistence;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.usermanagement.repositories.UserRepository;
+import aisafe.weatherdata.repositories.WeatherDataRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
 public interface RepositoryFactory {
@@ -20,4 +21,6 @@ public interface RepositoryFactory {
     AirTransportCompanyRepository airTransportCompanies();
 
     AirControlAreaRepository airControlAreas();
+
+    WeatherDataRepository weatherData();
 }

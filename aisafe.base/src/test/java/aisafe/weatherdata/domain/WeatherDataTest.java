@@ -1,0 +1,85 @@
+package aisafe.weatherdata.domain;
+
+import org.junit.jupiter.api.Test;
+import java.time.LocalDateTime;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+class WeatherDataTest {
+
+    private static final LocalDateTime VALID_DATE = LocalDateTime.of(2025, 5, 1, 12, 0);
+    private static final WeatherSource VALID_SOURCE = new WeatherSource("IPMA", "JSON");
+
+    private WeatherData validWeatherData() {
+        return new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0);
+    }
+
+    @Test
+    void ensureValidWeatherDataCanBeCreated() {
+        final WeatherData wd = validWeatherData();
+
+        assertEquals("PT-N", wd.areaCode());
+        assertEquals(VALID_SOURCE, wd.source());
+        assertEquals(VALID_DATE, wd.date());
+        assertEquals(20.0, wd.temperature());
+        assertEquals(15.0, wd.windSpeed());
+        assertEquals("N", wd.windDirection());
+        assertEquals(1013.0, wd.pressure());
+        assertEquals(10.0, wd.visibility());
+    }
+
+    @Test
+    void ensureAreaCodeIsNormalisedToUpperCase() {
+        final WeatherData wd = new WeatherData("pt-n", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0);
+        assertEquals("PT-N", wd.areaCode());
+    }
+
+    @Test
+    void ensureAreaCodeCannotBeNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData(null, VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureAreaCodeCannotBeBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("   ", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureSourceCannotBeNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", null, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureDateCannotBeNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, null, 20.0, 15.0, "N", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureWindSpeedCannotBeNegative() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, -1.0, "N", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureVisibilityCannotBeNegative() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, -1.0));
+    }
+
+    @Test
+    void ensureWindSpeedOfZeroIsValid() {
+        final WeatherData wd = new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 0.0, "N", 1013.0, 10.0);
+        assertEquals(0.0, wd.windSpeed());
+    }
+
+    @Test
+    void ensureVisibilityOfZeroIsValid() {
+        final WeatherData wd = new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 0.0);
+        assertEquals(0.0, wd.visibility());
+    }
+}
