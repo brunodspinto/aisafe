@@ -5,6 +5,7 @@ import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.usermanagement.repositories.UserRepository;
 import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
+import aisafe.airport.repositories.AirportRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
 public interface RepositoryFactory {
@@ -26,4 +27,6 @@ public interface RepositoryFactory {
     FlightPlanRepository flightPlans();
 
     WeatherDataRepository weatherData();
+
+    AirportRepository airports();
 }

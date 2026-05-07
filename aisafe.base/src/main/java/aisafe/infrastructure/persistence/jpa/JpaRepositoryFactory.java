@@ -6,6 +6,7 @@ import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.usermanagement.repositories.UserRepository;
 import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
+import aisafe.airport.repositories.AirportRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.repositories.impl.jpa.JpaAutoTxUserRepository;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
@@ -59,5 +60,10 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public TransactionalContext newTransactionalContext() {
         return JpaAutoTxRepository.buildTransactionalContext(PERSISTENCE_UNIT, new HashMap<>());
+    }
+
+    @Override
+    public AirportRepository airports() {
+        return new JpaAirportRepository(PERSISTENCE_UNIT);
     }
 }

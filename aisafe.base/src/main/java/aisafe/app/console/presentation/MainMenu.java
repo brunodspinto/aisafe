@@ -9,6 +9,7 @@ import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
+import aisafe.app.console.presentation.airport.RegisterAirportUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -110,6 +111,7 @@ public class MainMenu extends AbstractUI {
     private Menu buildAirControlMenu() {
         final var menu = new Menu("Air Control >");
         menu.addItem(1, "Register Air Control Area", new RegisterAirControlAreaUI()::show);
+        menu.addItem(2, "Register Airport", new RegisterAirportUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

@@ -1,0 +1,65 @@
+package aisafe.airport.application;
+
+import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
+import aisafe.airport.domain.Airport;
+import aisafe.airport.domain.AirportIATACode;
+import aisafe.airport.domain.AirportICAOCode;
+import aisafe.airport.repositories.AirportRepository;
+import aisafe.infrastructure.persistence.PersistenceContext;
+import aisafe.usermanagement.domain.AiSafeRoles;
+import eapli.framework.application.UseCaseController;
+import eapli.framework.infrastructure.authz.application.AuthorizationService;
+import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+
+@UseCaseController
+public class RegisterAirportController {
+
+    private final AuthorizationService authz = AuthzRegistry.authorizationService();
+    private final AirportRepository airportRepository =
+            PersistenceContext.repositories().airports();
+    private final AirControlAreaRepository airControlAreaRepository =
+            PersistenceContext.repositories().airControlAreas();
+
+    public Iterable<AirControlArea> allAirControlAreas() {
+        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
+        return airControlAreaRepository.findAll();
+    }
+
+    public Airport registerAirport(final String iataCodeStr,
+                                   final String icaoCodeStr,
+                                   final String name,
+                                   final String town,
+                                   final String country,
+                                   final double latitude,
+                                   final double longitude,
+                                   final double altitude,
+                                   final String areaCode) {
+
+        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
+
+        final AirportIATACode iataCode = AirportIATACode.valueOf(iataCodeStr.trim().toUpperCase());
+        final AirportICAOCode icaoCode = AirportICAOCode.valueOf(icaoCodeStr.trim().toUpperCase());
+
+        if (airportRepository.ofIdentity(iataCode).isPresent()) {
+            throw new IllegalArgumentException(
+                    "An airport with IATA code '" + iataCode + "' already exists.");
+        }
+
+        if (airportRepository.findByIcaoCode(icaoCode).isPresent()) {
+            throw new IllegalArgumentException(
+                    "An airport with ICAO code '" + icaoCode + "' already exists.");
+        }
+
+        final AirControlArea area = airControlAreaRepository.ofIdentity(areaCode)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Air Control Area '" + areaCode + "' not found."));
+
+        final Airport airport = new Airport(
+                iataCode, icaoCode, name.trim(), town.trim(), country.trim(),
+                latitude, longitude, altitude, area
+        );
+
+        return airportRepository.save(airport);
+    }
+}

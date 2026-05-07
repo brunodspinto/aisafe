@@ -7,6 +7,7 @@ import aisafe.weatherdata.repositories.WeatherDataRepository;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.flightplan.repositories.FlightPlanRepository;
+import aisafe.airport.repositories.AirportRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
@@ -66,4 +67,10 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     public TransactionalContext newTransactionalContext() {
         return null;
     }
+
+    @Override
+    public AirportRepository airports() {
+        return new InMemoryAirportRepository();
+    }
+
 }
