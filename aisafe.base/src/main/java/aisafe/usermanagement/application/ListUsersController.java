@@ -16,6 +16,6 @@ public class ListUsersController {
 
     public Iterable<User> allUsers() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN);
-        return userRepo.findAllActive();
+        return userRepo.findAll();
     }
 }

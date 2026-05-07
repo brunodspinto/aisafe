@@ -28,4 +28,9 @@ public class JpaUserRepository
     public Iterable<User> findAllActive() {
         return match("e.systemUser.active = true");
     }
+
+    @Override
+    public Iterable<User> findAll() {
+        return match("1=1");
+    }
 }

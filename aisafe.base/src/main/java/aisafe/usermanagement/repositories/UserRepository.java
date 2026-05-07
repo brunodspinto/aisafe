@@ -9,6 +9,8 @@ import java.util.Optional;
 public interface UserRepository extends DomainRepository<MecanographicNumber, User> {
 
     Iterable<User> findAllActive();
+    
+        Iterable<User> findAll();
 
     Optional<User> findByUsername(Username username);
 }
