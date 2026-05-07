@@ -23,8 +23,10 @@ public class Airport implements AggregateRoot<AirportIATACode> {
     private String name;
     private String town;
     private String country;
-    private double latitude;
-    private double longitude;
+
+    @Embedded
+    private GeoCoordinate location;
+
     private double altitude;
 
     @ManyToOne
@@ -37,8 +39,7 @@ public class Airport implements AggregateRoot<AirportIATACode> {
                    final String name,
                    final String town,
                    final String country,
-                   final double latitude,
-                   final double longitude,
+                   final GeoCoordinate location,
                    final double altitude,
                    final AirControlArea airControlArea) {
 
@@ -52,10 +53,8 @@ public class Airport implements AggregateRoot<AirportIATACode> {
             throw new IllegalArgumentException("Town cannot be null or empty.");
         if (country == null || country.isBlank())
             throw new IllegalArgumentException("Country cannot be null or empty.");
-        if (latitude < -90 || latitude > 90)
-            throw new IllegalArgumentException("Latitude must be between -90 and 90.");
-        if (longitude < -180 || longitude > 180)
-            throw new IllegalArgumentException("Longitude must be between -180 and 180.");
+        if (location == null)
+            throw new IllegalArgumentException("Location cannot be null.");
         if (airControlArea == null)
             throw new IllegalArgumentException("Air Control Area cannot be null.");
 
@@ -64,8 +63,7 @@ public class Airport implements AggregateRoot<AirportIATACode> {
         this.name = name;
         this.town = town;
         this.country = country;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.location = location;
         this.altitude = altitude;
         this.airControlArea = airControlArea;
     }
@@ -75,8 +73,7 @@ public class Airport implements AggregateRoot<AirportIATACode> {
     public String name() { return name; }
     public String town() { return town; }
     public String country() { return country; }
-    public double latitude() { return latitude; }
-    public double longitude() { return longitude; }
+    public GeoCoordinate location() { return location; }
     public double altitude() { return altitude; }
     public AirControlArea airControlArea() { return airControlArea; }
 
@@ -100,7 +97,7 @@ public class Airport implements AggregateRoot<AirportIATACode> {
 
     @Override
     public String toString() {
-        return String.format("Airport{iata='%s', icao='%s', name='%s', town='%s', country='%s'}",
-                iataCode, icaoCode, name, town, country);
+        return String.format("Airport{iata='%s', icao='%s', name='%s', town='%s', country='%s', location=%s}",
+                iataCode, icaoCode, name, town, country, location);
     }
 }

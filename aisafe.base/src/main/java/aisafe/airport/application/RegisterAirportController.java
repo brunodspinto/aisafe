@@ -5,6 +5,7 @@ import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airport.domain.Airport;
 import aisafe.airport.domain.AirportIATACode;
 import aisafe.airport.domain.AirportICAOCode;
+import aisafe.airport.domain.GeoCoordinate;
 import aisafe.airport.repositories.AirportRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -55,9 +56,11 @@ public class RegisterAirportController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Control Area '" + areaCode + "' not found."));
 
+        final GeoCoordinate location = new GeoCoordinate(latitude, longitude);
+
         final Airport airport = new Airport(
                 iataCode, icaoCode, name.trim(), town.trim(), country.trim(),
-                latitude, longitude, altitude, area
+                location, altitude, area
         );
 
         return airportRepository.save(airport);

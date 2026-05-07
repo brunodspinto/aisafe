@@ -33,7 +33,7 @@ public class RegisterAirportUI extends AbstractUI {
             final String country = Console.readLine("Country: ");
             final double latitude = Console.readDouble("Latitude (e.g. 38.7756): ");
             final double longitude = Console.readDouble("Longitude (e.g. -9.1354): ");
-            final double altitude = Console.readDouble("Altitude: ");
+            final double altitude = Console.readDouble("Altitude in meters above sea level: ");
             final String areaCode = Console.readLine("Air Control Area Code: ");
 
             final Airport airport = controller.registerAirport(
@@ -42,12 +42,14 @@ public class RegisterAirportUI extends AbstractUI {
             );
 
             System.out.println("\n Airport successfully registered!");
-            System.out.println("  IATA     : " + airport.iataCode());
-            System.out.println("  ICAO     : " + airport.icaoCode());
-            System.out.println("  Name     : " + airport.name());
-            System.out.println("  Town     : " + airport.town());
-            System.out.println("  Country  : " + airport.country());
-            System.out.println("  Area     : " + airport.airControlArea().areaCode());
+            System.out.println("  IATA       : " + airport.iataCode());
+            System.out.println("  ICAO       : " + airport.icaoCode());
+            System.out.println("  Name       : " + airport.name());
+            System.out.println("  Town       : " + airport.town());
+            System.out.println("  Country    : " + airport.country());
+            System.out.println("  Location   : " + airport.location());
+            System.out.println("  Altitude   : " + airport.altitude() + " m");
+            System.out.println("  Area       : " + airport.airControlArea().areaCode());
 
         } catch (final IllegalArgumentException e) {
             System.out.println("\n Validation Error: " + e.getMessage());
