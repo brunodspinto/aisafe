@@ -44,6 +44,6 @@ public class GeoCoordinate implements ValueObject {
 
     @Override
     public String toString() {
-        return String.format(java.util.Locale.US, "(%.4f, %.4f)", latitude, longitude);
+        return String.format(java.util.Locale.US, "(%.2f, %.2f)", latitude, longitude);
     }
 }

@@ -33,7 +33,7 @@ public class RegisterAirportUI extends AbstractUI {
             final String country = Console.readLine("Country: ");
             final double latitude = Console.readDouble("Latitude (e.g. 38.7756): ");
             final double longitude = Console.readDouble("Longitude (e.g. -9.1354): ");
-            final double altitude = Console.readDouble("Altitude in meters above sea level: ");
+            final double altitude = Console.readDouble("Altitude (e.g 113): ");
             final String areaCode = Console.readLine("Air Control Area Code: ");
 
             final Airport airport = controller.registerAirport(

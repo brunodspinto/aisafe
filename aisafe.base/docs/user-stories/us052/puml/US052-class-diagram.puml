@@ -1,0 +1,93 @@
+@startuml class-diagram-us052
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class RegisterAirportUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application Layer" {
+    class RegisterAirportController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -airportRepository : AirportRepository
+        -airControlAreaRepository : AirControlAreaRepository
+        +allAirControlAreas() : Iterable<AirControlArea>
+        +registerAirport(...) : Airport
+    }
+}
+
+package "Domain Layer" {
+    class Airport <<entity, aggregate root>> {
+        -name : String
+        -town : String
+        -country : String
+        -altitude : double
+        +iataCode() : AirportIATACode
+        +icaoCode() : AirportICAOCode
+        +location() : GeoCoordinate
+        +airControlArea() : AirControlArea
+        +identity() : AirportIATACode
+        +sameAs(other) : boolean
+    }
+
+    class AirportIATACode <<identity, value object>> {
+        -iataCode : String
+        +valueOf(code) : AirportIATACode
+        +code() : String
+    }
+
+    class AirportICAOCode <<value object>> {
+        -icaoCode : String
+        +valueOf(code) : AirportICAOCode
+        +code() : String
+    }
+
+    class GeoCoordinate <<value object>> {
+        -latitude : double
+        -longitude : double
+        +latitude() : double
+        +longitude() : double
+    }
+
+    class AirControlArea <<entity, aggregate root>> {
+        -areaCode : String
+        -name : String
+        -minimumFuelRequired : double
+    }
+}
+
+package "Repository Layer" {
+    interface AirportRepository {
+        +findByIcaoCode(icaoCode) : Optional<Airport>
+    }
+
+    class InMemoryAirportRepository {
+    }
+
+    class JpaAirportRepository {
+        +JpaAirportRepository(puName)
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
+
+RegisterAirportUI ..> RegisterAirportController : uses
+RegisterAirportController ..> AuthorizationService : checks role
+RegisterAirportController ..> AirportRepository : saves Airport
+RegisterAirportController ..> AirControlArea : fetches area
+RegisterAirportController ..> Airport : creates
+
+Airport *-- AirportIATACode : identity
+Airport *-- AirportICAOCode : has
+Airport *-- GeoCoordinate : location
+Airport --> AirControlArea : belongs to
+
+AirportRepository <|.. InMemoryAirportRepository
+AirportRepository <|.. JpaAirportRepository
+
+@enduml

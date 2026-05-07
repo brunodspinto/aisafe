@@ -1,0 +1,48 @@
+@startuml domain_model_us052
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Airport Aggregate" <<Rectangle>> {
+    class Airport <<entity, aggregate root>> {
+        name
+        town
+        country
+        altitude
+    }
+
+    class AirportIATACode <<identity, value object>> {
+        iataCode
+    }
+
+    class AirportICAOCode <<value object>> {
+        icaoCode
+    }
+
+    class GeoCoordinate <<value object>> {
+        latitude
+        longitude
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+        minimumFuelRequired
+    }
+
+    class GeoBoundary <<value object>> {
+        northLatitude
+        southLatitude
+        eastLongitude
+        westLongitude
+    }
+}
+
+Airport *-- AirportIATACode : "identified by"
+Airport *-- AirportICAOCode : "has"
+Airport *-- GeoCoordinate : "located at"
+Airport "0..*" --> "1" AirControlArea : "belongs to"
+AirControlArea *-- GeoBoundary : "bounded by"
+
+@enduml

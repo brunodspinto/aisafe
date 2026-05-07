@@ -1,0 +1,110 @@
+@startuml sd052
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+participant ":RegisterAirportUI" as UI
+participant ":RegisterAirportController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthzRegistry" as AUTHZR
+participant "AuthorizationService" as AUTHZ
+participant "AirportRepository" as REPO
+participant "AirControlAreaRepository" as AREA_REPO
+participant "GeoCoordinate" as GEO
+participant "Airport" as AIRPORT
+
+activate BOP
+
+BOP -> UI : asks to register a new Airport
+activate UI
+
+note right of UI
+  The Controller is instantiated
+  and fetches its dependencies.
+end note
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> AUTHZR : authorizationService()
+activate AUTHZR
+AUTHZR --> CTRL : authz
+deactivate AUTHZR
+CTRL -> PC : repositories()
+activate PC
+PC -> FACT : airports()
+activate FACT
+FACT --> PC : airportRepository
+deactivate FACT
+PC -> FACT : airControlAreas()
+activate FACT
+FACT --> PC : areaRepository
+deactivate FACT
+PC --> CTRL : factory
+deactivate PC
+deactivate CTRL
+
+UI -> CTRL : allAirControlAreas()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> AREA_REPO : findAll()
+activate AREA_REPO
+AREA_REPO --> CTRL : areas
+deactivate AREA_REPO
+CTRL --> UI : areas
+deactivate CTRL
+
+UI --> BOP : displays areas, requests airport data
+deactivate UI
+
+BOP -> UI : inputs the requested data
+activate UI
+
+note right of UI
+  Execution of the Use Case
+end note
+UI -> CTRL : registerAirport(iataCode, icaoCode, name, town, country, latitude, longitude, altitude, areaCode)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> CTRL : iataCode = AirportIATACode.valueOf(iataCodeStr)
+CTRL -> CTRL : icaoCode = AirportICAOCode.valueOf(icaoCodeStr)
+
+CTRL -> REPO : ofIdentity(iataCode)
+activate REPO
+REPO --> CTRL : Optional.empty()
+deactivate REPO
+
+CTRL -> REPO : findByIcaoCode(icaoCode)
+activate REPO
+REPO --> CTRL : Optional.empty()
+deactivate REPO
+
+CTRL -> AREA_REPO : ofIdentity(areaCode)
+activate AREA_REPO
+AREA_REPO --> CTRL : area : AirControlArea
+deactivate AREA_REPO
+
+CTRL -> GEO** : create(latitude, longitude)
+CTRL -> AIRPORT** : create(iataCode, icaoCode, name, town, country, location, altitude, area)
+
+CTRL -> REPO : save(newAirport)
+activate REPO
+REPO --> CTRL : savedAirport
+deactivate REPO
+
+CTRL --> UI : savedAirport
+deactivate CTRL
+
+UI --> BOP : displays operation success message
+deactivate UI
+deactivate BOP
+
+@enduml
