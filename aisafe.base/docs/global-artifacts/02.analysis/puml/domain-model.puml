@@ -130,12 +130,22 @@ package "AirControlArea Aggregate" <<Rectangle>> {
 
 
 package "Airport Aggregate" <<Rectangle>> {
-
     class Airport <<entity, aggregate root>> {
         name
         town
         country
         altitude
+    }
+
+    class AirportIATACode <<identity, value object>> {
+        iataCode
+    }
+
+    class AirportICAOCode <<value object>> {
+        icaoCode
+    }
+
+    class GeoCoordinate <<value object>> {
         latitude
         longitude
     }
@@ -312,8 +322,9 @@ Simulation "1" --> "0..*" Flight : "references"
 Simulation "1" *-- "1" SimulationReport : "produces"
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
 
-Airport "1" --> "1" IATACode : "identified by"
-Airport "1" --> "1" ICAOCode : "identified by"
+Airport *-- AirportIATACode : "identified by"
+Airport *-- AirportICAOCode : "has"
+Airport *-- GeoCoordinate : "located at"
 
 AirTransportCompany "1" --> "1" IATACode : "identified by"
 AirTransportCompany "1" --> "1" ICAOCode : "identified by"
