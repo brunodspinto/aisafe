@@ -69,6 +69,5 @@ UI --> ADM : displays operation success message
 deactivate UI
 deactivate ADM
 
-note bottom of diagram: Bootstrap registration follows the same validation and persistence rules.
 
 @enduml

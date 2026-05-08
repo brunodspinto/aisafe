@@ -1,0 +1,85 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US057 - Class Diagram (Compact)
+
+package "Presentation" {
+    class AddEngineToAircraftModelUI {
+        # doShow() : boolean
+    }
+}
+
+package "Application" {
+    class AddEngineToAircraftModelController {
+        + activeAircraftModels() : Iterable<AircraftModel>
+        + availableEngineModels() : Iterable<EngineModel>
+        + addEngineToAircraftModel(aircraft: AircraftModel, engine: EngineModel) : AircraftModel
+    }
+}
+
+package "Domain" {
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        - version : Long <<@Version>>
+        + addCertifiedEngine(engine: EngineModel) : boolean
+    }
+
+    class CertifiedEngineReference <<value object>> <<@Embeddable>> {
+        - engineName : String
+        + CertifiedEngineReference(engineName: String)
+    }
+
+    class EngineModel <<entity>> <<aggregate root>> {
+        - name : String
+        + identity() : String
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+}
+
+package "Persistence" {
+    interface AircraftModelRepository <<repository>> {
+        + save(entity: AircraftModel) : AircraftModel
+        + findAll() : Iterable<AircraftModel>
+    }
+
+    interface EngineModelRepository <<repository>> {
+        + findAll() : Iterable<EngineModel>
+    }
+
+    class JpaAircraftModelRepository {
+        + save(entity: AircraftModel) : AircraftModel
+        + findAll() : Iterable<AircraftModel>
+    }
+
+    class JpaEngineModelRepository {
+        + findAll() : Iterable<EngineModel>
+    }
+}
+
+
+AddEngineToAircraftModelUI .down.> AddEngineToAircraftModelController
+AddEngineToAircraftModelController .down.> AuthorizationService
+AddEngineToAircraftModelController .down.> AircraftModel
+AddEngineToAircraftModelController .down.> EngineModel
+AddEngineToAircraftModelController .down.> AircraftModelRepository
+AddEngineToAircraftModelController .down.> EngineModelRepository
+
+note right of AircraftModel: Maintains an internal collection\nof Value Objects (Low Coupling)\nand a @Version for Concurrency
+AircraftModel "1" *-- "0..*" CertifiedEngineReference : "maintains >"
+CertifiedEngineReference "1" ..> "1" EngineModel : "references by identity >"
+
+
+AircraftModelRepository "1" --> "*" AircraftModel : "stores >"
+EngineModelRepository "1" --> "*" EngineModel : "stores >"
+
+JpaAircraftModelRepository .up.|> AircraftModelRepository
+JpaEngineModelRepository .up.|> EngineModelRepository
+
+@enduml

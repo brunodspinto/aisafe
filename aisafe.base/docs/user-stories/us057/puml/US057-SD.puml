@@ -1,0 +1,93 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Backoffice Operator" as BOP
+
+participant ":AddEngineToAircraftModelUI" as UI
+participant ":AddEngineToAircraftModelController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "amRepo\n:AircraftModelRepository" as AMREPO
+participant "emRepo\n:EngineModelRepository" as EMREPO
+participant "selectedAircraftModel\n:AircraftModel" as AM
+participant "ref\n:CertifiedEngineReference" as REF
+
+activate BOP
+BOP -> UI : asks to add an engine to an aircraft model
+activate UI
+
+' Obter a lista de Aircraft Models
+UI -> CTRL** : create()
+UI -> CTRL : activeAircraftModels()
+activate CTRL
+
+' Validação de Segurança (NFR09)
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.BACKOFFICE_OPERATOR)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AMREPO : findAll()
+activate AMREPO
+AMREPO --> CTRL : aircraftModelsList
+deactivate AMREPO
+
+CTRL --> UI : aircraftModelsList
+deactivate CTRL
+
+UI --> BOP : displays available Aircraft Models and asks to select one
+deactivate UI
+
+BOP -> UI : selects an Aircraft Model
+activate UI
+
+' Obter a lista de Engine Models
+UI -> CTRL : availableEngineModels()
+activate CTRL
+
+CTRL -> EMREPO : findAll()
+activate EMREPO
+EMREPO --> CTRL : engineModelsList
+deactivate EMREPO
+
+CTRL --> UI : engineModelsList
+deactivate CTRL
+
+UI --> BOP : displays available Engine Models and asks to select one
+deactivate UI
+
+BOP -> UI : selects an Engine Model
+activate UI
+
+' Execução da adição
+UI -> CTRL : addEngineToAircraftModel(selectedAircraftModel, selectedEngineModel)
+activate CTRL
+
+' O Aggregate Root valida as regras de negócio
+CTRL -> AM : addCertifiedEngine(selectedEngineModel)
+activate AM
+
+' Instanciação explícita do Value Object definido no Class Diagram
+AM -> REF** : create(selectedEngineModel.identity())
+note right of REF: Stores only the Engine Name\n(CertifiedEngineReference)\nto maintain Low Coupling.
+
+AM --> CTRL : (success)
+deactivate AM
+
+' Gravação com Optimistic Locking
+CTRL -> AMREPO : save(selectedAircraftModel)
+activate AMREPO
+note right of AMREPO: Checks @Version field.\nThrows ConcurrencyException\nif data was modified concurrently (US057.3).
+AMREPO --> CTRL : updatedAircraftModel
+deactivate AMREPO
+
+CTRL --> UI : updatedAircraftModel
+deactivate CTRL
+
+UI --> BOP : displays operation success message
+deactivate UI
+deactivate BOP
+
+@enduml

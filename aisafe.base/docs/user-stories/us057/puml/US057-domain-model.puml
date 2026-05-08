@@ -1,0 +1,31 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US057 - Sub-Domain Model
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        - modelName
+        - aircraftType
+        - version : Long <<@Version>>
+        + addCertifiedEngine(engine: EngineModel)
+    }
+
+    class CertifiedEngineReference <<value object>> {
+        - engineModelCode
+    }
+}
+
+package "EngineModel Aggregate" <<Rectangle>> {
+    class EngineModel <<entity, aggregate root>> {
+        - engineModelCode
+        - engineType
+    }
+}
+
+AircraftModel "1" *-- "0..*" CertifiedEngineReference : "has certified engines"
+
+CertifiedEngineReference "1" ..> "1" EngineModel : "references >"
+
+@enduml
