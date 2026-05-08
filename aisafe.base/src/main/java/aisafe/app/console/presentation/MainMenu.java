@@ -29,7 +29,7 @@ public class MainMenu extends AbstractUI {
     private static final int COMPANIES_OPTION = 3;
     private static final int AIR_CONTROL_OPTION = 4;
     private static final int WEATHER_OPTION = 5;
-    private static final int FLIGHT_PLAN_OPTION = 5;
+    private static final int FLIGHT_PLAN_OPTION = 6;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
