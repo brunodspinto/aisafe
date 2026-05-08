@@ -2,6 +2,7 @@ package aisafe.aircraftmodel.domain;
 
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.maker.domain.Maker;
+import aisafe.enginemodel.domain.EngineType;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
@@ -122,8 +123,18 @@ public class AircraftModel implements AggregateRoot<Long> {
     public void addEngine(final EngineModel engine) {
         if (engine == null)
             throw new IllegalArgumentException("Engine model cannot be null.");
-        if (certifiedEngines.contains(engine))
+
+        final boolean alreadyCertified = certifiedEngines.stream()
+                .anyMatch(e -> e.name().equals(engine.name())
+                        && e.makerName().equals(engine.makerName()));
+        if (alreadyCertified)
             throw new IllegalArgumentException("Engine model already certified for this aircraft.");
+
+        final EngineType expectedType = certifiedEngines.get(0).engineType();
+        if (!engine.engineType().equals(expectedType))
+            throw new IllegalArgumentException(
+                    "Engine type " + engine.engineType() + " is not compatible. Expected " + expectedType + ".");
+
         certifiedEngines.add(engine);
     }
 

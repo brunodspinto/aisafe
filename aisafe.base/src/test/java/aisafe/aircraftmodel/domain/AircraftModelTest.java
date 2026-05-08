@@ -242,4 +242,22 @@ class AircraftModelTest {
                         12500, 230, 34.3, 125.0,
                         0.026, 0, validEngine()));
     }
+
+    @Test
+    void ensureCannotAddIncompatibleEngineType() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel turboprop = new EngineModel("PT6A", "Pratt & Whitney Canada",
+                EngineType.TURBOPROP, 17.0, 0.29);
+        assertThrows(IllegalArgumentException.class, () -> model.addEngine(turboprop));
+    }
+
+    @Test
+    void ensureCanAddCompatibleEngineType() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel anotherTurbofan = new EngineModel("GE90", "GE Aviation",
+                EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(anotherTurbofan);
+        assertEquals(2, model.certifiedEngines().size());
+    }
+
 }
