@@ -8,6 +8,8 @@ import aisafe.usermanagement.repositories.UserRepository;
 import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
 import aisafe.airport.repositories.AirportRepository;
+import aisafe.maker.repositories.MakerRepository;
+import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.repositories.impl.jpa.JpaAutoTxUserRepository;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
@@ -71,5 +73,15 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public EngineModelRepository engineModels() {
         return new JpaEngineModelRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public MakerRepository makers() {
+        return new JpaMakerRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AircraftModelRepository aircraftModels() {
+        return new JpaAircraftModelRepository(PERSISTENCE_UNIT);
     }
 }
