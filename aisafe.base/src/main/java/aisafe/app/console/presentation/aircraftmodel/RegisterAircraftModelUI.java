@@ -8,6 +8,9 @@ import aisafe.maker.domain.Maker;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class RegisterAircraftModelUI extends AbstractUI {
 
     private final RegisterAircraftModelController controller = new RegisterAircraftModelController();
@@ -16,31 +19,37 @@ public class RegisterAircraftModelUI extends AbstractUI {
     protected boolean doShow() {
         try {
             System.out.println("\n--- Available Makers ---");
-            boolean hasMakers = false;
+            final List<Maker> makers = new ArrayList<>();
             for (final Maker maker : controller.allMakers()) {
-                System.out.printf("  [%s] %s%n", maker.name(), maker.country());
-                hasMakers = true;
+                System.out.printf("  [%d] %s (%s)%n", makers.size() + 1, maker.name(), maker.country());
+                makers.add(maker);
             }
-            if (!hasMakers) {
+            if (makers.isEmpty()) {
                 System.out.println("  No makers registered. Please register a maker first.");
                 return false;
             }
 
             System.out.println("\n--- Available Engine Models ---");
-            boolean hasEngines = false;
+            final List<EngineModel> engines = new ArrayList<>();
             for (final EngineModel engine : controller.allEngineModels()) {
                 System.out.printf("  [%d] %s (%s) - %s%n",
-                        engine.identity(), engine.name(), engine.makerName(), engine.engineType());
-                hasEngines = true;
+                        engines.size() + 1, engine.name(), engine.makerName(), engine.engineType());
+                engines.add(engine);
             }
-            if (!hasEngines) {
+            if (engines.isEmpty()) {
                 System.out.println("  No engine models registered. Please register an engine model first.");
                 return false;
             }
 
             System.out.println();
             final String modelName = Console.readLine("Model Name: ");
-            final String makerName = Console.readLine("Maker Name: ");
+
+            final int makerChoice = Console.readInteger("Select Maker (number): ");
+            if (makerChoice < 1 || makerChoice > makers.size()) {
+                System.out.println("Invalid selection.");
+                return false;
+            }
+            final String makerName = makers.get(makerChoice - 1).name();
 
             System.out.println("\nAircraft Type:");
             final AircraftType[] types = controller.aircraftTypes();
@@ -48,6 +57,10 @@ public class RegisterAircraftModelUI extends AbstractUI {
                 System.out.printf("  %d - %s%n", i + 1, types[i]);
             }
             final int typeChoice = Console.readInteger("Choice: ");
+            if (typeChoice < 1 || typeChoice > types.length) {
+                System.out.println("Invalid selection.");
+                return false;
+            }
             final String aircraftType = types[typeChoice - 1].name();
 
             final double emptyWeight = Console.readDouble("Empty Weight (kg): ");
@@ -60,13 +73,19 @@ public class RegisterAircraftModelUI extends AbstractUI {
             final double wingArea = Console.readDouble("Wing Area (m²): ");
             final double dragCoefficient = Console.readDouble("Drag Coefficient (Cd): ");
             final double liftCoefficient = Console.readDouble("Lift Coefficient (Cl): ");
-            final long engineModelId = Console.readLong("Engine Model ID: ");
+
+            final int engineChoice = Console.readInteger("Select Engine Model (number): ");
+            if (engineChoice < 1 || engineChoice > engines.size()) {
+                System.out.println("Invalid selection.");
+                return false;
+            }
+            final EngineModel selectedEngine = engines.get(engineChoice - 1);
 
             final AircraftModel model = controller.registerAircraftModel(
                     modelName, makerName, aircraftType,
                     emptyWeight, mtow, mzfw, maxFuelCapacity,
                     serviceCeiling, cruiseSpeed, wingSpan, wingArea,
-                    dragCoefficient, liftCoefficient, engineModelId
+                    dragCoefficient, liftCoefficient, selectedEngine
             );
 
             System.out.println("\n Aircraft Model successfully registered!");

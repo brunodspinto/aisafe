@@ -51,7 +51,7 @@ public class RegisterAircraftModelController {
                                                final double wingArea,
                                                final double dragCoefficient,
                                                final double liftCoefficient,
-                                               final Long engineModelId) {
+                                               final EngineModel engine) {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
@@ -65,10 +65,6 @@ public class RegisterAircraftModelController {
             throw new IllegalArgumentException(
                     "An aircraft model with name '" + modelName + "' and maker '" + makerName + "' already exists.");
         }
-
-        final EngineModel engine = engineModelRepository.ofIdentity(engineModelId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Engine model not found."));
 
         final AircraftModel model = new AircraftModel(
                 modelName, maker, aircraftType,
