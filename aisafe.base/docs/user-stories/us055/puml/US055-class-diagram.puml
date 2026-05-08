@@ -1,0 +1,101 @@
+@startuml class-diagram-us055
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class RegisterAircraftModelUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+    class RegisterMakerUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application Layer" {
+    class RegisterAircraftModelController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -aircraftModelRepository : AircraftModelRepository
+        -makerRepository : MakerRepository
+        -engineModelRepository : EngineModelRepository
+        +allMakers() : Iterable<Maker>
+        +allEngineModels() : Iterable<EngineModel>
+        +aircraftTypes() : AircraftType[]
+        +registerAircraftModel(...) : AircraftModel
+    }
+    class RegisterMakerController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -makerRepository : MakerRepository
+        +registerMaker(name, country) : Maker
+        +allMakers() : Iterable<Maker>
+    }
+}
+
+package "Domain Layer" {
+    class AircraftModel <<entity, aggregate root>> {
+        -modelName : String
+        -emptyWeight : double
+        -mtow : double
+        -mzfw : double
+        -maxFuelCapacity : double
+        -serviceCeiling : double
+        -cruiseSpeed : double
+        -wingSpan : double
+        -wingArea : double
+        -dragCoefficient : double
+        -liftCoefficient : double
+        +addEngine(engine) : void
+        +certifiedEngines() : List<EngineModel>
+        +identity() : Long
+        +sameAs(other) : boolean
+    }
+
+    Enum AircraftType {
+        PASSENGER
+        CARGO
+        MIXED
+    }
+
+    class Maker <<entity, aggregate root>> {
+        -name : String
+        -country : String
+        +identity() : String
+        +sameAs(other) : boolean
+    }
+}
+
+package "Repository Layer" {
+    interface AircraftModelRepository {
+        +findByModelNameAndMaker(modelName, maker) : Optional<AircraftModel>
+    }
+    interface MakerRepository {
+    }
+    class InMemoryAircraftModelRepository
+    class JpaAircraftModelRepository
+    class InMemoryMakerRepository
+    class JpaMakerRepository
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
+
+RegisterAircraftModelUI ..> RegisterAircraftModelController : uses
+RegisterMakerUI ..> RegisterMakerController : uses
+RegisterAircraftModelController ..> AuthorizationService : checks role
+RegisterAircraftModelController ..> AircraftModelRepository : saves
+RegisterAircraftModelController ..> MakerRepository : fetches
+RegisterAircraftModelController ..> AircraftModel : creates
+RegisterMakerController ..> MakerRepository : saves
+RegisterMakerController ..> Maker : creates
+
+AircraftModel --> AircraftType : "classified as"
+AircraftModel --> Maker : "manufactured by"
+
+AircraftModelRepository <|.. InMemoryAircraftModelRepository
+AircraftModelRepository <|.. JpaAircraftModelRepository
+MakerRepository <|.. InMemoryMakerRepository
+MakerRepository <|.. JpaMakerRepository
+
+@enduml

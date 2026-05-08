@@ -1,0 +1,57 @@
+@startuml domain_model_us055
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        modelName
+        emptyWeight
+        MTOW
+        MZFW
+        maxFuelCapacity
+        serviceCeiling
+        cruiseSpeed
+        wingSpan
+        wingArea
+        dragCoefficient
+        liftCoefficient
+    }
+
+    Enum AircraftType {
+        PASSENGER
+        CARGO
+        MIXED
+    }
+}
+
+package "Maker Aggregate" <<Rectangle>> {
+    class Maker <<entity, aggregate root>> {
+        name
+        country
+    }
+}
+
+package "EngineModel Aggregate" <<Rectangle>> {
+    class EngineModel <<entity, aggregate root>> {
+        name
+        makerName
+        thrust
+        TSFC
+    }
+
+    Enum EngineType {
+        TURBOFAN
+        TURBOPROP
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
+    }
+}
+
+AircraftModel "1" --> "1" AircraftType : "classified as"
+AircraftModel "1" --> "1" Maker : "manufactured by"
+AircraftModel "1" --> "1..*" EngineModel : "certified with"
+EngineModel "1" --> "1" EngineType : "classified as"
+Maker "1" --> "0..*" AircraftModel : "manufactures"
+
+@enduml

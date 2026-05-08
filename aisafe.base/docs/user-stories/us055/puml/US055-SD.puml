@@ -1,0 +1,110 @@
+@startuml sd055
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+participant ":RegisterAircraftModelUI" as UI
+participant ":RegisterAircraftModelController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthorizationService" as AUTHZ
+participant "AircraftModelRepository" as REPO
+participant "MakerRepository" as MAKER_REPO
+participant "EngineModelRepository" as ENGINE_REPO
+participant "AircraftModel" as AIRCRAFT
+
+activate BOP
+
+BOP -> UI : asks to register a new Aircraft Model
+activate UI
+
+note right of UI
+  The Controller is instantiated
+  and fetches its dependencies.
+end note
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> PC : repositories()
+activate PC
+PC -> FACT : aircraftModels()
+activate FACT
+FACT --> PC : aircraftModelRepository
+deactivate FACT
+PC -> FACT : makers()
+activate FACT
+FACT --> PC : makerRepository
+deactivate FACT
+PC -> FACT : engineModels()
+activate FACT
+FACT --> PC : engineModelRepository
+deactivate FACT
+PC --> CTRL : factory
+deactivate PC
+deactivate CTRL
+
+UI -> CTRL : allMakers()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> MAKER_REPO : findAll()
+activate MAKER_REPO
+MAKER_REPO --> CTRL : makers
+deactivate MAKER_REPO
+CTRL --> UI : makers
+deactivate CTRL
+
+UI -> CTRL : allEngineModels()
+activate CTRL
+CTRL -> ENGINE_REPO : findAll()
+activate ENGINE_REPO
+ENGINE_REPO --> CTRL : engines
+deactivate ENGINE_REPO
+CTRL --> UI : engines
+deactivate CTRL
+
+UI --> BOP : displays makers and engines,\nrequests aircraft model data
+deactivate UI
+
+BOP -> UI : inputs the requested data
+activate UI
+
+note right of UI
+  Execution of the Use Case
+end note
+UI -> CTRL : registerAircraftModel(modelName, makerName, aircraftType,\nemptyWeight, mtow, mzfw, maxFuelCapacity,\nserviceCeiling, cruiseSpeed, wingSpan, wingArea,\ndragCoefficient, liftCoefficient, engine)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> MAKER_REPO : ofIdentity(makerName)
+activate MAKER_REPO
+MAKER_REPO --> CTRL : maker : Maker
+deactivate MAKER_REPO
+
+CTRL -> REPO : findByModelNameAndMaker(modelName, maker)
+activate REPO
+REPO --> CTRL : Optional.empty()
+deactivate REPO
+
+CTRL -> AIRCRAFT** : create(modelName, maker, aircraftType,\nemptyWeight, mtow, mzfw, maxFuelCapacity,\nserviceCeiling, cruiseSpeed, wingSpan, wingArea,\ndragCoefficient, liftCoefficient, engine)
+
+CTRL -> REPO : save(newAircraftModel)
+activate REPO
+REPO --> CTRL : savedAircraftModel
+deactivate REPO
+
+CTRL --> UI : savedAircraftModel
+deactivate CTRL
+
+UI --> BOP : displays operation success message
+deactivate UI
+deactivate BOP
+
+
+@enduml
