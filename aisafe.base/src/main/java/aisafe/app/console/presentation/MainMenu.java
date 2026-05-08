@@ -10,6 +10,7 @@ import aisafe.app.console.presentation.authz.LogoutUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
 import aisafe.app.console.presentation.airport.RegisterAirportUI;
+import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -30,6 +31,7 @@ public class MainMenu extends AbstractUI {
     private static final int AIR_CONTROL_OPTION = 4;
     private static final int WEATHER_OPTION = 5;
     private static final int FLIGHT_PLAN_OPTION = 6;
+    private static final int AIRCRAFT_OPTION = 7;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -69,6 +71,9 @@ public class MainMenu extends AbstractUI {
             menu.addItem(MenuItem.separator(SEPARATOR));
 
             menu.addSubMenu(AIR_CONTROL_OPTION, buildAirControlMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+
+            menu.addSubMenu(AIRCRAFT_OPTION, buildAircraftMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.PILOT)) {
@@ -126,6 +131,13 @@ public class MainMenu extends AbstractUI {
     private Menu buildFlightPlanMenu() {
         final var menu = new Menu("Flight Plans >");
         menu.addItem(1, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildAircraftMenu() {
+        final var menu = new Menu("Aircraft >");
+        menu.addItem(1, "Register Engine Model", new RegisterEngineModelUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

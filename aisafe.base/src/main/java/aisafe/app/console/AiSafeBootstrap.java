@@ -2,6 +2,8 @@ package aisafe.app.console;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
 import aisafe.aircontrolarea.domain.GeoBoundary;
+import aisafe.enginemodel.domain.EngineModel;
+import aisafe.enginemodel.domain.EngineType;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -26,6 +28,7 @@ public final class AiSafeBootstrap {
         bootstrapAdmin();
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
+        bootstrapEngineModels();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -92,6 +95,26 @@ public final class AiSafeBootstrap {
             System.out.println("Default air control area created: " + defaultAreaCode);
         } else {
             System.out.println("Default air control area already exists: " + defaultAreaCode);
+        }
+    }
+
+    private static void bootstrapEngineModels() {
+        final var engineRepo = PersistenceContext.repositories().engineModels();
+
+        bootstrapEngineModel(engineRepo, "CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.372);
+        bootstrapEngineModel(engineRepo, "PW4000", "Pratt & Whitney", EngineType.TURBOFAN, 252.0, 0.330);
+        bootstrapEngineModel(engineRepo, "PT6A-65B", "Pratt & Whitney Canada", EngineType.TURBOPROP, 17.0, 0.290);
+    }
+
+    private static void bootstrapEngineModel(
+            final aisafe.enginemodel.repositories.EngineModelRepository repo,
+            final String name, final String makerName, final EngineType engineType,
+            final double thrust, final double tsfc) {
+        if (repo.findByNameAndMaker(name, makerName).isEmpty()) {
+            repo.save(new EngineModel(name, makerName, engineType, thrust, tsfc));
+            System.out.println("Engine model created: " + name + " by " + makerName);
+        } else {
+            System.out.println("Engine model already exists: " + name + " by " + makerName);
         }
     }
 }

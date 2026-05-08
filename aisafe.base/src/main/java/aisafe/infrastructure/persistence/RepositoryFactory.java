@@ -2,6 +2,7 @@ package aisafe.infrastructure.persistence;
 
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
+import aisafe.enginemodel.repositories.EngineModelRepository;
 import aisafe.usermanagement.repositories.UserRepository;
 import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
@@ -29,4 +30,6 @@ public interface RepositoryFactory {
     WeatherDataRepository weatherData();
 
     AirportRepository airports();
+
+    EngineModelRepository engineModels();
 }

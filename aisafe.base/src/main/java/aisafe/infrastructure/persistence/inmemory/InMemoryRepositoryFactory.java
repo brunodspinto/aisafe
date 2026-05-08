@@ -2,6 +2,7 @@ package aisafe.infrastructure.persistence.inmemory;
 
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
+import aisafe.enginemodel.repositories.EngineModelRepository;
 import aisafe.infrastructure.persistence.RepositoryFactory;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
@@ -71,6 +72,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public AirportRepository airports() {
         return new InMemoryAirportRepository();
+    }
+
+    @Override
+    public EngineModelRepository engineModels() {
+        return new InMemoryEngineModelRepository();
     }
 
 }
