@@ -2,11 +2,11 @@ package aisafe.infrastructure.persistence.inmemory;
 
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.repositories.EngineModelRepository;
-import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryDomainRepository;
+import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryDomainAutoNumberRepository;
 import java.util.Optional;
 
 public class InMemoryEngineModelRepository
-        extends InMemoryDomainRepository<EngineModel, Long>
+        extends InMemoryDomainAutoNumberRepository<EngineModel>
         implements EngineModelRepository {
 
     @Override
