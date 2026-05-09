@@ -130,7 +130,7 @@ public class AddCollaboratorUI extends AbstractUI {
     private void printSuccess(final Collaborator collaborator) {
         System.out.println("\n Collaborator successfully registered!");
         System.out.println("  Customer : " + collaborator.customerName());
-        System.out.println("  Username : " + collaborator.user().identity());
+        System.out.println("  Username : " + collaborator.user().systemUser().username());
     }
 
     @Override
