@@ -29,6 +29,8 @@ public final class AiSafeBootstrap {
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
         bootstrapEngineModels();
+        bootstrapAirports();
+        bootstrapMakers();
         bootstrapCollaborators();
 
         System.out.println("Bootstrap completed successfully!");
@@ -162,4 +164,72 @@ public final class AiSafeBootstrap {
             System.out.println("Collaborator already exists: " + username);
         }
     }
-}
+
+    private static void bootstrapAirports() {
+        final var airportRepo = PersistenceContext.repositories().airports();
+        final var areaRepo = PersistenceContext.repositories().airControlAreas();
+
+        final aisafe.airport.domain.AirportIATACode lisCode =
+                aisafe.airport.domain.AirportIATACode.valueOf("LIS");
+
+        if (airportRepo.ofIdentity(lisCode).isEmpty()) {
+            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+                final aisafe.airport.domain.Airport airport = new aisafe.airport.domain.Airport(
+                        lisCode,
+                        aisafe.airport.domain.AirportICAOCode.valueOf("LPPT"),
+                        "Humberto Delgado Airport",
+                        "Lisbon",
+                        "Portugal",
+                        new aisafe.airport.domain.GeoCoordinate(38.7756, -9.1354),
+                        113.0,
+                        area
+                );
+                airportRepo.save(airport);
+                System.out.println("Airport created: LIS");
+            });
+        } else {
+            System.out.println("Airport already exists: LIS");
+        }
+
+        final aisafe.airport.domain.AirportIATACode opoCode =
+                aisafe.airport.domain.AirportIATACode.valueOf("OPO");
+
+        if (airportRepo.ofIdentity(opoCode).isEmpty()) {
+            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+                final aisafe.airport.domain.Airport airport = new aisafe.airport.domain.Airport(
+                        opoCode,
+                        aisafe.airport.domain.AirportICAOCode.valueOf("LPPR"),
+                        "Francisco Sá Carneiro Airport",
+                        "Porto",
+                        "Portugal",
+                        new aisafe.airport.domain.GeoCoordinate(41.2481, -8.6814),
+                        69.0,
+                        area
+                );
+                airportRepo.save(airport);
+                System.out.println("Airport created: OPO");
+            });
+        } else {
+            System.out.println("Airport already exists: OPO");
+        }
+    }
+
+        private static void bootstrapMakers() {
+            final var makerRepo = PersistenceContext.repositories().makers();
+
+            if (makerRepo.ofIdentity("Boeing").isEmpty()) {
+                makerRepo.save(new aisafe.maker.domain.Maker("Boeing", "USA"));
+                System.out.println("Maker created: Boeing");
+            } else {
+                System.out.println("Maker already exists: Boeing");
+            }
+
+            if (makerRepo.ofIdentity("Airbus").isEmpty()) {
+                makerRepo.save(new aisafe.maker.domain.Maker("Airbus", "France"));
+                System.out.println("Maker created: Airbus");
+            } else {
+                System.out.println("Maker already exists: Airbus");
+            }
+        }
+
+    }
