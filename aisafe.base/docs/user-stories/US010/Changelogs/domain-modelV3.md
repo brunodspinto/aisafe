@@ -1,6 +1,6 @@
 # Domain Model Changelog
 
-## V3 — Sprint 2 (May 2026)
+## V3 — Sprint 2 (7 May 2026)
 
 The following changes were made to the domain model during Sprint 2 implementation.
 

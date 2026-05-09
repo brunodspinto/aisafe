@@ -1,0 +1,78 @@
+@startuml class-diagram-us061
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class AddCollaboratorUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application Layer" {
+    class AddCollaboratorController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -collaboratorRepo : CollaboratorRepository
+        -companyRepo : AirTransportCompanyRepository
+        -areaRepo : AirControlAreaRepository
+        -userRepo : UserRepository
+        -userSvc : UserManagementService
+        +allCompanies() : Iterable<AirTransportCompany>
+        +allAreas() : Iterable<AirControlArea>
+        +addCompanyCollaborator(...) : Collaborator
+        +addAreaCollaborator(...) : Collaborator
+    }
+}
+
+package "Domain Layer" {
+    class Collaborator <<entity, aggregate root>> {
+        +isCompanyCollaborator() : boolean
+        +isAreaCollaborator() : boolean
+        +customerName() : String
+        +user() : User
+        +airTransportCompany() : AirTransportCompany
+        +airControlArea() : AirControlArea
+        +identity() : Long
+        +sameAs(other) : boolean
+    }
+
+    class User <<entity, aggregate root>> {
+        +identity() : MecanographicNumber
+    }
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        +name() : String
+    }
+
+    class AirControlArea <<entity, aggregate root>> {
+        +name() : String
+        +areaCode() : String
+    }
+}
+
+package "Repository Layer" {
+    interface CollaboratorRepository {
+    }
+    class InMemoryCollaboratorRepository
+    class JpaCollaboratorRepository
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+    class UserManagementService
+}
+
+AddCollaboratorUI ..> AddCollaboratorController : uses
+AddCollaboratorController ..> AuthorizationService : checks role
+AddCollaboratorController ..> UserManagementService : creates SystemUser
+AddCollaboratorController ..> CollaboratorRepository : saves
+AddCollaboratorController ..> Collaborator : creates
+
+Collaborator --> User : "is"
+Collaborator --> AirTransportCompany : "works for"
+Collaborator --> AirControlArea : "works for"
+
+CollaboratorRepository <|.. InMemoryCollaboratorRepository
+CollaboratorRepository <|.. JpaCollaboratorRepository
+
+@enduml

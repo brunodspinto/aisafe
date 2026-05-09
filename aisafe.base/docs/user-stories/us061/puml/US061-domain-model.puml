@@ -1,0 +1,43 @@
+@startuml domain_model_us061
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Collaborator Aggregate" <<Rectangle>> {
+    class Collaborator <<entity, aggregate root>> {
+    }
+}
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        name
+        phoneNumber
+        position
+        skillsAssessmentDate
+    }
+    Enum RoleType {
+        ATCC
+        PILOT
+        FLIGHT_CONTROL_OPERATOR
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+        minimumFuelRequired
+    }
+}
+
+Collaborator "1" --> "1" User : "is"
+Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
+Collaborator "0..*" --> "0..1" AirControlArea : "works for"
+User "1" --> "1..*" RoleType : "has"
+
+@enduml

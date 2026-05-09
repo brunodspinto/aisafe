@@ -1,0 +1,107 @@
+@startuml sd061
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+participant ":AddCollaboratorUI" as UI
+participant ":AddCollaboratorController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthorizationService" as AUTHZ
+participant "UserManagementService" as USER_SVC
+participant "CollaboratorRepository" as REPO
+participant "AirTransportCompanyRepository" as COMPANY_REPO
+participant "Collaborator" as COLLAB
+
+activate BOP
+
+BOP -> UI : asks to add a customer's collaborator
+activate UI
+
+note right of UI
+  The Controller is instantiated
+  and fetches its dependencies.
+end note
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> PC : repositories()
+activate PC
+PC -> FACT : collaborators()
+activate FACT
+FACT --> PC : collaboratorRepository
+deactivate FACT
+PC -> FACT : airTransportCompanies()
+activate FACT
+FACT --> PC : companyRepository
+deactivate FACT
+PC -> FACT : airControlAreas()
+activate FACT
+FACT --> PC : areaRepository
+deactivate FACT
+PC --> CTRL : factory
+deactivate PC
+deactivate CTRL
+
+UI --> BOP : asks for customer type\n(1 - AirTransportCompany, 2 - AirControlArea)
+deactivate UI
+
+BOP -> UI : selects customer type
+activate UI
+
+UI -> CTRL : allCompanies() or allAreas()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> COMPANY_REPO : findAll()
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : companies
+deactivate COMPANY_REPO
+CTRL --> UI : companies
+deactivate CTRL
+
+UI --> BOP : displays customers,\nrequests collaborator data
+deactivate UI
+
+BOP -> UI : inputs collaborator data
+activate UI
+
+note right of UI
+  Execution of the Use Case
+end note
+UI -> CTRL : addCompanyCollaborator(username, password, firstName,\nlastName, email, roles, phoneNumber, position,\nemail, securityClearance, skillsDate, companyIataCode)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> COMPANY_REPO : ofIdentity(iataCode)
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company : AirTransportCompany
+deactivate COMPANY_REPO
+
+CTRL -> USER_SVC : registerNewUser(username, password, firstName, lastName, email, roles)
+activate USER_SVC
+USER_SVC --> CTRL : systemUser : SystemUser
+deactivate USER_SVC
+
+CTRL -> CTRL : user = new User(systemUser, mecNumber, ...)
+CTRL -> COLLAB** : create(user, company)
+
+CTRL -> REPO : save(newCollaborator)
+activate REPO
+REPO --> CTRL : savedCollaborator
+deactivate REPO
+
+CTRL --> UI : savedCollaborator
+deactivate CTRL
+
+UI --> BOP : displays operation success message
+deactivate UI
+deactivate BOP
+
+@enduml
