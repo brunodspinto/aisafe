@@ -14,6 +14,7 @@ import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import aisafe.app.console.presentation.maker.RegisterMakerUI;
 import aisafe.app.console.presentation.aircraftmodel.RegisterAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.AddEngineToAircraftModelUI;
+import aisafe.app.console.presentation.collaborator.AddCollaboratorUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -35,6 +36,7 @@ public class MainMenu extends AbstractUI {
     private static final int WEATHER_OPTION = 5;
     private static final int FLIGHT_PLAN_OPTION = 6;
     private static final int AIRCRAFT_OPTION = 7;
+    private static final int COLLABORATOR_OPTION = 8;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -77,6 +79,9 @@ public class MainMenu extends AbstractUI {
             menu.addItem(MenuItem.separator(SEPARATOR));
 
             menu.addSubMenu(AIRCRAFT_OPTION, buildAircraftMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+
+            menu.addSubMenu(COLLABORATOR_OPTION, buildCollaboratorMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.PILOT)) {
@@ -144,6 +149,13 @@ public class MainMenu extends AbstractUI {
         menu.addItem(2, "Register Maker", new RegisterMakerUI()::show);
         menu.addItem(3, "Register Aircraft Model", new RegisterAircraftModelUI()::show);
         menu.addItem(4, "Add Engine to Aircraft Model", new AddEngineToAircraftModelUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildCollaboratorMenu() {
+        final var menu = new Menu("Collaborators >");
+        menu.addItem(1, "Add Customer's Collaborator", new AddCollaboratorUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

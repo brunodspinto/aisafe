@@ -9,6 +9,7 @@ import aisafe.weatherdata.repositories.WeatherDataRepository;
 import aisafe.airport.repositories.AirportRepository;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
+import aisafe.collaborator.repositories.CollaboratorRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
 public interface RepositoryFactory {
@@ -38,4 +39,6 @@ public interface RepositoryFactory {
     MakerRepository makers();
 
     AircraftModelRepository aircraftModels();
+
+    CollaboratorRepository collaborators();
 }

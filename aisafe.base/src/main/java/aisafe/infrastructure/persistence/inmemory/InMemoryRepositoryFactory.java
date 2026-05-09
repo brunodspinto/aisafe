@@ -11,6 +11,7 @@ import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.airport.repositories.AirportRepository;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
+import aisafe.collaborator.repositories.CollaboratorRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
@@ -89,6 +90,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public AircraftModelRepository aircraftModels() {
         return new InMemoryAircraftModelRepository();
+    }
+
+    @Override
+    public CollaboratorRepository collaborators() {
+        return new InMemoryCollaboratorRepository();
     }
 
 }
