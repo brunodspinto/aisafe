@@ -29,6 +29,7 @@ public final class AiSafeBootstrap {
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
         bootstrapEngineModels();
+        bootstrapCollaborators();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -115,6 +116,50 @@ public final class AiSafeBootstrap {
             System.out.println("Engine model created: " + name + " by " + makerName);
         } else {
             System.out.println("Engine model already exists: " + name + " by " + makerName);
+        }
+    }
+
+    private static void bootstrapCollaborators() {
+        final var systemUserRepo = PersistenceContext.repositories().systemUsers();
+        final var userRepo = PersistenceContext.repositories().users();
+        final var collaboratorRepo = PersistenceContext.repositories().collaborators();
+        final var areaRepo = PersistenceContext.repositories().airControlAreas();
+
+        final String username = "fco1";
+
+        if (systemUserRepo.ofIdentity(
+                        eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username))
+                .isEmpty()) {
+
+            final var builder = new SystemUserBuilder(
+                    new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                    .withPassword("Password1")
+                    .withName("Flight", "Controller")
+                    .withEmail("fco1@aisafe.com")
+                    .withRoles(AiSafeRoles.FLIGHT_CONTROL_OPERATOR);
+            final var systemUser = builder.build();
+            systemUserRepo.save(systemUser);
+
+            final var user = new aisafe.usermanagement.domain.User(
+                    systemUser,
+                    aisafe.usermanagement.domain.MecanographicNumber.valueOf("FCO001"),
+                    "910000001",
+                    new aisafe.usermanagement.domain.Email("fco1@aisafe.com"),
+                    "Flight Controller",
+                    new aisafe.usermanagement.domain.SecurityClearance(
+                            aisafe.usermanagement.domain.SecurityLevel.HIGH,
+                            java.time.LocalDate.of(2030, 1, 1)),
+                    java.time.LocalDate.of(2025, 1, 1));
+            userRepo.save(user);
+
+            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+                collaboratorRepo.save(
+                        new aisafe.collaborator.domain.Collaborator(user, area));
+                System.out.println("Collaborator created: " + username + " for area PT-N");
+            });
+        } else {
+            System.out.println("Collaborator already exists: " + username);
         }
     }
 }
