@@ -257,4 +257,64 @@ class UserTest {
         assertTrue(b.compareTo(a) > 0);
         assertEquals(0, a.compareTo(MecanographicNumber.valueOf("10000")));
     }
+
+
+    @Test
+    void ensureUpdateContactChangesEmailAndPhone() {
+        final User user = baseBuilder().withMecanographicNumber("UPDATE1")
+                .withSystemUser(dummySystemUser("user_update1", AiSafeRoles.ATCC)).build();
+        user.updateContact(new Email("new@aisafe.com"), "912000000");
+        assertEquals("new@aisafe.com", user.email().address());
+        assertEquals("912000000", user.phoneNumber());
+    }
+
+    @Test
+    void ensureUpdateContactRejectsNullEmail() {
+        final User user = baseBuilder().withMecanographicNumber("UPDATE2")
+                .withSystemUser(dummySystemUser("user_update2", AiSafeRoles.ATCC)).build();
+        assertThrows(IllegalArgumentException.class,
+                () -> user.updateContact(null, "912000000"));
+    }
+
+    @Test
+    void ensureUpdateContactRejectsNullPhone() {
+        final User user = baseBuilder().withMecanographicNumber("UPDATE3")
+                .withSystemUser(dummySystemUser("user_update3", AiSafeRoles.ATCC)).build();
+        assertThrows(IllegalArgumentException.class,
+                () -> user.updateContact(new Email("new@aisafe.com"), null));
+    }
+
+    @Test
+    void ensureUpdateContactRejectsBlankPhone() {
+        final User user = baseBuilder().withMecanographicNumber("UPDATE4")
+                .withSystemUser(dummySystemUser("user_update4", AiSafeRoles.ATCC)).build();
+        assertThrows(IllegalArgumentException.class,
+                () -> user.updateContact(new Email("new@aisafe.com"), "   "));
+    }
+
+    // --- Getters ---
+    @Test
+    void ensureGettersReturnCorrectValues() {
+        final User user = baseBuilder().withMecanographicNumber("GETTERS")
+                .withSystemUser(dummySystemUser("user_getters", AiSafeRoles.ATCC)).build();
+        assertEquals("912345678", user.phoneNumber());
+        assertEquals("test@aisafe.com", user.email().address());
+        assertEquals("Operator", user.position());
+        assertEquals(DUMMY_CLEARANCE, user.securityClearance());
+    }
+
+    @Test
+    void ensureSystemUserGetterWorks() {
+        final var systemUser = dummySystemUser("user_sys", AiSafeRoles.ATCC);
+        final User user = baseBuilder().withMecanographicNumber("SYS")
+                .withSystemUser(systemUser).build();
+        assertEquals(systemUser, user.systemUser());
+    }
+
+    @Test
+    void ensureIdentityReturnsMecanographicNumber() {
+        final User user = baseBuilder().withMecanographicNumber("IDENTITY")
+                .withSystemUser(dummySystemUser("user_id", AiSafeRoles.ATCC)).build();
+        assertEquals(MecanographicNumber.valueOf("IDENTITY"), user.identity());
+    }
 }
