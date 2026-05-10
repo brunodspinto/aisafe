@@ -13,6 +13,7 @@ import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -118,13 +119,25 @@ public class AddCollaboratorUI extends AbstractUI {
             System.out.printf("  %d - %s%n", i + 1, levels[i]);
         }
         final int choice = Console.readInteger("Choice: ");
-        final LocalDate expiration = LocalDate.parse(
-                Console.readLine("Expiration Date (YYYY-MM-DD): "));
-        return new SecurityClearance(levels[choice - 1], expiration);
+        while (true) {
+            try {
+                final LocalDate expiration = LocalDate.parse(
+                        Console.readLine("Expiration Date (YYYY-MM-DD): ").trim());
+                return new SecurityClearance(levels[choice - 1], expiration);
+            } catch (final DateTimeParseException e) {
+                System.out.println("Invalid date format. Use YYYY-MM-DD.");
+            }
+        }
     }
 
     private LocalDate readSkillsDate() {
-        return LocalDate.parse(Console.readLine("Skills Assessment Date (YYYY-MM-DD): "));
+        while (true) {
+            try {
+                return LocalDate.parse(Console.readLine("Skills Assessment Date (YYYY-MM-DD): ").trim());
+            } catch (final DateTimeParseException e) {
+                System.out.println("Invalid date format. Use YYYY-MM-DD.");
+            }
+        }
     }
 
     private void printSuccess(final Collaborator collaborator) {

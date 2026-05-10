@@ -41,8 +41,7 @@ public class RegisterWeatherDataUI extends AbstractUI {
             final String format = Console.readLine("Format (e.g., JSON): ");
 
             // Date and time
-            final String dateStr = Console.readLine("\nDate and Time (yyyy-MM-dd HH:mm): ");
-            final LocalDateTime date = LocalDateTime.parse(dateStr, FORMATTER);
+            final LocalDateTime date = readDateTime();
 
             // Meteorological readings
             System.out.println("\n--- Meteorological Data ---");
@@ -59,8 +58,6 @@ public class RegisterWeatherDataUI extends AbstractUI {
 
             System.out.println("\nWeather data successfully registered!");
 
-        } catch (final DateTimeParseException e) {
-            System.out.println("\nInvalid date format. Please use yyyy-MM-dd HH:mm.");
         } catch (final IllegalArgumentException e) {
             System.out.println("\nValidation Error: " + e.getMessage());
         } catch (final Exception e) {
@@ -68,6 +65,17 @@ public class RegisterWeatherDataUI extends AbstractUI {
         }
 
         return false;
+    }
+
+    private LocalDateTime readDateTime() {
+        while (true) {
+            try {
+                return LocalDateTime.parse(
+                        Console.readLine("\nDate and Time (yyyy-MM-dd HH:mm): ").trim(), FORMATTER);
+            } catch (final DateTimeParseException e) {
+                System.out.println("Invalid date format. Use yyyy-MM-dd HH:mm.");
+            }
+        }
     }
 
     @Override
