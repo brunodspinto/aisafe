@@ -2,6 +2,9 @@ package aisafe.app.console;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
 import aisafe.aircontrolarea.domain.GeoBoundary;
+import aisafe.airtransportcompany.domain.AirTransportCompany;
+import aisafe.airtransportcompany.domain.IATACode;
+import aisafe.airtransportcompany.domain.ICAOCode;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
 import aisafe.infrastructure.persistence.PersistenceContext;
@@ -31,6 +34,7 @@ public final class AiSafeBootstrap {
         bootstrapEngineModels();
         bootstrapAirports();
         bootstrapMakers();
+        bootstrapAirTransportCompanies();
         bootstrapCollaborators();
 
         System.out.println("Bootstrap completed successfully!");
@@ -162,6 +166,26 @@ public final class AiSafeBootstrap {
             });
         } else {
             System.out.println("Collaborator already exists: " + username);
+        }
+    }
+
+    private static void bootstrapAirTransportCompanies() {
+        final var repo = PersistenceContext.repositories().airTransportCompanies();
+
+        bootstrapAirTransportCompany(repo, "TAP Air Portugal", "TP", "TAP");
+        bootstrapAirTransportCompany(repo, "Ryanair", "FR", "RYR");
+        bootstrapAirTransportCompany(repo, "Lufthansa", "LH", "DLH");
+    }
+
+    private static void bootstrapAirTransportCompany(
+            final aisafe.airtransportcompany.repositories.AirTransportCompanyRepository repo,
+            final String name, final String iata, final String icao) {
+        final IATACode iataCode = IATACode.valueOf(iata);
+        if (repo.ofIdentity(iataCode).isEmpty()) {
+            repo.save(new AirTransportCompany(name, iataCode, ICAOCode.valueOf(icao)));
+            System.out.println("Air Transport Company created: " + name + " (" + iata + " / " + icao + ")");
+        } else {
+            System.out.println("Air Transport Company already exists: " + iata);
         }
     }
 
