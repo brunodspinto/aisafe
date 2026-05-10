@@ -78,4 +78,13 @@ public class User implements AggregateRoot<MecanographicNumber> {
 
     @Override
     public MecanographicNumber identity() { return mecanographicNumber; }
+
+    public void updateContact(final Email email, final String phoneNumber) {
+        if (email == null)
+            throw new IllegalArgumentException("Email cannot be null.");
+        if (phoneNumber == null || phoneNumber.isBlank())
+            throw new IllegalArgumentException("Phone number cannot be null or empty.");
+        this.email = email;
+        this.phoneNumber = phoneNumber;
+    }
 }
