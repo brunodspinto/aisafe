@@ -1,0 +1,49 @@
+@startuml
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as op
+participant "ListCollaboratorsByCustomerUI" as ui
+participant "ListCollaboratorsByCustomerController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "AirTransportCompanyRepository\nor AirControlAreaRepository" as custRepo
+participant "CollaboratorRepository" as collabRepo
+
+op -> ui : list customer's collaborators
+activate ui
+
+ui -> ui : prompt customer type\n(1=Company / 2=Area)
+
+ui -> ctrl : allCompanies() or allAreas()
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf\n(BACKOFFICE_OPERATOR, ADMIN)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+ctrl -> custRepo : findAll()
+activate custRepo
+custRepo --> ctrl : Iterable<AirTransportCompany>\nor Iterable<AirControlArea>
+deactivate custRepo
+ctrl --> ui : customers
+deactivate ctrl
+
+ui -> ui : display customers,\nprompt for identifier
+
+ui -> ctrl : listActiveByCompany(company)\nor listActiveByArea(area)
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf\n(BACKOFFICE_OPERATOR, ADMIN)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+ctrl -> collabRepo : findActiveByAirTransportCompany(company)\nor findActiveByAirControlArea(area)
+activate collabRepo
+note right: filters: customer match\nAND systemUser.isActive() = true
+collabRepo --> ctrl : Iterable<Collaborator>
+deactivate collabRepo
+ctrl --> ui : active collaborators
+deactivate ctrl
+
+ui -> op : display table or\n"No active collaborators found"
+deactivate ui
+
+@enduml

@@ -1,0 +1,60 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model — Collaborator Aggregate (US062)
+
+package "Collaborator Aggregate" <<Rectangle>> {
+
+    class Collaborator <<entity, aggregate root>> {
+        id : Long
+        isCompanyCollaborator() : boolean
+        isAreaCollaborator() : boolean
+        customerName() : String
+    }
+
+    class User <<entity, aggregate root>> {
+        mecanographicNumber : MecanographicNumber
+        phoneNumber : String
+        position : String
+    }
+}
+
+package "EAPLI Framework" <<Rectangle>> {
+    class SystemUser <<entity>> {
+        active : boolean
+        isActive() : boolean
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        name : String
+        iataCode : IATACode
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode : String
+        name : String
+    }
+}
+
+Collaborator "1" --> "1" User : "associated with"
+User "1" --> "1" SystemUser : "backed by"
+Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to"
+Collaborator "0..*" --> "0..1" AirControlArea : "belongs to"
+
+note bottom of SystemUser
+  isActive() determines
+  whether collaborator is listed
+end note
+
+note right of Collaborator
+  exactly one of
+  airTransportCompany or
+  airControlArea is non-null
+end note
+
+@enduml

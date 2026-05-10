@@ -1,0 +1,63 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Class Diagram — US062 List Active Collaborators by Customer
+
+package "Presentation" <<Rectangle>> {
+    class ListCollaboratorsByCustomerUI {
+        +doShow() : boolean
+        +headline() : String
+        -showByCompany()
+        -showByArea()
+        -printCollaborators(Iterable<Collaborator>)
+    }
+}
+
+package "Application" <<Rectangle>> {
+    class ListCollaboratorsByCustomerController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -collaboratorRepo : CollaboratorRepository
+        -companyRepo : AirTransportCompanyRepository
+        -areaRepo : AirControlAreaRepository
+        +allCompanies() : Iterable<AirTransportCompany>
+        +allAreas() : Iterable<AirControlArea>
+        +listActiveByCompany(AirTransportCompany) : Iterable<Collaborator>
+        +listActiveByArea(AirControlArea) : Iterable<Collaborator>
+    }
+}
+
+package "Domain" <<Rectangle>> {
+    interface CollaboratorRepository {
+        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+    }
+
+    class Collaborator <<entity, aggregate root>> {
+        +user() : User
+        +airTransportCompany() : AirTransportCompany
+        +airControlArea() : AirControlArea
+        +isCompanyCollaborator() : boolean
+        +isAreaCollaborator() : boolean
+    }
+}
+
+package "Persistence" <<Rectangle>> {
+    class InMemoryCollaboratorRepository {
+        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+    }
+
+    class JpaCollaboratorRepository {
+        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+    }
+}
+
+ListCollaboratorsByCustomerUI --> ListCollaboratorsByCustomerController
+ListCollaboratorsByCustomerController --> CollaboratorRepository
+CollaboratorRepository <|.. InMemoryCollaboratorRepository
+CollaboratorRepository <|.. JpaCollaboratorRepository
+CollaboratorRepository ..> Collaborator
+
+@enduml
