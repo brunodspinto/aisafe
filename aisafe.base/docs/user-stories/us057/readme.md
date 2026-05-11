@@ -120,4 +120,4 @@ To test this functionality, ensure the system has been bootstrapped first so tha
 
 # 7. Observations
 
-The logic to validate engine compatibility and uniqueness is placed entirely inside the `AircraftModel` domain class (`addCertifiedEngine(EngineModel engine)`). This ensures the Aggregate Root maintains its own invariants, fulfilling the core principles of Domain-Driven Design.
+The logic to validate engine compatibility and uniqueness is placed entirely inside the `AircraftModel` domain class (`addCertifiedEngine(EngineModel engine)`). This ensures the Aggregate Root maintains its own invariants.

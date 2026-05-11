@@ -12,18 +12,15 @@ participant "authz\n:AuthorizationService" as AUTHZ
 participant "amRepo\n:AircraftModelRepository" as AMREPO
 participant "emRepo\n:EngineModelRepository" as EMREPO
 participant "selectedAircraftModel\n:AircraftModel" as AM
-participant "ref\n:CertifiedEngineReference" as REF
 
 activate BOP
 BOP -> UI : asks to add an engine to an aircraft model
 activate UI
 
-' Obter a lista de Aircraft Models
 UI -> CTRL** : create()
 UI -> CTRL : activeAircraftModels()
 activate CTRL
 
-' Validação de Segurança (NFR09)
 CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.BACKOFFICE_OPERATOR)
 activate AUTHZ
 AUTHZ --> CTRL : (ok)
@@ -43,7 +40,6 @@ deactivate UI
 BOP -> UI : selects an Aircraft Model
 activate UI
 
-' Obter a lista de Engine Models
 UI -> CTRL : availableEngineModels()
 activate CTRL
 
@@ -61,22 +57,22 @@ deactivate UI
 BOP -> UI : selects an Engine Model
 activate UI
 
-' Execução da adição
 UI -> CTRL : addEngineToAircraftModel(selectedAircraftModel, selectedEngineModel)
 activate CTRL
 
-' O Aggregate Root valida as regras de negócio
+
 CTRL -> AM : addCertifiedEngine(selectedEngineModel)
 activate AM
 
-' Instanciação explícita do Value Object definido no Class Diagram
-AM -> REF** : create(selectedEngineModel.identity())
-note right of REF: Stores only the Engine Name\n(CertifiedEngineReference)\nto maintain Low Coupling.
+note right of AM: Validates compatibility (US057.1)\nand duplication (US057.2).
+
+AM -> AM : certifiedEngineModels.add(selectedEngineModel.identity())
+note right of AM: Stores only the Engine Name (String)\nto maintain Low Coupling\nbetween Aggregate Roots.
 
 AM --> CTRL : (success)
 deactivate AM
 
-' Gravação com Optimistic Locking
+
 CTRL -> AMREPO : save(selectedAircraftModel)
 activate AMREPO
 note right of AMREPO: Checks @Version field.\nThrows ConcurrencyException\nif data was modified concurrently (US057.3).

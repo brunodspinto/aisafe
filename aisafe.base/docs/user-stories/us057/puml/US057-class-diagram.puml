@@ -23,12 +23,8 @@ package "Domain" {
     class AircraftModel <<entity>> <<aggregate root>> {
         - modelName : String
         - version : Long <<@Version>>
+        - certifiedEngineModels : Set<String>
         + addCertifiedEngine(engine: EngineModel) : boolean
-    }
-
-    class CertifiedEngineReference <<value object>> <<@Embeddable>> {
-        - engineName : String
-        + CertifiedEngineReference(engineName: String)
     }
 
     class EngineModel <<entity>> <<aggregate root>> {
@@ -63,7 +59,6 @@ package "Persistence" {
     }
 }
 
-
 AddEngineToAircraftModelUI .down.> AddEngineToAircraftModelController
 AddEngineToAircraftModelController .down.> AuthorizationService
 AddEngineToAircraftModelController .down.> AircraftModel
@@ -71,9 +66,8 @@ AddEngineToAircraftModelController .down.> EngineModel
 AddEngineToAircraftModelController .down.> AircraftModelRepository
 AddEngineToAircraftModelController .down.> EngineModelRepository
 
-note right of AircraftModel: Maintains an internal collection\nof Value Objects (Low Coupling)\nand a @Version for Concurrency
-AircraftModel "1" *-- "0..*" CertifiedEngineReference : "maintains >"
-CertifiedEngineReference "1" ..> "1" EngineModel : "references by identity >"
+note right of AircraftModel: Maintains a collection of Strings\n(Engine identities) for Low Coupling\nand a @Version for Concurrency
+AircraftModel ..> EngineModel : "references by identity >"
 
 
 AircraftModelRepository "1" --> "*" AircraftModel : "stores >"

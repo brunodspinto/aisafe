@@ -11,10 +11,6 @@ package "AircraftModel Aggregate" <<Rectangle>> {
         - version : Long <<@Version>>
         + addCertifiedEngine(engine: EngineModel)
     }
-
-    class CertifiedEngineReference <<value object>> {
-        - engineModelCode
-    }
 }
 
 package "EngineModel Aggregate" <<Rectangle>> {
@@ -24,8 +20,7 @@ package "EngineModel Aggregate" <<Rectangle>> {
     }
 }
 
-AircraftModel "1" *-- "0..*" CertifiedEngineReference : "has certified engines"
 
-CertifiedEngineReference "1" ..> "1" EngineModel : "references >"
+AircraftModel "1" --> "1..*" EngineModel : "certified with"
 
 @enduml
