@@ -7,10 +7,16 @@ import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.util.Objects;
 
 @Entity
+@Table(name = "T_AIRPORT",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"icaoCode"})
+        })
 public class Airport implements AggregateRoot<AirportIATACode> {
 
     @Id
