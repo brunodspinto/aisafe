@@ -20,10 +20,6 @@ activate BOP
 BOP -> UI : asks to register a new Airport
 activate UI
 
-note right of UI
-  The Controller is instantiated
-  and fetches its dependencies.
-end note
 UI -> CTRL** : create()
 activate CTRL
 CTRL -> AUTHZR : authorizationService()
@@ -32,16 +28,16 @@ AUTHZR --> CTRL : authz
 deactivate AUTHZR
 CTRL -> PC : repositories()
 activate PC
-PC -> FACT : airports()
-activate FACT
-FACT --> PC : airportRepository
-deactivate FACT
-PC -> FACT : airControlAreas()
-activate FACT
-FACT --> PC : areaRepository
-deactivate FACT
-PC --> CTRL : factory
+PC --> CTRL : repositoryFactory
 deactivate PC
+CTRL -> FACT : airports()
+activate FACT
+FACT --> CTRL : airportRepository
+deactivate FACT
+CTRL -> FACT : airControlAreas()
+activate FACT
+FACT --> CTRL : areaRepository
+deactivate FACT
 deactivate CTRL
 
 UI -> CTRL : allAirControlAreas()
@@ -63,9 +59,6 @@ deactivate UI
 BOP -> UI : inputs the requested data
 activate UI
 
-note right of UI
-  Execution of the Use Case
-end note
 UI -> CTRL : registerAirport(iataCode, icaoCode, name, town, country, latitude, longitude, altitude, areaCode)
 activate CTRL
 
@@ -79,31 +72,46 @@ CTRL -> CTRL : icaoCode = AirportICAOCode.valueOf(icaoCodeStr)
 
 CTRL -> REPO : ofIdentity(iataCode)
 activate REPO
-REPO --> CTRL : Optional.empty()
+REPO --> CTRL : existingByIata
 deactivate REPO
 
-CTRL -> REPO : findByIcaoCode(icaoCode)
-activate REPO
-REPO --> CTRL : Optional.empty()
-deactivate REPO
+alt IATA code already exists
+    CTRL --> UI : throws IllegalArgumentException
+    UI --> BOP : displays error (IATA code already in use)
+else IATA code is unique
+    CTRL -> REPO : findByIcaoCode(icaoCode)
+    activate REPO
+    REPO --> CTRL : existingByIcao
+    deactivate REPO
 
-CTRL -> AREA_REPO : ofIdentity(areaCode)
-activate AREA_REPO
-AREA_REPO --> CTRL : area : AirControlArea
-deactivate AREA_REPO
+    alt ICAO code already exists
+        CTRL --> UI : throws IllegalArgumentException
+        UI --> BOP : displays error (ICAO code already in use)
+    else ICAO code is unique
+        CTRL -> AREA_REPO : ofIdentity(areaCode)
+        activate AREA_REPO
+        AREA_REPO --> CTRL : optArea
+        deactivate AREA_REPO
 
-CTRL -> GEO** : create(latitude, longitude)
-CTRL -> AIRPORT** : create(iataCode, icaoCode, name, town, country, location, altitude, area)
+        alt Air Control Area not found
+            CTRL --> UI : throws IllegalArgumentException
+            UI --> BOP : displays error (Air Control Area not found)
+        else Air Control Area found
+            CTRL -> GEO** : create(latitude, longitude)
+            CTRL -> AIRPORT** : create(iataCode, icaoCode, name, town, country, location, altitude, area)
 
-CTRL -> REPO : save(newAirport)
-activate REPO
-REPO --> CTRL : savedAirport
-deactivate REPO
+            CTRL -> REPO : save(newAirport)
+            activate REPO
+            REPO --> CTRL : savedAirport
+            deactivate REPO
 
-CTRL --> UI : savedAirport
-deactivate CTRL
+            CTRL --> UI : savedAirport
+            deactivate CTRL
 
-UI --> BOP : displays operation success message
+            UI --> BOP : displays operation success message
+        end
+    end
+end
 deactivate UI
 deactivate BOP
 

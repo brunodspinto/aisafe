@@ -20,7 +20,6 @@ import java.util.Objects;
 public class Airport implements AggregateRoot<AirportIATACode> {
 
     @Id
-    @Embedded
     private AirportIATACode iataCode;
 
     @Embedded
