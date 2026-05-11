@@ -9,6 +9,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 /**
  * Entity and Aggregate Root representing an aircraft engine model.
@@ -17,6 +19,10 @@ import jakarta.persistence.Id;
  * an embedded entity, to maintain low coupling with the Maker aggregate.</p>
  */
 @Entity
+@Table(name = "T_ENGINE_MODEL",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"name", "makerName"})
+        })
 public class EngineModel implements AggregateRoot<Long> {
 
     private static final long serialVersionUID = 1L;

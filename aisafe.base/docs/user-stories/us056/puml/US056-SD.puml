@@ -1,0 +1,43 @@
+@startuml
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as op
+participant "RegisterEngineModelUI" as ui
+participant "RegisterEngineModelController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "EngineModelRepository" as repo
+
+op -> ui : register engine model
+activate ui
+
+ui -> op : request name, maker, type, thrust, TSFC
+op -> ui : provides data
+
+ui -> ctrl : registerEngineModel(name, makerName, engineType, thrust, tsfc)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR)
+activate authz
+authz --> ctrl : ok (or throws UnauthorizedException)
+deactivate authz
+
+ctrl -> repo : findByNameAndMaker(name, makerName)
+activate repo
+repo --> ctrl : Optional.empty()
+deactivate repo
+
+ctrl -> ctrl : new EngineModel(name, makerName, engineType, thrust, tsfc)
+
+ctrl -> repo : save(engineModel)
+activate repo
+repo --> ctrl : saved engineModel
+deactivate repo
+
+ctrl --> ui : engineModel : EngineModel
+deactivate ctrl
+
+ui -> op : "Engine model successfully registered!"
+deactivate ui
+
+@enduml

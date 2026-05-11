@@ -1,0 +1,31 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model — EngineModel Aggregate
+
+package "EngineModel Aggregate" <<Rectangle>> {
+
+    class EngineModel <<entity, aggregate root>> {
+        name : String
+        thrustAtStandstill : double
+        TSFC : double
+    }
+
+    Enum EngineType {
+        TURBOFAN
+        TURBOPROP
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
+    }
+}
+
+package "Maker Aggregate" <<Rectangle>> {
+    class Maker <<entity, aggregate root>>
+}
+
+EngineModel "1" --> "1" EngineType : "classified as"
+Maker "1" --> "0..*" EngineModel : "manufactures"
+
+@enduml

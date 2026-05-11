@@ -1,0 +1,77 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "aisafe.app.console.presentation.enginemodel" {
+    class RegisterEngineModelUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "aisafe.enginemodel.application" {
+    class RegisterEngineModelController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : EngineModelRepository
+        +engineTypes() : EngineType[]
+        +registerEngineModel(name, makerName, engineType, thrust, tsfc) : EngineModel
+    }
+}
+
+package "aisafe.enginemodel.repositories" {
+    interface EngineModelRepository {
+        +findByNameAndMaker(name : String, makerName : String) : Optional<EngineModel>
+    }
+}
+
+package "aisafe.enginemodel.domain" {
+    class EngineModel <<entity, aggregate root>> {
+        -id : Long
+        -name : String
+        -makerName : String
+        -engineType : EngineType
+        -thrust : double
+        -tsfc : double
+        +identity() : Long
+        +name() : String
+        +makerName() : String
+        +engineType() : EngineType
+        +thrust() : double
+        +tsfc() : double
+    }
+
+    enum EngineType {
+        TURBOFAN
+        TURBOPROP
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
+    }
+}
+
+package "aisafe.infrastructure.persistence.inmemory" {
+    class InMemoryEngineModelRepository {
+        +findByNameAndMaker(name : String, makerName : String) : Optional<EngineModel>
+    }
+}
+
+package "aisafe.infrastructure.persistence.jpa" {
+    class JpaEngineModelRepository {
+        +findByNameAndMaker(name : String, makerName : String) : Optional<EngineModel>
+    }
+}
+
+interface DomainRepository<ID, T> {
+}
+
+EngineModelRepository --|> DomainRepository
+InMemoryEngineModelRepository ..|> EngineModelRepository : implements
+JpaEngineModelRepository ..|> EngineModelRepository : implements
+
+RegisterEngineModelUI ..> RegisterEngineModelController : uses
+RegisterEngineModelController ..> EngineModelRepository : uses
+RegisterEngineModelController ..> EngineModel : creates
+EngineModelRepository ..> EngineModel : persists
+EngineModel "1" --> "1" EngineType : "classified as"
+
+@enduml

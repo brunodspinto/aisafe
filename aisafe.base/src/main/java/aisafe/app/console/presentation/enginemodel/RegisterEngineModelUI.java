@@ -20,12 +20,15 @@ public class RegisterEngineModelUI extends AbstractUI {
             for (int i = 0; i < types.length; i++) {
                 System.out.printf("  [%d] %s%n", i + 1, types[i]);
             }
-            final int typeIndex = Console.readInteger("Select Engine Type (number): ");
-            if (typeIndex < 1 || typeIndex > types.length) {
-                System.out.println("\nInvalid selection.");
-                return false;
+            EngineType engineType = null;
+            while (engineType == null) {
+                final int typeIndex = Console.readInteger("Select Engine Type (number): ");
+                if (typeIndex < 1 || typeIndex > types.length) {
+                    System.out.println("Invalid selection. Choose a number between 1 and " + types.length + ".");
+                } else {
+                    engineType = types[typeIndex - 1];
+                }
             }
-            final EngineType engineType = types[typeIndex - 1];
 
             final double thrust = Console.readDouble("Thrust (kN): ");
             final double tsfc = Console.readDouble("TSFC (kg/(kN·h)): ");
