@@ -9,14 +9,10 @@ package "AirTransportCompany Aggregate" <<Rectangle>> {
     class AirTransportCompany <<entity, aggregate root>> {
         name : String
     }
+}
 
-    class IATACode <<value object, identity>> {
-        code : String
-    }
-
-    class ICAOCode <<value object>> {
-        code : String
-    }
+class IATACode <<value object>> {
+    code : String
 }
 
 note right of IATACode
@@ -24,12 +20,32 @@ note right of IATACode
   uppercase letters (e.g. "TP")
 end note
 
+class ICAOCode <<value object>> {
+    code : String
+}
+
 note right of ICAOCode
   Company ICAO: 2 or 3
   uppercase letters (e.g. "TAP")
 end note
 
-AirTransportCompany "1" *-- "1" IATACode : "identified by"
-AirTransportCompany "1" *-- "1" ICAOCode : "identified by"
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>>
+}
+
+package "Aircraft Aggregate" <<Rectangle>> {
+    class Aircraft <<entity, aggregate root>>
+}
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+    class FlightRoute <<entity, aggregate root>>
+}
+
+AirTransportCompany "1" --> "1" IATACode : "identified by"
+AirTransportCompany "1" --> "1" ICAOCode : "identified by"
+
+AirTransportCompany "1" --> "0..*" User : "employs"
+AirTransportCompany "1" --> "0..*" Aircraft : "owns"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
 
 @enduml

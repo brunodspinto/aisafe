@@ -20,7 +20,6 @@ authz --> ctrl : ok (or throws UnauthorizedException)
 deactivate authz
 
 ctrl -> ctrl : new AirTransportCompany(name, IATACode.valueOf(iataCode), ICAOCode.valueOf(icaoCode))
-note right: domain invariants validated\ninside constructors/value objects
 
 ctrl -> repo : save(company)
 activate repo

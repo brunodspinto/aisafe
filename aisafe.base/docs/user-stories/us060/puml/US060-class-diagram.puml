@@ -36,6 +36,7 @@ package "aisafe.airtransportcompany.domain" {
     class IATACode <<value object, identity>> {
         -code : String
         +{static} valueOf(code : String) : IATACode
+        +compareTo(other : IATACode) : int
         +toString() : String
     }
 
@@ -45,6 +46,27 @@ package "aisafe.airtransportcompany.domain" {
         +toString() : String
     }
 }
+
+package "aisafe.infrastructure.persistence.inmemory" {
+    class InMemoryAirTransportCompanyRepository {
+        +findByName(name : String) : Optional<AirTransportCompany>
+        +findByIcaoCode(code : ICAOCode) : Optional<AirTransportCompany>
+    }
+}
+
+package "aisafe.infrastructure.persistence.jpa" {
+    class JpaAirTransportCompanyRepository {
+        +findByName(name : String) : Optional<AirTransportCompany>
+        +findByIcaoCode(code : ICAOCode) : Optional<AirTransportCompany>
+    }
+}
+
+interface DomainRepository<ID, T> {
+}
+
+AirTransportCompanyRepository --|> DomainRepository
+InMemoryAirTransportCompanyRepository ..|> AirTransportCompanyRepository : implements
+JpaAirTransportCompanyRepository ..|> AirTransportCompanyRepository : implements
 
 RegisterAirTransportCompanyUI ..> RegisterAirTransportCompanyController : uses
 RegisterAirTransportCompanyController ..> AirTransportCompanyRepository : uses
