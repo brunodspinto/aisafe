@@ -1,0 +1,47 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US070 - Sub-Domain Model (Add Aircraft to Fleet)
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+        version : Long <<@Version>>
+    }
+}
+
+package "Aircraft Aggregate" <<Rectangle>> {
+    class Aircraft <<entity, aggregate root>> {
+        registrationNumber
+        registrationCountry
+        numberOfCrewElements
+    }
+
+    class CabinConfiguration <<value object>> {
+        firstClassSeats
+        businessClassSeats
+        economyClassSeats
+    }
+
+    Enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        modelName
+        maxPassengerCapacity
+    }
+}
+
+AirTransportCompany "1" --> "0..*" Aircraft : "owns"
+
+Aircraft "1" *-- "1" CabinConfiguration : "has"
+
+Aircraft "1" --> "1" OperationalStatus : "has"
+Aircraft "1" --> "1" AircraftModel : "defined by"
+
+@enduml

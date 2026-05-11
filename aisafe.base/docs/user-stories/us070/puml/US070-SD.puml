@@ -1,0 +1,98 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Air Transport Company Collaborator" as ATCC
+
+participant ":AddAircraftUI" as UI
+participant ":AddAircraftController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "modelRepo\n:AircraftModelRepository" as MREPO
+participant "companyRepo\n:AirTransportCompanyRepository" as CREPO
+participant "aircraftRepo\n:AircraftRepository" as AREPO
+participant "newCabin\n:CabinConfiguration" as CABIN
+participant "newAircraft\n:Aircraft" as AC
+participant "myCompany\n:AirTransportCompany" as COMPANY
+
+activate ATCC
+ATCC -> UI : requests to add a new aircraft to the fleet
+activate UI
+
+UI -> CTRL** : create()
+
+' Step 1: List Aircraft Models (List & Select)
+UI -> CTRL : activeAircraftModels()
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> MREPO : findAll()
+activate MREPO
+MREPO --> CTRL : aircraftModelsList
+deactivate MREPO
+
+CTRL --> UI : aircraftModelsList
+deactivate CTRL
+
+UI --> ATCC : displays aircraft models and requests data\n(model selection, registration, country, crew, seats distribution)
+deactivate UI
+
+' Step 2: Data Input
+ATCC -> UI : selects model and inputs the requested data
+activate UI
+
+' Inclusion of the 'crew' parameter in the Controller call
+UI -> CTRL : addAircraft(model, registration, country, crew, first, business, economy)
+activate CTRL
+
+' Retrieve the logged-in user and their respective company
+CTRL -> AUTHZ : session().authenticatedUser()
+activate AUTHZ
+AUTHZ --> CTRL : currentUser
+deactivate AUTHZ
+
+CTRL -> CREPO : findCompanyByCollaborator(currentUser)
+activate CREPO
+CREPO --> CTRL : myCompany
+deactivate CREPO
+
+' Value Object creation and business validation in the Domain
+CTRL -> CABIN** : create(first, business, economy)
+
+' Aircraft entity instantiation with the 'crew' parameter
+CTRL -> AC** : create(registration, country, crew, model, newCabin)
+note right of AC: The constructor validates US070.2:\ncabin.totalSeats() <= model.maxPassengerCapacity()
+
+' Persist the new aircraft
+CTRL -> AREPO : save(newAircraft)
+activate AREPO
+AREPO --> CTRL : savedAircraft
+deactivate AREPO
+
+' Update the company fleet (Low Coupling)
+CTRL -> COMPANY : addAircraftToFleet(savedAircraft)
+activate COMPANY
+note right of COMPANY: Adds only the registration number (String)\nto the fleet set to maintain Low Coupling.
+COMPANY --> CTRL : (success)
+deactivate COMPANY
+
+' Save the company (Optimistic Locking)
+CTRL -> CREPO : save(myCompany)
+activate CREPO
+note right of CREPO: Checks @Version field.\nThrows ConcurrencyException if modified.
+CREPO --> CTRL : updatedCompany
+deactivate CREPO
+
+CTRL --> UI : success
+deactivate CTRL
+
+UI --> ATCC : displays operation success message
+deactivate UI
+deactivate ATCC
+
+@enduml

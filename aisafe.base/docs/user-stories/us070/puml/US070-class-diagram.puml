@@ -1,0 +1,112 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US070 - Class Diagram (Add Aircraft to Fleet)
+
+package "Presentation" {
+    class AddAircraftUI {
+        # doShow() : boolean
+    }
+}
+
+package "Application" {
+    class AddAircraftController {
+        + activeAircraftModels() : Iterable<AircraftModel>
+        + addAircraft(model: AircraftModel, registration: String, country: String, crew: int, first: int, business: int, economy: int) : AirTransportCompany
+    }
+}
+
+package "Domain" {
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - name : String
+        - version : Long <<@Version>>
+        - fleet : Set<String>
+        + addAircraftToFleet(aircraft: Aircraft) : boolean
+    }
+
+    class Aircraft <<entity>> <<aggregate root>> {
+        - registrationNumber : String
+        - registeredCountry : String
+        - numberOfCrewElements : int
+        - operationalStatus : OperationalStatus
+        + Aircraft(registration: String, country: String, crew: int, model: AircraftModel, cabin: CabinConfiguration)
+        + identity() : String
+    }
+
+    class CabinConfiguration <<value object>> <<@Embeddable>> {
+        - firstClassSeats : int
+        - businessClassSeats : int
+        - economyClassSeats : int
+        + CabinConfiguration(first, business, economy)
+        + totalSeats() : int
+    }
+
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        - maxPassengerCapacity : int
+        + maxPassengerCapacity() : int
+    }
+
+    enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+        + session() : UserSession
+    }
+
+    class SystemUser {
+    }
+}
+
+package "Persistence" {
+    interface AircraftRepository <<repository>> {
+        + save(entity: Aircraft) : Aircraft
+    }
+
+    interface AirTransportCompanyRepository <<repository>> {
+        + save(entity: AirTransportCompany) : AirTransportCompany
+        + findCompanyByCollaborator(user: SystemUser) : AirTransportCompany
+    }
+
+    interface AircraftModelRepository <<repository>> {
+        + findAll() : Iterable<AircraftModel>
+    }
+
+    class JpaAircraftRepository { }
+    class JpaAirTransportCompanyRepository { }
+    class JpaAircraftModelRepository { }
+}
+
+AddAircraftUI .down.> AddAircraftController
+AddAircraftController .down.> AirTransportCompany
+AddAircraftController .down.> Aircraft
+AddAircraftController .down.> CabinConfiguration
+AddAircraftController .down.> AircraftModel
+AddAircraftController .down.> AirTransportCompanyRepository
+AddAircraftController .down.> AircraftRepository
+AddAircraftController .down.> AircraftModelRepository
+AddAircraftController .down.> AuthorizationService
+
+note bottom of Aircraft: Stores only the AircraftModel ID\nto maintain Low Coupling.
+
+Aircraft "1" *-- "1" CabinConfiguration : "has (Embedded) >"
+Aircraft "1" --> "1" OperationalStatus : "has >"
+Aircraft "1" ..> "1" AircraftModel : "references by ID >"
+
+note right of AirTransportCompany: Maintains a Set of\nregistration IDs (Strings)\nto maintain Low Coupling.
+
+AirTransportCompany "1" ..> "*" Aircraft : "references by registration >"
+
+' Persistence Implementations (Dependency Inversion)
+JpaAircraftRepository .up.|> AircraftRepository
+JpaAirTransportCompanyRepository .up.|> AirTransportCompanyRepository
+JpaAircraftModelRepository .up.|> AircraftModelRepository
+
+@enduml
