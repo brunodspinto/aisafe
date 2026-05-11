@@ -1,0 +1,91 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US064 - Class Diagram
+
+package "Presentation" {
+    class DisableCollaboratorUI {
+        # doShow() : boolean
+    }
+}
+
+package "Application" {
+    class DisableCollaboratorController {
+        + allCompanies() : Iterable<AirTransportCompany>
+        + allAreas() : Iterable<AirControlArea>
+        + activeCollaboratorsByCompany(company: AirTransportCompany) : Iterable<Collaborator>
+        + activeCollaboratorsByArea(area: AirControlArea) : Iterable<Collaborator>
+        + disableCollaborator(collaborator: Collaborator) : void
+    }
+}
+
+package "Domain" {
+    class Collaborator <<entity>> <<aggregate root>> {
+        + user() : User
+        + customerName() : String
+        + isCompanyCollaborator() : boolean
+        + isAreaCollaborator() : boolean
+    }
+
+    class User <<entity>> <<aggregate root>> {
+        + systemUser() : SystemUser
+    }
+
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - name : String
+    }
+
+    class AirControlArea <<entity>> <<aggregate root>> {
+        - designation : String
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+
+    class UserManagementService {
+        + deactivateUser(user: SystemUser)
+    }
+
+    class SystemUser <<entity>> {
+        + isActive() : boolean
+        + deactivate(date: Calendar)
+    }
+}
+
+package "Persistence" {
+    interface CollaboratorRepository <<repository>> {
+        + findActiveByAirTransportCompany(company: AirTransportCompany) : Iterable<Collaborator>
+        + findActiveByAirControlArea(area: AirControlArea) : Iterable<Collaborator>
+    }
+
+    interface AirTransportCompanyRepository <<repository>> {
+        + findAll() : Iterable<AirTransportCompany>
+    }
+
+    interface AirControlAreaRepository <<repository>> {
+        + findAll() : Iterable<AirControlArea>
+    }
+}
+
+DisableCollaboratorUI .down.> DisableCollaboratorController
+DisableCollaboratorController .down.> AuthorizationService
+DisableCollaboratorController .down.> UserManagementService
+DisableCollaboratorController .down.> Collaborator
+DisableCollaboratorController .down.> CollaboratorRepository
+DisableCollaboratorController .down.> AirTransportCompanyRepository
+DisableCollaboratorController .down.> AirControlAreaRepository
+
+Collaborator "1" --> "1" User : "has >"
+User "1" --> "1" SystemUser : "wraps >"
+
+Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to >"
+Collaborator "0..*" --> "0..1" AirControlArea : "belongs to >"
+
+UserManagementService .down.> SystemUser : "deactivates >"
+
+@enduml
