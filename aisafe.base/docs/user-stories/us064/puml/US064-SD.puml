@@ -1,0 +1,122 @@
+@startuml sd064
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+
+participant ":DisableCollaboratorUI" as UI
+participant ":DisableCollaboratorController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "companyRepo\n:AirTransportCompanyRepository" as CREPO
+participant "areaRepo\n:AirControlAreaRepository" as AREPO
+participant "collaboratorRepo\n:CollaboratorRepository" as COLREPO
+participant "userSvc\n:UserManagementService" as USVC
+
+activate BOP
+BOP -> UI : asks to disable a collaborator
+activate UI
+
+UI -> CTRL** : create()
+
+UI --> BOP : asks to choose customer type (Company or Area)
+deactivate UI
+
+BOP -> UI : selects customer type
+activate UI
+
+alt customer type is Air Transport Company
+    UI -> CTRL : allCompanies()
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> CREPO : findAll()
+    activate CREPO
+    CREPO --> CTRL : companiesList
+    deactivate CREPO
+    CTRL --> UI : companiesList
+    deactivate CTRL
+    UI --> BOP : displays companies and asks to select one
+    deactivate UI
+    BOP -> UI : selects a company
+    activate UI
+    UI -> CTRL : activeCollaboratorsByCompany(selectedCompany)
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> COLREPO : findActiveByAirTransportCompany(selectedCompany)
+    activate COLREPO
+    COLREPO --> CTRL : collaboratorsList
+    deactivate COLREPO
+    CTRL --> UI : collaboratorsList
+    deactivate CTRL
+else customer type is Air Control Area
+    UI -> CTRL : allAreas()
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> AREPO : findAll()
+    activate AREPO
+    AREPO --> CTRL : areasList
+    deactivate AREPO
+    CTRL --> UI : areasList
+    deactivate CTRL
+    UI --> BOP : displays areas and asks to select one
+    deactivate UI
+    BOP -> UI : selects an area
+    activate UI
+    UI -> CTRL : activeCollaboratorsByArea(selectedArea)
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> COLREPO : findActiveByAirControlArea(selectedArea)
+    activate COLREPO
+    COLREPO --> CTRL : collaboratorsList
+    deactivate COLREPO
+    CTRL --> UI : collaboratorsList
+    deactivate CTRL
+end
+
+UI --> BOP : displays active collaborators and asks to select one
+deactivate UI
+
+BOP -> UI : selects a collaborator
+activate UI
+
+UI --> BOP : asks for confirmation (y/n)
+deactivate UI
+
+BOP -> UI : confirms (y)
+activate UI
+
+UI -> CTRL : disableCollaborator(selectedCollaborator)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> USVC : deactivateUser(selectedCollaborator.user().systemUser())
+activate USVC
+USVC --> CTRL : (success)
+deactivate USVC
+
+CTRL --> UI : (success)
+deactivate CTRL
+
+UI --> BOP : displays operation success message
+deactivate UI
+
+deactivate BOP
+
+@enduml

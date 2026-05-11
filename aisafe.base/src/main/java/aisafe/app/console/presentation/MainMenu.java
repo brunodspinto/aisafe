@@ -16,6 +16,7 @@ import aisafe.app.console.presentation.aircraftmodel.RegisterAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.AddEngineToAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.RemoveEngineFromAircraftModelUI;
 import aisafe.app.console.presentation.collaborator.AddCollaboratorUI;
+import aisafe.app.console.presentation.collaborator.DisableCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.ListCollaboratorsByCustomerUI;
 import aisafe.app.console.presentation.collaborator.EditCollaboratorUI;
 import eapli.framework.actions.Actions;
@@ -162,6 +163,7 @@ public class MainMenu extends AbstractUI {
         menu.addItem(1, "Add Customer's Collaborator", new AddCollaboratorUI()::show);
         menu.addItem(2, "List Customer's Collaborators", new ListCollaboratorsByCustomerUI()::show);
         menu.addItem(3, "Edit Customer's Collaborator", new EditCollaboratorUI()::show);
+        menu.addItem(4, "Disable Customer's Collaborator", new DisableCollaboratorUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
