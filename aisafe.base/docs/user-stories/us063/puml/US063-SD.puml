@@ -1,0 +1,143 @@
+@startuml sd063
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+
+participant ":EditCollaboratorUI" as UI
+participant ":EditCollaboratorController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "companyRepo\n:AirTransportCompanyRepository" as CREPO
+participant "areaRepo\n:AirControlAreaRepository" as AREPO
+participant "collaboratorRepo\n:CollaboratorRepository" as COLREPO
+participant "userRepo\n:UserRepository" as UREPO
+participant "selectedCollaborator.user()\n:User" as USER
+
+activate BOP
+BOP -> UI : asks to edit a collaborator's contact info
+activate UI
+
+UI -> CTRL** : create()
+
+UI --> BOP : asks to choose customer type (Company or Area)
+deactivate UI
+
+BOP -> UI : selects customer type
+activate UI
+
+alt customer type is Air Transport Company
+    UI -> CTRL : allCompanies()
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> CREPO : findAll()
+    activate CREPO
+    CREPO --> CTRL : companiesList
+    deactivate CREPO
+    CTRL --> UI : companiesList
+    deactivate CTRL
+    UI --> BOP : displays companies and asks to select one
+    deactivate UI
+    BOP -> UI : selects a company
+    activate UI
+    UI -> CTRL : activeCollaboratorsByCompany(selectedCompany)
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> COLREPO : findActiveByAirTransportCompany(selectedCompany)
+    activate COLREPO
+    COLREPO --> CTRL : collaboratorsList
+    deactivate COLREPO
+    CTRL --> UI : collaboratorsList
+    deactivate CTRL
+else customer type is Air Control Area
+    UI -> CTRL : allAreas()
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> AREPO : findAll()
+    activate AREPO
+    AREPO --> CTRL : areasList
+    deactivate AREPO
+    CTRL --> UI : areasList
+    deactivate CTRL
+    UI --> BOP : displays areas and asks to select one
+    deactivate UI
+    BOP -> UI : selects an area
+    activate UI
+    UI -> CTRL : activeCollaboratorsByArea(selectedArea)
+    activate CTRL
+    CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+    activate AUTHZ
+    AUTHZ --> CTRL : (ok)
+    deactivate AUTHZ
+    CTRL -> COLREPO : findActiveByAirControlArea(selectedArea)
+    activate COLREPO
+    COLREPO --> CTRL : collaboratorsList
+    deactivate COLREPO
+    CTRL --> UI : collaboratorsList
+    deactivate CTRL
+end
+
+UI --> BOP : displays active collaborators and asks to select one
+deactivate UI
+
+BOP -> UI : selects a collaborator
+activate UI
+
+UI --> BOP : displays current contact info and asks for new email and phone
+deactivate UI
+
+BOP -> UI : inputs new email and phone number
+activate UI
+
+UI -> CTRL : updateContact(selectedCollaborator, newEmail, newPhone)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> USER : updateContact(new Email(newEmail), newPhone)
+activate USER
+
+alt email is null or phone is null/blank
+    USER --> CTRL : throws IllegalArgumentException
+    deactivate USER
+    CTRL --> UI : throws IllegalArgumentException
+    deactivate CTRL
+    UI --> BOP : displays validation error message
+    deactivate UI
+else contact data is valid
+    USER --> CTRL : (success)
+    deactivate USER
+
+    CTRL -> UREPO : save(user)
+    activate UREPO
+    UREPO --> CTRL : savedUser
+    deactivate UREPO
+
+    CTRL -> COLREPO : save(selectedCollaborator)
+    activate COLREPO
+    COLREPO --> CTRL : savedCollaborator
+    deactivate COLREPO
+
+    CTRL --> UI : savedCollaborator
+    deactivate CTRL
+
+    UI --> BOP : displays operation success message
+    deactivate UI
+end
+
+deactivate BOP
+
+@enduml

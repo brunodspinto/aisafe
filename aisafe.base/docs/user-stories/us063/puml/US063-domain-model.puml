@@ -1,0 +1,50 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US063 - Sub-Domain Model
+
+package "Collaborator Aggregate" <<Rectangle>> {
+    class Collaborator <<entity, aggregate root>> {
+        + user() : User
+        + customerName() : String
+    }
+}
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        - email : Email
+        - phoneNumber : String
+        + updateContact(email: Email, phoneNumber: String)
+    }
+
+    class Email <<value object>> {
+        - address : String
+    }
+
+    User "1" *-- "1" Email : "has >"
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        - name : String
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        - designation : String
+    }
+}
+
+Collaborator "1" --> "1" User : "linked to >"
+Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to >"
+Collaborator "0..*" --> "0..1" AirControlArea : "belongs to >"
+
+note right of User
+  updateContact() enforces:
+  - email must be valid (Email value object)
+  - phoneNumber cannot be null or blank
+end note
+
+@enduml

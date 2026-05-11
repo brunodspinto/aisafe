@@ -1,0 +1,91 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US063 - Class Diagram
+
+package "Presentation" {
+    class EditCollaboratorUI {
+        # doShow() : boolean
+    }
+}
+
+package "Application" {
+    class EditCollaboratorController {
+        + allCompanies() : Iterable<AirTransportCompany>
+        + allAreas() : Iterable<AirControlArea>
+        + activeCollaboratorsByCompany(company: AirTransportCompany) : Iterable<Collaborator>
+        + activeCollaboratorsByArea(area: AirControlArea) : Iterable<Collaborator>
+        + updateContact(collaborator: Collaborator, newEmail: String, newPhone: String) : Collaborator
+    }
+}
+
+package "Domain" {
+    class Collaborator <<entity>> <<aggregate root>> {
+        + user() : User
+        + customerName() : String
+        + isCompanyCollaborator() : boolean
+        + isAreaCollaborator() : boolean
+    }
+
+    class User <<entity>> <<aggregate root>> {
+        - email : Email
+        - phoneNumber : String
+        + updateContact(email: Email, phoneNumber: String)
+    }
+
+    class Email <<value object>> {
+        - address : String
+    }
+
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - name : String
+    }
+
+    class AirControlArea <<entity>> <<aggregate root>> {
+        - designation : String
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+}
+
+package "Persistence" {
+    interface CollaboratorRepository <<repository>> {
+        + findActiveByAirTransportCompany(company: AirTransportCompany) : Iterable<Collaborator>
+        + findActiveByAirControlArea(area: AirControlArea) : Iterable<Collaborator>
+        + save(entity: Collaborator) : Collaborator
+    }
+
+    interface UserRepository <<repository>> {
+        + save(entity: User) : User
+    }
+
+    interface AirTransportCompanyRepository <<repository>> {
+        + findAll() : Iterable<AirTransportCompany>
+    }
+
+    interface AirControlAreaRepository <<repository>> {
+        + findAll() : Iterable<AirControlArea>
+    }
+}
+
+EditCollaboratorUI .down.> EditCollaboratorController
+EditCollaboratorController .down.> AuthorizationService
+EditCollaboratorController .down.> Collaborator
+EditCollaboratorController .down.> CollaboratorRepository
+EditCollaboratorController .down.> UserRepository
+EditCollaboratorController .down.> AirTransportCompanyRepository
+EditCollaboratorController .down.> AirControlAreaRepository
+
+Collaborator "1" --> "1" User : "has >"
+User "1" *-- "1" Email : "has >"
+
+Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to >"
+Collaborator "0..*" --> "0..1" AirControlArea : "belongs to >"
+
+@enduml
