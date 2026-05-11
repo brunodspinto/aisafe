@@ -1,0 +1,72 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US058 - Class Diagram
+
+package "Presentation" {
+    class RemoveEngineFromAircraftModelUI {
+        # doShow() : boolean
+    }
+}
+
+package "Application" {
+    class RemoveEngineFromAircraftModelController {
+        + allAircraftModels() : Iterable<AircraftModel>
+        + removeEngine(aircraft: AircraftModel, engine: EngineModel) : AircraftModel
+    }
+}
+
+package "Domain" {
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        - certifiedEngines : List<EngineModel>
+        + addEngine(engine: EngineModel)
+        + removeEngine(engine: EngineModel)
+        + certifiedEngines() : List<EngineModel>
+    }
+
+    class EngineModel <<entity>> <<aggregate root>> {
+        - name : String
+        - makerName : String
+        - engineType : EngineType
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+}
+
+package "Persistence" {
+    interface AircraftModelRepository <<repository>> {
+        + save(entity: AircraftModel) : AircraftModel
+        + findAll() : Iterable<AircraftModel>
+    }
+
+    class JpaAircraftModelRepository {
+        + save(entity: AircraftModel) : AircraftModel
+        + findAll() : Iterable<AircraftModel>
+    }
+
+    class InMemoryAircraftModelRepository {
+        + save(entity: AircraftModel) : AircraftModel
+        + findAll() : Iterable<AircraftModel>
+    }
+}
+
+RemoveEngineFromAircraftModelUI .down.> RemoveEngineFromAircraftModelController
+RemoveEngineFromAircraftModelController .down.> AuthorizationService
+RemoveEngineFromAircraftModelController .down.> AircraftModel
+RemoveEngineFromAircraftModelController .down.> AircraftModelRepository
+
+AircraftModel "1" --> "1..*" EngineModel : "certifiedEngines >"
+
+AircraftModelRepository "1" --> "*" AircraftModel : "stores >"
+
+JpaAircraftModelRepository .up.|> AircraftModelRepository
+InMemoryAircraftModelRepository .up.|> AircraftModelRepository
+
+@enduml

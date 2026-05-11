@@ -1,0 +1,32 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US058 - Sub-Domain Model
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        - modelName : String
+        - aircraftType : AircraftType
+        + removeEngine(engine: EngineModel)
+        + certifiedEngines() : List<EngineModel>
+    }
+}
+
+package "EngineModel Aggregate" <<Rectangle>> {
+    class EngineModel <<entity, aggregate root>> {
+        - name : String
+        - makerName : String
+        - engineType : EngineType
+    }
+}
+
+AircraftModel "1" -- "1..*" EngineModel : "must have at least one >"
+
+note bottom of AircraftModel
+  Business invariant:
+  an AircraftModel must always
+  have at least one certified engine.
+end note
+
+@enduml

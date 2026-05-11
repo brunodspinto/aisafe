@@ -260,4 +260,36 @@ class AircraftModelTest {
         assertEquals(2, model.certifiedEngines().size());
     }
 
+    @Test
+    void ensureCanRemoveEngineWhenMoreThanOneExists() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel second = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(second);
+        model.removeEngine(second);
+        assertEquals(1, model.certifiedEngines().size());
+    }
+
+    @Test
+    void ensureCannotRemoveLastEngine() {
+        final AircraftModel model = validAircraftModel();
+        assertThrows(IllegalArgumentException.class, () -> model.removeEngine(validEngine()));
+    }
+
+    @Test
+    void ensureCannotRemoveNullEngine() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel second = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(second);
+        assertThrows(IllegalArgumentException.class, () -> model.removeEngine(null));
+    }
+
+    @Test
+    void ensureCannotRemoveEngineThatIsNotCertified() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel second = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(second);
+        final EngineModel notCertified = new EngineModel("V2500", "IAE", EngineType.TURBOFAN, 111.0, 0.33);
+        assertThrows(IllegalArgumentException.class, () -> model.removeEngine(notCertified));
+    }
+
 }

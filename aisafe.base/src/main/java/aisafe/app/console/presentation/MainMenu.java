@@ -14,6 +14,7 @@ import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import aisafe.app.console.presentation.maker.RegisterMakerUI;
 import aisafe.app.console.presentation.aircraftmodel.RegisterAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.AddEngineToAircraftModelUI;
+import aisafe.app.console.presentation.aircraftmodel.RemoveEngineFromAircraftModelUI;
 import aisafe.app.console.presentation.collaborator.AddCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.ListCollaboratorsByCustomerUI;
 import aisafe.app.console.presentation.collaborator.EditCollaboratorUI;
@@ -151,6 +152,7 @@ public class MainMenu extends AbstractUI {
         menu.addItem(2, "Register Maker", new RegisterMakerUI()::show);
         menu.addItem(3, "Register Aircraft Model", new RegisterAircraftModelUI()::show);
         menu.addItem(4, "Add Engine to Aircraft Model", new AddEngineToAircraftModelUI()::show);
+        menu.addItem(5, "Remove Engine from Aircraft Model", new RemoveEngineFromAircraftModelUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

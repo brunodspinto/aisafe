@@ -138,6 +138,17 @@ public class AircraftModel implements AggregateRoot<Long> {
         certifiedEngines.add(engine);
     }
 
+    public void removeEngine(final EngineModel engine) {
+        if (engine == null)
+            throw new IllegalArgumentException("Engine model cannot be null.");
+        if (certifiedEngines.size() <= 1)
+            throw new IllegalArgumentException("Cannot remove the last certified engine from an aircraft model.");
+        final boolean removed = certifiedEngines.removeIf(e ->
+                e.name().equals(engine.name()) && e.makerName().equals(engine.makerName()));
+        if (!removed)
+            throw new IllegalArgumentException("Engine model is not certified for this aircraft.");
+    }
+
     public String modelName() { return modelName; }
     public Maker maker() { return maker; }
     public AircraftType aircraftType() { return aircraftType; }

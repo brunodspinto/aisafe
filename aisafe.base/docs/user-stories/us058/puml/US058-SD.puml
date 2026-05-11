@@ -1,0 +1,98 @@
+@startuml sd058
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Backoffice Operator" as BOP
+
+participant ":RemoveEngineFromAircraftModelUI" as UI
+participant ":RemoveEngineFromAircraftModelController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "amRepo\n:AircraftModelRepository" as AMREPO
+participant "selectedAircraftModel\n:AircraftModel" as AM
+
+activate BOP
+BOP -> UI : asks to remove an engine from an aircraft model
+activate UI
+
+UI -> CTRL** : create()
+UI -> CTRL : allAircraftModels()
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AMREPO : findAll()
+activate AMREPO
+AMREPO --> CTRL : aircraftModelsList
+deactivate AMREPO
+
+CTRL --> UI : aircraftModelsList
+deactivate CTRL
+
+UI --> BOP : displays available Aircraft Models and asks to select one
+deactivate UI
+
+BOP -> UI : selects an Aircraft Model
+activate UI
+
+UI --> BOP : displays certified engines for selected model and asks to select one
+deactivate UI
+
+BOP -> UI : selects an Engine Model to remove
+activate UI
+
+UI -> CTRL : removeEngine(selectedAircraftModel, selectedEngineModel)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AM : removeEngine(selectedEngineModel)
+activate AM
+
+alt engine is null
+    AM --> CTRL : throws IllegalArgumentException
+    deactivate AM
+    CTRL --> UI : throws IllegalArgumentException
+    deactivate CTRL
+    UI --> BOP : displays error (engine cannot be null)
+    deactivate UI
+else only one engine certified
+    AM --> CTRL : throws IllegalArgumentException
+    deactivate AM
+    CTRL --> UI : throws IllegalArgumentException
+    deactivate CTRL
+    UI --> BOP : displays error (cannot remove the last certified engine)
+    deactivate UI
+else engine not certified on this model
+    AM --> CTRL : throws IllegalArgumentException
+    deactivate AM
+    CTRL --> UI : throws IllegalArgumentException
+    deactivate CTRL
+    UI --> BOP : displays error (engine not certified for this aircraft)
+    deactivate UI
+else removal is valid
+    AM --> CTRL : (success)
+    deactivate AM
+
+    CTRL -> AMREPO : save(selectedAircraftModel)
+    activate AMREPO
+    AMREPO --> CTRL : updatedAircraftModel
+    deactivate AMREPO
+
+    CTRL --> UI : updatedAircraftModel
+    deactivate CTRL
+
+    UI --> BOP : displays operation success message
+    deactivate UI
+end
+
+deactivate BOP
+
+@enduml
