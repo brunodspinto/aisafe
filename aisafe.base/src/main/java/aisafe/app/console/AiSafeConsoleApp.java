@@ -29,16 +29,6 @@ public final class AiSafeConsoleApp {
     }
 
     private static void bootstrapAdminIfNeeded() {
-        final var userRepo = PersistenceContext.repositories().systemUsers();
-        if (userRepo.ofIdentity(Username.valueOf("admin")).isEmpty()) {
-            final var builder = new SystemUserBuilder(
-                    new AiSafePasswordPolicy(), new PlainTextEncoder());
-            builder.withUsername("admin")
-                    .withPassword("Password1")
-                    .withName("System", "Admin")
-                    .withEmail("admin@aisafe.com")
-                    .withRoles(AiSafeRoles.ADMIN);
-            userRepo.save(builder.build());
-        }
+        AiSafeBootstrap.runBootstrap();
     }
 }

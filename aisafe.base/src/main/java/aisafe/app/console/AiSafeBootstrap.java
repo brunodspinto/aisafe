@@ -34,10 +34,12 @@ public final class AiSafeBootstrap {
         bootstrapEngineModels();
         bootstrapAirports();
         bootstrapMakers();
+        bootstrapAircraftModels();
         bootstrapAirTransportCompanies();
         bootstrapCollaborators();
         bootstrapAtccUser();
         bootstrapAircrafts();
+
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -329,4 +331,40 @@ public final class AiSafeBootstrap {
             }
         }
 
+    private static void bootstrapAircraftModels() {
+        final var aircraftModelRepo = PersistenceContext.repositories().aircraftModels();
+        final var makerRepo = PersistenceContext.repositories().makers();
+        final var engineRepo = PersistenceContext.repositories().engineModels();
+
+        makerRepo.ofIdentity("Boeing").ifPresent(boeing -> {
+            engineRepo.findByNameAndMaker("CFM56", "CFM International").ifPresent(engine -> {
+                if (aircraftModelRepo.findByModelNameAndMaker("737-800", boeing).isEmpty()) {
+                    final var model = new aisafe.aircraftmodel.domain.AircraftModel(
+                            "737-800", boeing, aisafe.aircraftmodel.domain.AircraftType.PASSENGER,
+                            41140, 79016, 62732, 20894,
+                            12500, 230, 34.3, 125.0,
+                            0.026, 1.5, engine);
+                    aircraftModelRepo.save(model);
+                    System.out.println("Aircraft model created: 737-800 by Boeing");
+                } else {
+                    System.out.println("Aircraft model already exists: 737-800 by Boeing");
+                }
+            });
+        });
     }
+
+    public static void runBootstrap() {
+        bootstrapAdmin();
+        bootstrapWeatherPerson();
+        bootstrapAirControlAreas();
+        bootstrapEngineModels();
+        bootstrapAirports();
+        bootstrapMakers();
+        bootstrapAircraftModels();
+        bootstrapAirTransportCompanies();
+        bootstrapCollaborators();
+        bootstrapAtccUser();
+        bootstrapAircrafts();
+    }
+
+}
