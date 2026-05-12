@@ -20,6 +20,7 @@ import aisafe.app.console.presentation.collaborator.AddCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.DisableCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.ListCollaboratorsByCustomerUI;
 import aisafe.app.console.presentation.collaborator.EditCollaboratorUI;
+import aisafe.app.console.presentation.aircraft.DecommissionAircraftUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -178,6 +179,7 @@ public class MainMenu extends AbstractUI {
     private Menu buildFleetMenu() {
         final var menu = new Menu("Fleet Management >");
         menu.addItem(1, "Add Aircraft to Fleet", new AddAircraftUI()::show);
+        menu.addItem(2, "Decommission Aircraft", new DecommissionAircraftUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

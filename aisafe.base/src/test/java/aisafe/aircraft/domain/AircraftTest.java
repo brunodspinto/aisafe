@@ -99,4 +99,91 @@ class AircraftTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new Aircraft("CS-TUA", "Portugal", 6, validCabin(), null));
     }
+    @Test
+    void ensureDecommissionChangesStatus() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        aircraft.decommission();
+        assertEquals(OperationalStatus.DECOMMISSIONED, aircraft.operationalStatus());
+    }
+
+    @Test
+    void ensureCannotDecommissionAlreadyDecommissioned() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        aircraft.decommission();
+        assertThrows(IllegalStateException.class, aircraft::decommission);
+    }
+
+    @Test
+    void ensureIsActiveReturnsTrueForActiveAircraft() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertTrue(aircraft.isActive());
+    }
+
+    @Test
+    void ensureIsActiveReturnsFalseAfterDecommission() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        aircraft.decommission();
+        assertFalse(aircraft.isActive());
+    }
+
+    @Test
+    void ensureTwoAircraftWithSameRegistrationAreEqual() {
+        final Aircraft a = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        final Aircraft b = new Aircraft("CS-TUA", "Spain", 4, validCabin(), validModel());
+        assertEquals(a, b);
+    }
+
+    @Test
+    void ensureTwoAircraftWithDifferentRegistrationAreNotEqual() {
+        final Aircraft a = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        final Aircraft b = new Aircraft("CS-TUB", "Portugal", 6, validCabin(), validModel());
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    void ensureGettersReturnCorrectValues() {
+        final AircraftModel model = validModel();
+        final CabinConfiguration cabin = validCabin();
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, cabin, model);
+        assertEquals(cabin, aircraft.cabinConfiguration());
+        assertEquals(model, aircraft.aircraftModel());
+        assertEquals("Portugal", aircraft.registeredCountry());
+        assertEquals(6, aircraft.numberOfCrewElements());
+    }
+
+    @Test
+    void ensureIdentityReturnsRegistrationNumber() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertEquals("CS-TUA", aircraft.identity());
+    }
+
+    @Test
+    void ensureToStringContainsRegistrationNumber() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertTrue(aircraft.toString().contains("CS-TUA"));
+    }
+
+    @Test
+    void ensureEqualsReturnsTrueForSameInstance() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertEquals(aircraft, aircraft);
+    }
+
+    @Test
+    void ensureEqualsReturnsFalseForNull() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertNotEquals(null, aircraft);
+    }
+
+    @Test
+    void ensureSameAsReturnsTrueForSameInstance() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertTrue(aircraft.sameAs(aircraft));
+    }
+
+    @Test
+    void ensureHashCodeIsConsistent() {
+        final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 6, validCabin(), validModel());
+        assertEquals(aircraft.hashCode(), aircraft.hashCode());
+    }
 }

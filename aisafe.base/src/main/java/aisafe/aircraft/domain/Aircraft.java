@@ -96,4 +96,14 @@ public class Aircraft implements AggregateRoot<String> {
         return String.format("Aircraft{registration='%s', country='%s', model='%s', status=%s}",
                 registrationNumber, registeredCountry, aircraftModel.modelName(), operationalStatus);
     }
+
+    public void decommission() {
+        if (this.operationalStatus == OperationalStatus.DECOMMISSIONED)
+            throw new IllegalStateException("Aircraft is already decommissioned.");
+        this.operationalStatus = OperationalStatus.DECOMMISSIONED;
+    }
+
+    public boolean isActive() {
+        return this.operationalStatus == OperationalStatus.ACTIVE;
+    }
 }
