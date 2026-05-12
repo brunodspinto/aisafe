@@ -3,15 +3,21 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-C_SOURCE="$PROJECT_ROOT/src/main/c/simulation.c"
+C_DIR="$PROJECT_ROOT/simulation"
 
 echo "[INFO] Compiling C components..."
 
-if [ ! -f "$C_SOURCE" ]; then
-  echo "[WARN] No C source found at $C_SOURCE"
+if [ ! -d "$C_DIR" ]; then
+  echo "[WARN] No C source directory found at $C_DIR"
+  exit 0
+fi
+
+C_SOURCES=("$C_DIR"/*.c)
+if [ ! -f "${C_SOURCES[0]}" ]; then
+  echo "[WARN] No .c files found in $C_DIR"
   exit 0
 fi
 
 mkdir -p "$PROJECT_ROOT/bin"
-gcc "$C_SOURCE" -o "$PROJECT_ROOT/bin/simulation"
+gcc "${C_SOURCES[@]}" -I"$C_DIR" -o "$PROJECT_ROOT/bin/simulation"
 echo "[SUCCESS] C components built in $PROJECT_ROOT/bin/"
