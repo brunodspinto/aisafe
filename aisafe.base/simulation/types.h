@@ -3,6 +3,8 @@
  */
 #ifndef FLIGHT_SIMULATION_TYPES_H
 #define FLIGHT_SIMULATION_TYPES_H
+#define MAX_FLIGHTS 10
+#define MAX_POSITIONS 1000
 
 #include <time.h>
 
@@ -59,6 +61,12 @@ typedef struct {
     double safety_threshold;
     double performance_threshold;
 } simulation_params_t;
+
+typedef struct {
+    aircraft_position_t positions[MAX_POSITIONS];
+    int count;
+    char flight_id[64];
+} flight_history_t;
 
 #endif /* FLIGHT_SIMULATION_TYPES_H */
 
