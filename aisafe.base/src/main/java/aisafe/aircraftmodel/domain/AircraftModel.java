@@ -56,6 +56,8 @@ public class AircraftModel implements AggregateRoot<Long> {
     @ManyToMany
     private List<EngineModel> certifiedEngines = new ArrayList<>();
 
+    private int maxCapacity;
+
     protected AircraftModel() {}
 
     public AircraftModel(final String modelName,
@@ -163,6 +165,15 @@ public class AircraftModel implements AggregateRoot<Long> {
     public double dragCoefficient() { return dragCoefficient; }
     public double liftCoefficient() { return liftCoefficient; }
     public List<EngineModel> certifiedEngines() { return Collections.unmodifiableList(certifiedEngines); }
+
+    public int maxCapacity() { return maxCapacity; }
+
+    public AircraftModel withMaxCapacity(final int maxCapacity) {
+        if (maxCapacity < 0)
+            throw new IllegalArgumentException("Max capacity cannot be negative.");
+        this.maxCapacity = maxCapacity;
+        return this;
+    }
 
     @Override
     public Long identity() { return id; }

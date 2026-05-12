@@ -4,10 +4,12 @@ import aisafe.aircontrolarea.domain.AirControlArea;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.collaborator.domain.Collaborator;
 import aisafe.collaborator.repositories.CollaboratorRepository;
+import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class JpaCollaboratorRepository
         extends JpaAutoTxRepository<Collaborator, Long, Long>
@@ -29,5 +31,12 @@ public class JpaCollaboratorRepository
         final Map<String, Object> params = new HashMap<>();
         params.put("area", area);
         return match("e.airControlArea = :area AND e.user.systemUser.active = true", params);
+    }
+
+    @Override
+    public Optional<Collaborator> findBySystemUser(final SystemUser systemUser) {
+        final Map<String, Object> params = new HashMap<>();
+        params.put("su", systemUser);
+        return matchOne("e.user.systemUser = :su", params);
     }
 }

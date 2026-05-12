@@ -36,6 +36,8 @@ public final class AiSafeBootstrap {
         bootstrapMakers();
         bootstrapAirTransportCompanies();
         bootstrapCollaborators();
+        bootstrapAtccUser();
+        bootstrapAircrafts();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -235,6 +237,77 @@ public final class AiSafeBootstrap {
             });
         } else {
             System.out.println("Airport already exists: OPO");
+        }
+    }
+
+    private static void bootstrapAtccUser() {
+        final var systemUserRepo = PersistenceContext.repositories().systemUsers();
+        final var userRepo = PersistenceContext.repositories().users();
+        final var collaboratorRepo = PersistenceContext.repositories().collaborators();
+        final var companyRepo = PersistenceContext.repositories().airTransportCompanies();
+
+        final String username = "atcc1";
+
+        if (systemUserRepo.ofIdentity(
+                eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username)).isEmpty()) {
+
+            final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                    .withPassword("Password1")
+                    .withName("Air", "Transport")
+                    .withEmail("atcc1@aisafe.com")
+                    .withRoles(AiSafeRoles.ATCC);
+            final var systemUser = builder.build();
+            systemUserRepo.save(systemUser);
+
+            final var user = new aisafe.usermanagement.domain.User(
+                    systemUser,
+                    aisafe.usermanagement.domain.MecanographicNumber.valueOf("ATC001"),
+                    "920000001",
+                    new aisafe.usermanagement.domain.Email("atcc1@aisafe.com"),
+                    "Air Transport Collaborator",
+                    new aisafe.usermanagement.domain.SecurityClearance(
+                            aisafe.usermanagement.domain.SecurityLevel.GUARDED,
+                            java.time.LocalDate.of(2030, 1, 1)),
+                    java.time.LocalDate.of(2025, 1, 1));
+            userRepo.save(user);
+
+            companyRepo.ofIdentity(IATACode.valueOf("TP")).ifPresent(company -> {
+                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(user, company));
+                System.out.println("ATCC collaborator created: " + username + " for company TAP");
+            });
+        } else {
+            System.out.println("ATCC collaborator already exists: " + username);
+        }
+    }
+
+    private static void bootstrapAircrafts() {
+        final var aircraftRepo = PersistenceContext.repositories().aircraft();
+        final var companyRepo = PersistenceContext.repositories().airTransportCompanies();
+        final var modelRepo = PersistenceContext.repositories().aircraftModels();
+
+        final String registration = "CS-TUA";
+
+        if (aircraftRepo.ofIdentity(registration).isEmpty()) {
+            final var models = modelRepo.findAll();
+            if (!models.iterator().hasNext()) {
+                System.out.println("No aircraft models found — skipping aircraft bootstrap.");
+                return;
+            }
+            final aisafe.aircraftmodel.domain.AircraftModel model = models.iterator().next();
+
+            companyRepo.ofIdentity(IATACode.valueOf("TP")).ifPresent(company -> {
+                final aisafe.aircraft.domain.CabinConfiguration cabin =
+                        new aisafe.aircraft.domain.CabinConfiguration(8, 20, 150);
+                final aisafe.aircraft.domain.Aircraft aircraft =
+                        new aisafe.aircraft.domain.Aircraft(registration, "Portugal", 6, cabin, model);
+                aircraftRepo.save(aircraft);
+                company.addAircraftToFleet(aircraft);
+                companyRepo.save(company);
+                System.out.println("Aircraft bootstrapped: " + registration + " added to TAP fleet.");
+            });
+        } else {
+            System.out.println("Aircraft already exists: " + registration);
         }
     }
 

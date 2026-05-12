@@ -1,7 +1,15 @@
 package aisafe.airtransportcompany.domain;
 
+import aisafe.aircraft.domain.Aircraft;
+import aisafe.aircraft.domain.CabinConfiguration;
+import aisafe.aircraftmodel.domain.AircraftModel;
+import aisafe.aircraftmodel.domain.AircraftType;
+import aisafe.enginemodel.domain.EngineModel;
+import aisafe.enginemodel.domain.EngineType;
+import aisafe.maker.domain.Maker;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -89,5 +97,36 @@ class AirTransportCompanyTest {
         final AirTransportCompany b =
                 new AirTransportCompany("TAP", IATACode.valueOf("TP"), ICAOCode.valueOf("TP"));
         assertEquals(a, b);
+    }
+
+    // AC070 — Fleet management
+
+    private static Aircraft validAircraft(final String registration) {
+        final Maker maker = new Maker("Boeing", "USA");
+        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
+        final AircraftModel model = new AircraftModel("737-800", maker, AircraftType.PASSENGER,
+                41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, engine);
+        final CabinConfiguration cabin = new CabinConfiguration(0, 20, 150);
+        return new Aircraft(registration, "Portugal", 6, cabin, model);
+    }
+
+    @Test
+    void ensureAircraftCanBeAddedToCompanyFleet() {
+        final AirTransportCompany company =
+                new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+        final Aircraft aircraft = validAircraft("CS-TUA");
+        company.addAircraftToFleet(aircraft);
+        assertTrue(company.fleet().contains("CS-TUA"));
+        assertEquals(1, company.fleet().size());
+    }
+
+    @Test
+    void ensureDuplicateAircraftRegistrationCannotBeAddedToFleet() {
+        final AirTransportCompany company =
+                new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+        final Aircraft aircraft = validAircraft("CS-TUA");
+        company.addAircraftToFleet(aircraft);
+        company.addAircraftToFleet(aircraft);
+        assertEquals(1, company.fleet().size());
     }
 }

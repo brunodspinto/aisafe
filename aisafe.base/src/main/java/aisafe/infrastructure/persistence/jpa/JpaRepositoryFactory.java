@@ -1,5 +1,6 @@
 package aisafe.infrastructure.persistence.jpa;
 
+import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.enginemodel.repositories.EngineModelRepository;
@@ -89,5 +90,10 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public CollaboratorRepository collaborators() {
         return new JpaCollaboratorRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AircraftRepository aircraft() {
+        return new JpaAircraftRepository(PERSISTENCE_UNIT);
     }
 }

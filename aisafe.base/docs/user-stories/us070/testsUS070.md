@@ -16,7 +16,7 @@ US070 covers the addition of a new aircraft to an Air Transport Company's fleet 
 ### CabinConfigurationTest
 
 **Location:**  
-`src/test/java/aisafe/fleetmanagement/domain/CabinConfigurationTest.java`
+`src/test/java/aisafe/aircraft/domain/CabinConfigurationTest.java`
 
 **Coverage:**
 
@@ -25,29 +25,36 @@ US070 covers the addition of a new aircraft to an Air Transport Company's fleet 
 - `ensureCabinConfigurationCannotHaveNegativeBusinessClassSeats`
 - `ensureCabinConfigurationCannotHaveNegativeEconomyClassSeats`
 - `ensureTotalSeatsIsCalculatedCorrectly`
+- `ensureCabinWithZeroAllSeatsThrows`
+- `ensureEconomyOnlyConfigurationIsValid`
 
 ---
 
 ### AircraftTest
 
 **Location:**  
-`src/test/java/aisafe/fleetmanagement/domain/AircraftTest.java`
+`src/test/java/aisafe/aircraft/domain/AircraftTest.java`
 
 **Coverage:**
 
 - `ensureValidAircraftIsCreatedSuccessfully`
-- `ensureAircraftCannotExceedModelMaximumCapacity` (Validates US070.2)
+- `ensureAircraftIsCreatedWithActiveOperationalStatus` (Validates US070.5)
+- `ensureAircraftRegistrationIsNormalisedToUpperCase`
 - `ensureAircraftMustHaveValidRegistrationNumber`
 - `ensureAircraftRegistrationCannotBeEmpty`
-- `ensureAircraftMustBeRegisteredToACountry`
-- `ensureAircraftIsCreatedWithActiveOperationalStatus`
+- `ensureAircraftMustBeRegisteredToACountry` (Validates US070.4)
+- `ensureAircraftCannotExceedModelMaximumCapacity` (Validates US070.2)
+- `ensureAircraftWithExactModelCapacityIsAccepted`
+- `ensureZeroCrewElementsThrows`
+- `ensureNullCabinConfigurationThrows`
+- `ensureNullAircraftModelThrows`
 
 ---
 
 ### AirTransportCompanyTest
 
 **Location:**  
-`src/test/java/aisafe/companyconfiguration/domain/AirTransportCompanyTest.java`
+`src/test/java/aisafe/airtransportcompany/domain/AirTransportCompanyTest.java`
 
 **Coverage:**
 

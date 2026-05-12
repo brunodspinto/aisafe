@@ -15,6 +15,7 @@ import aisafe.app.console.presentation.maker.RegisterMakerUI;
 import aisafe.app.console.presentation.aircraftmodel.RegisterAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.AddEngineToAircraftModelUI;
 import aisafe.app.console.presentation.aircraftmodel.RemoveEngineFromAircraftModelUI;
+import aisafe.app.console.presentation.aircraft.AddAircraftUI;
 import aisafe.app.console.presentation.collaborator.AddCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.DisableCollaboratorUI;
 import aisafe.app.console.presentation.collaborator.ListCollaboratorsByCustomerUI;
@@ -41,6 +42,7 @@ public class MainMenu extends AbstractUI {
     private static final int FLIGHT_PLAN_OPTION = 6;
     private static final int AIRCRAFT_OPTION = 7;
     private static final int COLLABORATOR_OPTION = 8;
+    private static final int FLEET_OPTION = 9;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -88,6 +90,11 @@ public class MainMenu extends AbstractUI {
             menu.addSubMenu(COLLABORATOR_OPTION, buildCollaboratorMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
+        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ATCC)) {
+            menu.addSubMenu(FLEET_OPTION, buildFleetMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+        }
+
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.PILOT)) {
             menu.addSubMenu(FLIGHT_PLAN_OPTION, buildFlightPlanMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
@@ -164,6 +171,13 @@ public class MainMenu extends AbstractUI {
         menu.addItem(2, "List Customer's Collaborators", new ListCollaboratorsByCustomerUI()::show);
         menu.addItem(3, "Edit Customer's Collaborator", new EditCollaboratorUI()::show);
         menu.addItem(4, "Disable Customer's Collaborator", new DisableCollaboratorUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildFleetMenu() {
+        final var menu = new Menu("Fleet Management >");
+        menu.addItem(1, "Add Aircraft to Fleet", new AddAircraftUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

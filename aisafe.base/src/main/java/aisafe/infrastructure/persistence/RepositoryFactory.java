@@ -1,5 +1,6 @@
 package aisafe.infrastructure.persistence;
 
+import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.enginemodel.repositories.EngineModelRepository;
@@ -41,4 +42,6 @@ public interface RepositoryFactory {
     AircraftModelRepository aircraftModels();
 
     CollaboratorRepository collaborators();
+
+    AircraftRepository aircraft();
 }
