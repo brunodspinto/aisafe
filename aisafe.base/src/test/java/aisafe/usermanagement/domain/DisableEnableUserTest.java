@@ -13,6 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit tests for the disable/enable user domain behaviour.
+ * Verifies system-user account activation and deactivation state transitions.
+ */
 class DisableEnableUserTest {
 
     private static final SecurityClearance DUMMY_CLEARANCE =

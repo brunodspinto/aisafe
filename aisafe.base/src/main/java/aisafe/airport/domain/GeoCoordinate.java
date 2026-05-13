@@ -14,6 +14,13 @@ public class GeoCoordinate implements ValueObject {
     private double latitude;
     private double longitude;
 
+    /**
+     * Creates a geographic coordinate.
+     *
+     * @param latitude  decimal degrees, between -90 and 90
+     * @param longitude decimal degrees, between -180 and 180
+     * @throws IllegalArgumentException if either value is out of range
+     */
     public GeoCoordinate(final double latitude, final double longitude) {
         if (latitude < -90 || latitude > 90)
             throw new IllegalArgumentException("Latitude must be between -90 and 90.");
@@ -25,7 +32,10 @@ public class GeoCoordinate implements ValueObject {
 
     protected GeoCoordinate() {}
 
+    /** @return latitude in decimal degrees */
     public double latitude() { return latitude; }
+
+    /** @return longitude in decimal degrees */
     public double longitude() { return longitude; }
 
     @Override

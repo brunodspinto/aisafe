@@ -10,6 +10,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "List Customer's Active Collaborators" use case (US060).
+ * Displays a tabular list of active collaborators filtered by company or area.
+ */
 public class ListCollaboratorsByCustomerUI extends AbstractUI {
 
     private final ListCollaboratorsByCustomerController controller =
@@ -32,6 +36,7 @@ public class ListCollaboratorsByCustomerUI extends AbstractUI {
         return false;
     }
 
+    /** Lists active collaborators for a company chosen by IATA code. */
     private void showByCompany() {
         System.out.println("\n--- Available Air Transport Companies ---");
         final List<AirTransportCompany> companies = new ArrayList<>();
@@ -58,6 +63,7 @@ public class ListCollaboratorsByCustomerUI extends AbstractUI {
         printCollaborators(controller.listActiveByCompany(selected));
     }
 
+    /** Lists active collaborators for an air control area chosen by code. */
     private void showByArea() {
         System.out.println("\n--- Available Air Control Areas ---");
         final List<AirControlArea> areas = new ArrayList<>();
@@ -84,6 +90,12 @@ public class ListCollaboratorsByCustomerUI extends AbstractUI {
         printCollaborators(controller.listActiveByArea(selected));
     }
 
+    /**
+     * Prints collaborators as a formatted table.
+     * Outputs a "no results" message if the iterable is empty.
+     *
+     * @param collaborators collaborators to display
+     */
     private void printCollaborators(final Iterable<Collaborator> collaborators) {
         System.out.println();
         System.out.printf("%-20s %-25s %-20s %-8s%n",

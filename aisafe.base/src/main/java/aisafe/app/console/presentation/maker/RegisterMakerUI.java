@@ -5,6 +5,10 @@ import aisafe.maker.domain.Maker;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Maker" use case (US056).
+ * Collects maker name and country, then delegates to {@link RegisterMakerController}.
+ */
 public class RegisterMakerUI extends AbstractUI {
 
     private final RegisterMakerController controller = new RegisterMakerController();

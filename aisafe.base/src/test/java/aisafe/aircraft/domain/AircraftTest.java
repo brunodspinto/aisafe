@@ -9,6 +9,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Aircraft} aggregate root.
+ * Verifies construction validation, operational status transitions,
+ * and cabin capacity constraints.
+ */
 class AircraftTest {
 
     private static AircraftModel validModel() {

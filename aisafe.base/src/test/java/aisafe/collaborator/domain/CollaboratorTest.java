@@ -20,6 +20,10 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Collaborator} aggregate root.
+ * Verifies construction, company/area associations, and business rules.
+ */
 class CollaboratorTest {
 
     private static User validUser(final String username) {

@@ -9,6 +9,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Add Engine Model to Aircraft Model" use case (US056).
+ * Lets the user pick an aircraft model and certify an additional engine for it.
+ */
 public class AddEngineToAircraftModelUI extends AbstractUI {
 
     private final AddEngineToAircraftModelController controller =

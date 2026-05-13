@@ -19,6 +19,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Console UI for the "Add Customer's Collaborator" use case (US060).
+ * Guides the user through selecting a customer type (company or area) and entering all collaborator details.
+ */
 public class AddCollaboratorUI extends AbstractUI {
 
     private final AddCollaboratorController controller = new AddCollaboratorController();
@@ -47,6 +51,7 @@ public class AddCollaboratorUI extends AbstractUI {
         return false;
     }
 
+    /** Handles the sub-flow for adding a collaborator to an air transport company. */
     private void addCompanyCollaborator() {
         System.out.println("\n--- Available Air Transport Companies ---");
         final List<AirTransportCompany> companies = new ArrayList<>();
@@ -69,6 +74,7 @@ public class AddCollaboratorUI extends AbstractUI {
         printSuccess(collaborator);
     }
 
+    /** Handles the sub-flow for adding a collaborator to an air control area. */
     private void addAreaCollaborator() {
         System.out.println("\n--- Available Air Control Areas ---");
         final List<AirControlArea> areas = new ArrayList<>();
@@ -140,6 +146,11 @@ public class AddCollaboratorUI extends AbstractUI {
         }
     }
 
+    /**
+     * Prints a success message with the newly created collaborator's details.
+     *
+     * @param collaborator the saved collaborator
+     */
     private void printSuccess(final Collaborator collaborator) {
         System.out.println("\n Collaborator successfully registered!");
         System.out.println("  Customer : " + collaborator.customerName());

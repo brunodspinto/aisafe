@@ -60,6 +60,26 @@ public class AircraftModel implements AggregateRoot<Long> {
 
     protected AircraftModel() {}
 
+    /**
+     * Creates an aircraft model with all required performance parameters.
+     * At least one certified engine model must be provided.
+     *
+     * @param modelName       commercial name of the model (non-blank)
+     * @param maker           manufacturer (non-null)
+     * @param aircraftType    type classification (non-null)
+     * @param emptyWeight     operating empty weight in kg (&gt; 0)
+     * @param mtow            maximum take-off weight in kg (&gt; emptyWeight)
+     * @param mzfw            maximum zero-fuel weight in kg (&gt; 0)
+     * @param maxFuelCapacity maximum fuel capacity in kg (&gt; 0)
+     * @param serviceCeiling  maximum operating altitude in metres (&gt; 0)
+     * @param cruiseSpeed     typical cruise speed in m/s (&gt; 0)
+     * @param wingSpan        wing span in metres (&gt; 0)
+     * @param wingArea        wing surface area in m² (&gt; 0)
+     * @param dragCoefficient aerodynamic drag coefficient (&gt; 0)
+     * @param liftCoefficient aerodynamic lift coefficient (&gt; 0)
+     * @param firstEngine     first certified engine model (non-null)
+     * @throws IllegalArgumentException if any constraint is violated
+     */
     public AircraftModel(final String modelName,
                          final Maker maker,
                          final AircraftType aircraftType,
@@ -122,6 +142,13 @@ public class AircraftModel implements AggregateRoot<Long> {
         this.certifiedEngines.add(firstEngine);
     }
 
+    /**
+     * Certifies an additional engine model for this aircraft.
+     * The engine type must match the type already certified.
+     *
+     * @param engine the engine model to add (non-null, not already certified, same type as existing)
+     * @throws IllegalArgumentException if the engine is null, already certified, or of a different type
+     */
     public void addEngine(final EngineModel engine) {
         if (engine == null)
             throw new IllegalArgumentException("Engine model cannot be null.");
@@ -140,6 +167,13 @@ public class AircraftModel implements AggregateRoot<Long> {
         certifiedEngines.add(engine);
     }
 
+    /**
+     * Removes a certified engine from this model.
+     * The last remaining engine cannot be removed.
+     *
+     * @param engine the engine model to remove (must currently be certified)
+     * @throws IllegalArgumentException if the engine is null, not certified, or is the last one
+     */
     public void removeEngine(final EngineModel engine) {
         if (engine == null)
             throw new IllegalArgumentException("Engine model cannot be null.");
@@ -151,23 +185,58 @@ public class AircraftModel implements AggregateRoot<Long> {
             throw new IllegalArgumentException("Engine model is not certified for this aircraft.");
     }
 
+    /** @return commercial name of this model */
     public String modelName() { return modelName; }
+
+    /** @return manufacturer of this model */
     public Maker maker() { return maker; }
+
+    /** @return primary purpose classification */
     public AircraftType aircraftType() { return aircraftType; }
+
+    /** @return operating empty weight in kg */
     public double emptyWeight() { return emptyWeight; }
+
+    /** @return maximum take-off weight in kg */
     public double mtow() { return mtow; }
+
+    /** @return maximum zero-fuel weight in kg */
     public double mzfw() { return mzfw; }
+
+    /** @return maximum fuel capacity in kg */
     public double maxFuelCapacity() { return maxFuelCapacity; }
+
+    /** @return maximum operating altitude in metres */
     public double serviceCeiling() { return serviceCeiling; }
+
+    /** @return typical cruise speed in m/s */
     public double cruiseSpeed() { return cruiseSpeed; }
+
+    /** @return wing span in metres */
     public double wingSpan() { return wingSpan; }
+
+    /** @return wing area in m² */
     public double wingArea() { return wingArea; }
+
+    /** @return aerodynamic drag coefficient */
     public double dragCoefficient() { return dragCoefficient; }
+
+    /** @return aerodynamic lift coefficient */
     public double liftCoefficient() { return liftCoefficient; }
+
+    /** @return unmodifiable list of certified engine models */
     public List<EngineModel> certifiedEngines() { return Collections.unmodifiableList(certifiedEngines); }
 
+    /** @return maximum seat capacity (0 means no limit defined) */
     public int maxCapacity() { return maxCapacity; }
 
+    /**
+     * Sets the maximum passenger capacity for this model.
+     *
+     * @param maxCapacity non-negative number of seats (0 = no limit)
+     * @return {@code this} for method chaining
+     * @throws IllegalArgumentException if {@code maxCapacity} is negative
+     */
     public AircraftModel withMaxCapacity(final int maxCapacity) {
         if (maxCapacity < 0)
             throw new IllegalArgumentException("Max capacity cannot be negative.");

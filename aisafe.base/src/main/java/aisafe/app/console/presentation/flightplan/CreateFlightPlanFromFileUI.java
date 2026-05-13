@@ -5,6 +5,10 @@ import aisafe.flightplan.domain.FlightPlan;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Create Flight Plan from DSL File" use case (US063).
+ * Prompts the user for a DSL file path and delegates parsing and persistence to the controller.
+ */
 public class CreateFlightPlanFromFileUI extends AbstractUI {
 
     private final CreateFlightPlanFromFileController controller =

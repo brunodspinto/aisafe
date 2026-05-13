@@ -14,6 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit tests for the {@link User} aggregate root.
+ * Verifies construction, security clearance assignment, and identity.
+ */
 class UserTest {
 
     private static final SecurityClearance DUMMY_CLEARANCE =

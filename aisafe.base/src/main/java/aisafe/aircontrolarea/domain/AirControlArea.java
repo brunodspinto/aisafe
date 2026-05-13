@@ -35,7 +35,13 @@ public class AirControlArea implements AggregateRoot<String> {
     }
 
     /**
-     * Full constructor to create a valid Air Control Area.
+     * Creates a valid air control area.
+     *
+     * @param areaCode             unique area code (non-blank)
+     * @param name                 descriptive name (non-blank)
+     * @param minimumFuelRequired  minimum fuel required for operations in this area (non-negative)
+     * @param boundaries           geographic bounding box (non-null)
+     * @throws IllegalArgumentException if any constraint is violated
      */
     public AirControlArea(String areaCode, String name, double minimumFuelRequired, GeoBoundary boundaries) {
         if (areaCode == null || areaCode.trim().isEmpty()) {
@@ -57,20 +63,22 @@ public class AirControlArea implements AggregateRoot<String> {
         this.boundaries = boundaries;
     }
 
-    // --- Getters ---
-
+    /** @return unique area code (primary key) */
     public String areaCode() {
         return areaCode;
     }
 
+    /** @return descriptive name of this area */
     public String name() {
         return name;
     }
 
+    /** @return minimum fuel required for operations in this area */
     public double minimumFuelRequired() {
         return minimumFuelRequired;
     }
 
+    /** @return geographic bounding box of this area */
     public GeoBoundary boundaries() {
         return boundaries;
     }

@@ -25,6 +25,13 @@ public class ListFleetController {
     private final AircraftRepository aircraftRepo = PersistenceContext.repositories().aircraft();
     private final CollaboratorRepository collaboratorRepo = PersistenceContext.repositories().collaborators();
 
+    /**
+     * Resolves the air transport company of the currently authenticated user.
+     *
+     * @return the company associated with the authenticated user
+     * @throws IllegalStateException if there is no active session, the user is not a company collaborator,
+     *                               or no collaborator is found for the user
+     */
     private AirTransportCompany resolveCompany() {
         final SystemUser su = authz.session()
                 .orElseThrow(() -> new IllegalStateException("No active session."))
@@ -38,6 +45,13 @@ public class ListFleetController {
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for the authenticated user."));
     }
 
+    /**
+     * Loads the full list of {@link Aircraft} objects for the given company by resolving
+     * each registration number from the repository.
+     *
+     * @param company the company whose fleet to load
+     * @return list of aircraft found in the repository for that company
+     */
     private List<Aircraft> loadFleet(final AirTransportCompany company) {
         final List<Aircraft> result = new ArrayList<>();
         for (final String reg : company.fleet()) {

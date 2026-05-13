@@ -3,6 +3,10 @@ package aisafe.airport.domain;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link AirportICAOCode} value object.
+ * Verifies ICAO code format validation and equality semantics.
+ */
 class AirportICAOCodeTest {
 
     @Test

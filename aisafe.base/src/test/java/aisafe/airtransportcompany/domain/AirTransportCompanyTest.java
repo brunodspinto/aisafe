@@ -13,6 +13,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@link AirTransportCompany} aggregate root.
+ * Verifies IATA/ICAO code validation and fleet management behaviour.
+ */
 class AirTransportCompanyTest {
 
     // AC060.2 — IATA code validation

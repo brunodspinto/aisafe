@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link FlightPlan} aggregate root.
+ * Verifies DSL-based construction, status transitions, and validation.
+ */
 class FlightPlanTest {
 
     @Test
