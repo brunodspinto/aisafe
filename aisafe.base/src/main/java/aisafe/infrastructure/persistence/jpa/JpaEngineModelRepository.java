@@ -2,6 +2,7 @@ package aisafe.infrastructure.persistence.jpa;
 
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.repositories.EngineModelRepository;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +14,10 @@ public class JpaEngineModelRepository
 
     public JpaEngineModelRepository(final String puName) {
         super(puName, "id");
+    }
+
+    public JpaEngineModelRepository(final TransactionalContext tx) {
+        super(tx, "id");
     }
 
     @Override

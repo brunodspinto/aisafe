@@ -1,10 +1,11 @@
 package aisafe.infrastructure.persistence.inmemory;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryDomainRepository;
 
 public class InMemoryAirControlAreaRepository
-        extends InMemoryDomainRepository<AirControlArea, String>
+        extends InMemoryDomainRepository<AirControlArea, AirControlAreaCode>
         implements AirControlAreaRepository {
 }

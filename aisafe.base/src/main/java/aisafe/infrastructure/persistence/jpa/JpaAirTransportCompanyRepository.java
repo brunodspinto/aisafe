@@ -4,6 +4,7 @@ import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.domain.IATACode;
 import aisafe.airtransportcompany.domain.ICAOCode;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +16,10 @@ public class JpaAirTransportCompanyRepository
 
     public JpaAirTransportCompanyRepository(final String puName) {
         super(puName, "iataCode");
+    }
+
+    public JpaAirTransportCompanyRepository(final TransactionalContext tx) {
+        super(tx, "iataCode");
     }
 
     @Override
