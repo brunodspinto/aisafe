@@ -297,4 +297,12 @@ class AircraftModelTest {
         assertThrows(IllegalArgumentException.class, () -> model.removeEngine(notCertified));
     }
 
+    @Test
+    void ensureCannotAddDuplicateEngineModel() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel anotherTurbofan = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(anotherTurbofan); // Adiciona a primeira vez
+        assertThrows(IllegalArgumentException.class, () -> model.addEngine(anotherTurbofan));
+    }
+
 }
