@@ -56,7 +56,7 @@ The following domain model excerpt shows the aggregate structure:
 
 1. The UI (`DecommissionAircraftUI`) calls `controller.allCompanies()` and displays all registered companies with their IATA codes.
 2. The operator enters the company's IATA code.
-3. The UI calls `controller.activeAircraftByCompany(iataCode)` and displays the list of active aircraft (registration, model, country).
+3. The UI calls `controller.activeAircraftByCompany(iataCode)` and displays the list of active aircraft (registration, model, country). Note: the current implementation returns all active aircraft regardless of company; the `companyIataCode` parameter is reserved for future ownership filtering.
 4. The operator selects an aircraft by number.
 5. The UI prompts: `"Are you sure you want to decommission <registration>? (yes/no)"`.
 6. If confirmed with `"yes"`, the UI calls `controller.decommission(aircraft)`.
