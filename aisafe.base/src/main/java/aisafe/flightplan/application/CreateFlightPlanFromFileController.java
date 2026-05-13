@@ -5,6 +5,7 @@ import aisafe.dsl.parser.FlightPlanParserFacade;
 import aisafe.dsl.parser.FlightPlanParserFacade.ParseError;
 import aisafe.dsl.parser.FlightPlanParserFacade.ParseResult;
 import aisafe.flightplan.domain.FlightPlan;
+import aisafe.flightplan.domain.FlightPlanDesignator;
 import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -51,7 +52,7 @@ public class CreateFlightPlanFromFileController {
 
         final FlightPlanAst ast = result.ast().orElseThrow();
 
-        if (repository.ofIdentity(ast.identifier().toUpperCase()).isPresent()) {
+        if (repository.ofIdentity(FlightPlanDesignator.valueOf(ast.identifier())).isPresent()) {
             throw new IllegalStateException(
                     "A flight plan with designator '" + ast.identifier() + "' already exists.");
         }

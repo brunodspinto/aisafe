@@ -17,7 +17,7 @@ class AirControlAreaTest {
 
     @Test
     void ensureValidAirControlAreaCanBeCreated() {
-        final AirControlArea area = new AirControlArea("PT-N", "Northern Portugal", 1200.0, validBoundary());
+        final AirControlArea area = new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0, validBoundary());
 
         assertEquals("PT-N", area.areaCode());
         assertEquals("Northern Portugal", area.name());
@@ -28,30 +28,30 @@ class AirControlAreaTest {
     @Test
     void ensureAreaCodeCannotBeNullOrBlank() {
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea(null, "Area", 1200.0, validBoundary()));
+                () -> new AirControlArea((AirControlAreaCode) null, "Area", 1200.0, validBoundary()));
 
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea("   ", "Area", 1200.0, validBoundary()));
+                () -> new AirControlArea(AirControlAreaCode.valueOf("   "), "Area", 1200.0, validBoundary()));
     }
 
     @Test
     void ensureNameCannotBeNullOrBlank() {
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea("PT-N", null, 1200.0, validBoundary()));
+                () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), null, 1200.0, validBoundary()));
 
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea("PT-N", "   ", 1200.0, validBoundary()));
+                () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "   ", 1200.0, validBoundary()));
     }
 
     @Test
     void ensureMinimumFuelCannotBeNegative() {
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea("PT-N", "Area", -1.0, validBoundary()));
+                () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Area", -1.0, validBoundary()));
     }
 
     @Test
     void ensureBoundariesCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new AirControlArea("PT-N", "Area", 1200.0, null));
+                () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Area", 1200.0, null));
     }
 }

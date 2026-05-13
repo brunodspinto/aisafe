@@ -1,6 +1,7 @@
 package aisafe.collaborator.application;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
@@ -152,7 +153,7 @@ public class AddCollaboratorController {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
-        final AirControlArea area = areaRepo.ofIdentity(areaCode)
+        final AirControlArea area = areaRepo.ofIdentity(AirControlAreaCode.valueOf(areaCode))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Control Area '" + areaCode + "' not found."));
 

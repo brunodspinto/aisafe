@@ -1,10 +1,13 @@
 package aisafe.app.console;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.domain.IATACode;
 import aisafe.airtransportcompany.domain.ICAOCode;
+import aisafe.maker.domain.MakerName;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
 import aisafe.infrastructure.persistence.PersistenceContext;
@@ -94,10 +97,10 @@ public final class AiSafeBootstrap {
         final var areaRepo = PersistenceContext.repositories().airControlAreas();
         final String defaultAreaCode = "PT-N";
 
-        if (areaRepo.ofIdentity(defaultAreaCode).isEmpty()) {
+        if (areaRepo.ofIdentity(AirControlAreaCode.valueOf(defaultAreaCode)).isEmpty()) {
             final GeoBoundary boundaries = new GeoBoundary(42.15, 36.95, -6.18, -9.50);
             final AirControlArea area = new AirControlArea(
-                    defaultAreaCode,
+                    AirControlAreaCode.valueOf(defaultAreaCode),
                     "Northern Portugal Control Area",
                     1200.0,
                     boundaries
@@ -163,7 +166,7 @@ public final class AiSafeBootstrap {
                     java.time.LocalDate.of(2025, 1, 1));
             userRepo.save(user);
 
-            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+            areaRepo.ofIdentity(AirControlAreaCode.valueOf("PT-N")).ifPresent(area -> {
                 collaboratorRepo.save(
                         new aisafe.collaborator.domain.Collaborator(user, area));
                 System.out.println("Collaborator created: " + username + " for area PT-N");
@@ -201,7 +204,7 @@ public final class AiSafeBootstrap {
                 aisafe.airport.domain.AirportIATACode.valueOf("LIS");
 
         if (airportRepo.ofIdentity(lisCode).isEmpty()) {
-            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+            areaRepo.ofIdentity(AirControlAreaCode.valueOf("PT-N")).ifPresent(area -> {
                 final aisafe.airport.domain.Airport airport = new aisafe.airport.domain.Airport(
                         lisCode,
                         aisafe.airport.domain.AirportICAOCode.valueOf("LPPT"),
@@ -223,7 +226,7 @@ public final class AiSafeBootstrap {
                 aisafe.airport.domain.AirportIATACode.valueOf("OPO");
 
         if (airportRepo.ofIdentity(opoCode).isEmpty()) {
-            areaRepo.ofIdentity("PT-N").ifPresent(area -> {
+            areaRepo.ofIdentity(AirControlAreaCode.valueOf("PT-N")).ifPresent(area -> {
                 final aisafe.airport.domain.Airport airport = new aisafe.airport.domain.Airport(
                         opoCode,
                         aisafe.airport.domain.AirportICAOCode.valueOf("LPPR"),
@@ -290,7 +293,7 @@ public final class AiSafeBootstrap {
 
         final String registration = "CS-TUA";
 
-        if (aircraftRepo.ofIdentity(registration).isEmpty()) {
+        if (aircraftRepo.ofIdentity(RegistrationNumber.valueOf(registration)).isEmpty()) {
             final var models = modelRepo.findAll();
             if (!models.iterator().hasNext()) {
                 System.out.println("No aircraft models found — skipping aircraft bootstrap.");
@@ -302,7 +305,7 @@ public final class AiSafeBootstrap {
                 final aisafe.aircraft.domain.CabinConfiguration cabin =
                         new aisafe.aircraft.domain.CabinConfiguration(8, 20, 150);
                 final aisafe.aircraft.domain.Aircraft aircraft =
-                        new aisafe.aircraft.domain.Aircraft(registration, "Portugal", 6, 2018, cabin, model);
+                        new aisafe.aircraft.domain.Aircraft(RegistrationNumber.valueOf(registration), "Portugal", 6, 2018, cabin, model);
                 aircraftRepo.save(aircraft);
                 company.addAircraftToFleet(aircraft);
                 companyRepo.save(company);
@@ -316,15 +319,15 @@ public final class AiSafeBootstrap {
         private static void bootstrapMakers() {
             final var makerRepo = PersistenceContext.repositories().makers();
 
-            if (makerRepo.ofIdentity("Boeing").isEmpty()) {
-                makerRepo.save(new aisafe.maker.domain.Maker("Boeing", "USA"));
+            if (makerRepo.ofIdentity(MakerName.valueOf("Boeing")).isEmpty()) {
+                makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Boeing"), "USA"));
                 System.out.println("Maker created: Boeing");
             } else {
                 System.out.println("Maker already exists: Boeing");
             }
 
-            if (makerRepo.ofIdentity("Airbus").isEmpty()) {
-                makerRepo.save(new aisafe.maker.domain.Maker("Airbus", "France"));
+            if (makerRepo.ofIdentity(MakerName.valueOf("Airbus")).isEmpty()) {
+                makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Airbus"), "France"));
                 System.out.println("Maker created: Airbus");
             } else {
                 System.out.println("Maker already exists: Airbus");
@@ -336,7 +339,7 @@ public final class AiSafeBootstrap {
         final var makerRepo = PersistenceContext.repositories().makers();
         final var engineRepo = PersistenceContext.repositories().engineModels();
 
-        makerRepo.ofIdentity("Boeing").ifPresent(boeing -> {
+        makerRepo.ofIdentity(MakerName.valueOf("Boeing")).ifPresent(boeing -> {
             engineRepo.findByNameAndMaker("CFM56", "CFM International").ifPresent(engine -> {
                 if (aircraftModelRepo.findByModelNameAndMaker("737-800", boeing).isEmpty()) {
                     final var model = new aisafe.aircraftmodel.domain.AircraftModel(

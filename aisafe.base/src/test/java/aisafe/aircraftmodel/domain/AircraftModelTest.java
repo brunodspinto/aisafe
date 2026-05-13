@@ -3,6 +3,7 @@ package aisafe.aircraftmodel.domain;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
 import aisafe.maker.domain.Maker;
+import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class AircraftModelTest {
 
     private static Maker validMaker() {
-        return new Maker("Boeing", "USA");
+        return new Maker(MakerName.valueOf("Boeing"), "USA");
     }
 
     private static EngineModel validEngine() {

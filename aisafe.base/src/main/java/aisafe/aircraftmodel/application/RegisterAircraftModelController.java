@@ -6,6 +6,7 @@ import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.repositories.EngineModelRepository;
 import aisafe.maker.domain.Maker;
+import aisafe.maker.domain.MakerName;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -95,7 +96,7 @@ public class RegisterAircraftModelController {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
-        final Maker maker = makerRepository.ofIdentity(makerName)
+        final Maker maker = makerRepository.ofIdentity(MakerName.valueOf(makerName))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Maker '" + makerName + "' not found."));
 

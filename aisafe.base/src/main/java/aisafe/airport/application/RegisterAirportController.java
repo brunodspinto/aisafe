@@ -1,6 +1,7 @@
 package aisafe.airport.application;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.airport.domain.Airport;
 import aisafe.airport.domain.AirportIATACode;
@@ -77,7 +78,7 @@ public class RegisterAirportController {
                     "An airport with ICAO code '" + icaoCode + "' already exists.");
         }
 
-        final AirControlArea area = airControlAreaRepository.ofIdentity(areaCode)
+        final AirControlArea area = airControlAreaRepository.ofIdentity(AirControlAreaCode.valueOf(areaCode))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Control Area '" + areaCode + "' not found."));
 

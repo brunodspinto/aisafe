@@ -6,7 +6,9 @@ import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.domain.AircraftType;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.maker.domain.Maker;
+import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -106,12 +108,12 @@ class AirTransportCompanyTest {
     // AC070 — Fleet management
 
     private static Aircraft validAircraft(final String registration) {
-        final Maker maker = new Maker("Boeing", "USA");
+        final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
         final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
         final AircraftModel model = new AircraftModel("737-800", maker, AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, engine);
         final CabinConfiguration cabin = new CabinConfiguration(0, 20, 150);
-        return new Aircraft(registration, "Portugal", 6, 2018, cabin, model);
+        return new Aircraft(RegistrationNumber.valueOf(registration), "Portugal", 6, 2018, cabin, model);
     }
 
     @Test
