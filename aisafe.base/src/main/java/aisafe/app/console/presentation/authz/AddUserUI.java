@@ -15,6 +15,10 @@ import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Console UI for the "Add User" use case (US031).
+ * Collects user registration data interactively and delegates to {@link AddUserController}.
+ */
 public class AddUserUI extends AbstractUI {
 
     private final AddUserController controller = new AddUserController();

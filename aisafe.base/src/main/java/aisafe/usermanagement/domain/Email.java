@@ -3,6 +3,10 @@ package aisafe.usermanagement.domain;
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 
+/**
+ * Value object representing a validated e-mail address.
+ * The address is normalised to lower-case on construction.
+ */
 @Embeddable
 public class Email implements ValueObject {
 
@@ -10,6 +14,12 @@ public class Email implements ValueObject {
 
     private String address;
 
+    /**
+     * Creates a new e-mail address value object.
+     *
+     * @param address the raw e-mail string (must be non-blank and match standard format)
+     * @throws IllegalArgumentException if the address is blank or does not match the expected format
+     */
     public Email(final String address) {
         if (address == null || address.isBlank())
             throw new IllegalArgumentException("Email cannot be empty");
@@ -22,6 +32,7 @@ public class Email implements ValueObject {
         // for ORM
     }
 
+    /** @return the lower-cased e-mail address string */
     public String address() {
         return address;
     }

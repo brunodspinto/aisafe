@@ -4,6 +4,10 @@ import aisafe.auth.AuthenticationContext;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for user logout.
+ * Clears the current session and offers the user the option to log in again or exit.
+ */
 public class LogoutUI extends AbstractUI {
 
     @Override

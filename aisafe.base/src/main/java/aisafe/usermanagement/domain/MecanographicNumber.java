@@ -3,6 +3,10 @@ package aisafe.usermanagement.domain;
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 
+/**
+ * Value object and primary identifier for a {@link User}.
+ * Represents a unique mecanographic (employee) number.
+ */
 @Embeddable
 public class MecanographicNumber implements ValueObject, Comparable<MecanographicNumber> {
 
@@ -10,6 +14,12 @@ public class MecanographicNumber implements ValueObject, Comparable<Mecanographi
 
     private String number;
 
+    /**
+     * Creates a new mecanographic number.
+     *
+     * @param mecanographicNumber the raw number string (must not be blank)
+     * @throws IllegalArgumentException if the value is null or blank
+     */
     public MecanographicNumber(final String mecanographicNumber) {
         if (mecanographicNumber == null || mecanographicNumber.isBlank())
             throw new IllegalArgumentException("Mecanographic number cannot be null or empty");
@@ -20,6 +30,12 @@ public class MecanographicNumber implements ValueObject, Comparable<Mecanographi
         // for ORM
     }
 
+    /**
+     * Factory method equivalent to the constructor.
+     *
+     * @param mecanographicNumber the raw number string
+     * @return a new {@code MecanographicNumber} instance
+     */
     public static MecanographicNumber valueOf(final String mecanographicNumber) {
         return new MecanographicNumber(mecanographicNumber);
     }

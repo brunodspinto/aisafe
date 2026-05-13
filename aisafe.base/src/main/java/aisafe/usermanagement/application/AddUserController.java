@@ -17,6 +17,11 @@ import eapli.framework.time.util.CurrentTimeCalendars;
 import java.time.LocalDate;
 import java.util.Set;
 
+/**
+ * Application-layer controller for the "Add User" use case (US031).
+ * Creates a new AISafe system user backed by the EAPLI user-management service.
+ * Requires the authenticated user to have the {@code ADMIN} role.
+ */
 @UseCaseController
 public class AddUserController {
 
@@ -24,10 +29,32 @@ public class AddUserController {
     private final UserManagementService userSvc = AuthzRegistry.userService();
     private final UserRepository userRepo = PersistenceContext.repositories().users();
 
+    /**
+     * Returns the set of assignable roles that can be selected during user creation.
+     *
+     * @return array of available AISafe roles
+     */
     public Role[] getRoleTypes() {
         return AiSafeRoles.nonUserValues();
     }
 
+    /**
+     * Registers a new system user and persists the associated {@link User} aggregate.
+     *
+     * @param username             login username
+     * @param password             plaintext password (must satisfy the password policy)
+     * @param firstName            user's first name
+     * @param lastName             user's last name
+     * @param emailStr             e-mail address string passed to the EAPLI service
+     * @param roles                set of roles to assign (must not be empty)
+     * @param phoneNumber          contact phone number
+     * @param position             job position or title
+     * @param email                {@link Email} value object stored on the AISafe user
+     * @param securityClearance    security clearance level and expiration
+     * @param skillsAssessmentDate date of the most recent skills assessment
+     * @return the persisted {@link User} aggregate
+     * @throws IllegalArgumentException if {@code roles} is null or empty
+     */
     public User addUser(final String username, final String password,
                         final String firstName, final String lastName,
                         final String emailStr, final Set<Role> roles,
