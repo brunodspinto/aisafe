@@ -4,6 +4,7 @@ import aisafe.aircontrolarea.domain.AirControlArea;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.collaborator.domain.Collaborator;
 import aisafe.collaborator.repositories.CollaboratorRepository;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
@@ -17,6 +18,10 @@ public class JpaCollaboratorRepository
 
     public JpaCollaboratorRepository(final String puName) {
         super(puName, "id");
+    }
+
+    public JpaCollaboratorRepository(final TransactionalContext tx) {
+        super(tx, "id");
     }
 
     @Override

@@ -34,7 +34,7 @@ public class JpaRepositoryFactory implements RepositoryFactory {
 
     @Override
     public UserRepository users(final TransactionalContext tx) {
-        return new JpaUserRepository(PERSISTENCE_UNIT);
+        return new JpaUserRepository(tx);
     }
 
     @Override
@@ -85,6 +85,11 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     @Override
     public AircraftModelRepository aircraftModels() {
         return new JpaAircraftModelRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public CollaboratorRepository collaborators(final TransactionalContext tx) {
+        return new JpaCollaboratorRepository(tx);
     }
 
     @Override

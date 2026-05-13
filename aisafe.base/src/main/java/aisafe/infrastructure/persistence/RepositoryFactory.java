@@ -41,6 +41,8 @@ public interface RepositoryFactory {
 
     AircraftModelRepository aircraftModels();
 
+    CollaboratorRepository collaborators(TransactionalContext tx);
+
     CollaboratorRepository collaborators();
 
     AircraftRepository aircraft();

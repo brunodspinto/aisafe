@@ -94,6 +94,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public CollaboratorRepository collaborators(final TransactionalContext tx) {
+        return new InMemoryCollaboratorRepository();
+    }
+
+    @Override
     public CollaboratorRepository collaborators() {
         return new InMemoryCollaboratorRepository();
     }

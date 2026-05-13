@@ -7,6 +7,7 @@ import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.collaborator.domain.Collaborator;
 import aisafe.collaborator.repositories.CollaboratorRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
+import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.usermanagement.domain.Email;
 import aisafe.usermanagement.domain.MecanographicNumber;
@@ -14,9 +15,11 @@ import aisafe.usermanagement.domain.SecurityClearance;
 import aisafe.usermanagement.domain.User;
 import aisafe.usermanagement.repositories.UserRepository;
 import eapli.framework.application.UseCaseController;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.application.UserManagementService;
+import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.Role;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.time.util.CurrentTimeCalendars;
@@ -28,10 +31,17 @@ import java.util.Set;
 public class AddCollaboratorController {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
-    private final UserManagementService userSvc = AuthzRegistry.userService();
-    private final UserRepository userRepo = PersistenceContext.repositories().users();
+
+    private final TransactionalContext tx =
+            PersistenceContext.repositories().newTransactionalContext();
+    private final eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUserRepo =
+            PersistenceContext.repositories().systemUsers(tx);
+    private final UserManagementService txUserSvc =
+            new UserManagementService(systemUserRepo, new AiSafePasswordPolicy(), new PlainTextEncoder());
+    private final UserRepository userRepo =
+            PersistenceContext.repositories().users(tx);
     private final CollaboratorRepository collaboratorRepo =
-            PersistenceContext.repositories().collaborators();
+            PersistenceContext.repositories().collaborators(tx);
     private final AirTransportCompanyRepository companyRepo =
             PersistenceContext.repositories().airTransportCompanies();
     private final AirControlAreaRepository areaRepo =
@@ -67,11 +77,13 @@ public class AddCollaboratorController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Transport Company '" + companyIataCode + "' not found."));
 
+        if (tx != null) tx.beginTransaction();
         final User user = createUser(username, password, firstName, lastName,
                 emailStr, roles, phoneNumber, position, email,
                 securityClearance, skillsAssessmentDate);
-
-        return collaboratorRepo.save(new Collaborator(user, company));
+        final Collaborator collab = collaboratorRepo.save(new Collaborator(user, company));
+        if (tx != null) tx.commit();
+        return collab;
     }
 
     public Collaborator addAreaCollaborator(final String username,
@@ -93,11 +105,13 @@ public class AddCollaboratorController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Control Area '" + areaCode + "' not found."));
 
+        if (tx != null) tx.beginTransaction();
         final User user = createUser(username, password, firstName, lastName,
                 emailStr, roles, phoneNumber, position, email,
                 securityClearance, skillsAssessmentDate);
-
-        return collaboratorRepo.save(new Collaborator(user, area));
+        final Collaborator collab = collaboratorRepo.save(new Collaborator(user, area));
+        if (tx != null) tx.commit();
+        return collab;
     }
 
     private User createUser(final String username, final String password,
@@ -107,7 +121,7 @@ public class AddCollaboratorController {
                             final Email email, final SecurityClearance securityClearance,
                             final LocalDate skillsAssessmentDate) {
 
-        final SystemUser systemUser = userSvc.registerNewUser(
+        final SystemUser systemUser = txUserSvc.registerNewUser(
                 username, password, firstName, lastName, emailStr, roles,
                 CurrentTimeCalendars.now());
 
