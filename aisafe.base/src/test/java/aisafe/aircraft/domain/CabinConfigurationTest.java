@@ -54,4 +54,31 @@ class CabinConfigurationTest {
         final CabinConfiguration cabin = new CabinConfiguration(0, 0, 189);
         assertEquals(189, cabin.totalSeats());
     }
+
+    @Test
+    void ensureToStringContainsSeatCounts() {
+        final CabinConfiguration cabin = new CabinConfiguration(8, 20, 150);
+        final String str = cabin.toString();
+        assertTrue(str.contains("8"));
+        assertTrue(str.contains("20"));
+        assertTrue(str.contains("150"));
+    }
+
+    @Test
+    void ensureFirstClassSeatsGetterReturnsCorrectValue() {
+        final CabinConfiguration cabin = new CabinConfiguration(10, 0, 1);
+        assertEquals(10, cabin.firstClassSeats());
+    }
+
+    @Test
+    void ensureBusinessClassSeatsGetterReturnsCorrectValue() {
+        final CabinConfiguration cabin = new CabinConfiguration(0, 15, 1);
+        assertEquals(15, cabin.businessClassSeats());
+    }
+
+    @Test
+    void ensureEconomyClassSeatsGetterReturnsCorrectValue() {
+        final CabinConfiguration cabin = new CabinConfiguration(0, 0, 200);
+        assertEquals(200, cabin.economyClassSeats());
+    }
 }
