@@ -23,6 +23,10 @@ import java.util.Calendar;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link DisableCollaboratorController} use case.
+ * Verifies that collaborator accounts can be disabled and re-enabled correctly.
+ */
 class DisableCollaboratorTest {
 
     private static SystemUser buildSystemUser(final String username) {

@@ -3,6 +3,10 @@ package aisafe.maker.domain;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Maker} domain object.
+ * Verifies construction validation and equality semantics.
+ */
 class MakerTest {
 
     private static Maker validMaker() {

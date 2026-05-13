@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@link EngineModel} domain object.
+ * Verifies construction validation and accessor correctness.
+ */
 class EngineModelTest {
 
     private static final String VALID_NAME = "CFM56";

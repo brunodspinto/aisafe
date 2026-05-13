@@ -10,6 +10,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Disable Customer's Collaborator" use case (US060).
+ * Shows active collaborators filtered by company or area, and deactivates the chosen one after confirmation.
+ */
 public class DisableCollaboratorUI extends AbstractUI {
 
     private final DisableCollaboratorController controller = new DisableCollaboratorController();

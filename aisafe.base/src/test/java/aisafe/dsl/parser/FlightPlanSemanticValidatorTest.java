@@ -7,6 +7,10 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link FlightPlanSemanticValidator}.
+ * Verifies semantic validation rules applied to parsed flight-plan ASTs.
+ */
 class FlightPlanSemanticValidatorTest {
 
     private FlightPlanSemanticValidator validator;

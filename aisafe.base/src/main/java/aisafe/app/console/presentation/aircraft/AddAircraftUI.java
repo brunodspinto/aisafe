@@ -9,6 +9,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Add Aircraft to Fleet" use case (US070).
+ * Guides the user through selecting an aircraft model and entering aircraft details.
+ */
 public class AddAircraftUI extends AbstractUI {
 
     private final AddAircraftController controller = new AddAircraftController();
@@ -72,8 +76,14 @@ public class AddAircraftUI extends AbstractUI {
                 return false;
             }
 
+            final int currentYear = java.time.Year.now().getValue();
+            int year;
+            do {
+                year = Console.readInteger("Year of manufacture (1900–" + currentYear + "): ");
+            } while (year < 1900 || year > currentYear);
+
             final AirTransportCompany company = controller.addAircraft(
-                    selectedModel, registration, country, crew, firstClass, business, economy);
+                    selectedModel, registration, country, crew, year, firstClass, business, economy);
 
             System.out.printf("%nAircraft '%s' successfully added to fleet of %s!%n",
                     registration.toUpperCase(), company.name());

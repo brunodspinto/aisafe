@@ -27,9 +27,18 @@ public class RegisterAirControlAreaController {
             PersistenceContext.repositories().airControlAreas();
 
     /**
-     * Registers a new Air Control Area in the system.
-     * Note that the UI only passes primitive data types (Strings and doubles).
-     * The Controller is responsible for building complex domain objects.
+     * Validates and persists a new air control area.
+     * Normalises the area code to upper-case and enforces uniqueness.
+     *
+     * @param areaCode            unique area code (will be trimmed and uppercased)
+     * @param name                descriptive name (non-blank)
+     * @param minimumFuelRequired minimum required fuel (non-negative)
+     * @param northLat            northern boundary latitude (-90 to 90); must be &gt; southLat
+     * @param southLat            southern boundary latitude (-90 to 90)
+     * @param eastLong            eastern boundary longitude (-180 to 180)
+     * @param westLong            western boundary longitude (-180 to 180)
+     * @return the saved {@link AirControlArea}
+     * @throws IllegalArgumentException if the area code already exists or any value is invalid
      */
     public AirControlArea registerAirControlArea(final String areaCode, final String name,
                                                  final double minimumFuelRequired,

@@ -6,6 +6,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import java.time.LocalDate;
 
+/**
+ * Value object representing the security clearance assigned to a {@link User}.
+ * Encapsulates a {@link SecurityLevel} and an expiration date.
+ */
 @Embeddable
 public class SecurityClearance implements ValueObject {
 
@@ -15,6 +19,13 @@ public class SecurityClearance implements ValueObject {
     private SecurityLevel level;
     private LocalDate expirationDate;
 
+    /**
+     * Creates a new security clearance.
+     *
+     * @param level          the clearance level (must not be null)
+     * @param expirationDate the date on which the clearance expires (must be a future date)
+     * @throws IllegalArgumentException if {@code level} is null or {@code expirationDate} is null or in the past
+     */
     public SecurityClearance(final SecurityLevel level, final LocalDate expirationDate) {
         if (level == null)
             throw new IllegalArgumentException("Security clearance level cannot be null");
@@ -24,18 +35,22 @@ public class SecurityClearance implements ValueObject {
         this.expirationDate = expirationDate;
     }
 
+    /** For JPA. */
     protected SecurityClearance() {
         // for ORM
     }
 
+    /** @return {@code true} if the clearance has not yet expired */
     public boolean isActive() {
         return !LocalDate.now().isAfter(expirationDate);
     }
 
+    /** @return the security clearance level */
     public SecurityLevel level() {
         return level;
     }
 
+    /** @return the date on which this clearance expires */
     public LocalDate expirationDate() {
         return expirationDate;
     }

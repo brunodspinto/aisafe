@@ -5,6 +5,10 @@ import aisafe.enginemodel.domain.EngineType;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Engine Model" use case (US056).
+ * Collects engine model details and delegates to {@link RegisterEngineModelController}.
+ */
 public class RegisterEngineModelUI extends AbstractUI {
 
     private final RegisterEngineModelController controller = new RegisterEngineModelController();

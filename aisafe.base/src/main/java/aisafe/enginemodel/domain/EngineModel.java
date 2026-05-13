@@ -87,22 +87,27 @@ public class EngineModel implements AggregateRoot<Long> {
         this.tsfc = tsfc;
     }
 
+    /** @return the engine model name */
     public String name() {
         return name;
     }
 
+    /** @return the name of the manufacturer */
     public String makerName() {
         return makerName;
     }
 
+    /** @return the propulsion type of this engine */
     public EngineType engineType() {
         return engineType;
     }
 
+    /** @return maximum thrust in kN */
     public double thrust() {
         return thrust;
     }
 
+    /** @return thrust-specific fuel consumption in kg/(kN·h) */
     public double tsfc() {
         return tsfc;
     }

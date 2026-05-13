@@ -1,4 +1,4 @@
-### US058 - Remove an Engine Model from an Aircraft Model
+# US058 — Remove an Engine Model from an Aircraft Model
 
 ## 1. Context
 
@@ -12,18 +12,18 @@ This use case depends on the prior existence of aircraft models with at least tw
 
 **US058** As a Backoffice Operator, I want to remove a certified engine model from an aircraft model.
 
-##### Acceptance Criteria
+**Acceptance Criteria:**
 
-* **AC058.1:** The engine model selected for removal must be currently certified on the chosen aircraft model.
-* **AC058.2:** An aircraft model must maintain at least one certified engine model at all times. Removing the last engine must be rejected with an appropriate error message.
-* **AC058.3:** The user performing this action must be authenticated and have the `BACKOFFICE_OPERATOR` role.
+- **AC058.1** The engine model selected for removal must be currently certified on the chosen aircraft model.
+- **AC058.2** An aircraft model must maintain at least one certified engine model at all times. Removing the last engine must be rejected with an appropriate error message.
+- **AC058.3** The user performing this action must be authenticated and have the `BACKOFFICE_OPERATOR` role.
 
-##### Dependencies / References
+**Dependencies/References:**
 
-* Requires **US055** (Create an Aircraft Model) — the aircraft model must exist.
-* Requires **US056** (Create an Engine Model) — the engine model must exist.
-* Requires **US057** (Add Engine Model to Aircraft Model) — the engine must already be certified on the aircraft model.
-* Requires **US030 / US031** (Authentication and Authorization) to validate the Backoffice Operator role.
+- US055 — Create an Aircraft Model (the aircraft model must exist).
+- US056 — Create an Engine Model (the engine model must exist).
+- US057 — Add Engine Model to Aircraft Model (the engine must already be certified on the aircraft model).
+- US030 / US031 — Authentication and Authorization (to validate the Backoffice Operator role).
 
 ---
 
@@ -48,25 +48,27 @@ The `AircraftModel` aggregate enforces that `certifiedEngines` always contains a
 
 ## 4. Design
 
-### 4.1 Realization
+### 4.1. Realization
 
-The Controller loads the list of aircraft models and presents them to the user. After the user selects a model, its currently certified engines are displayed for selection. The Controller then delegates the removal to the `AircraftModel` aggregate root, which enforces all invariants, and persists the updated aggregate via the repository.
+1. The UI (`RemoveEngineFromAircraftModelUI`) loads all available aircraft models and presents them to the operator.
+2. The operator selects an aircraft model; the UI displays its currently certified engines.
+3. The operator selects the engine to remove.
+4. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR, ADMIN)`.
+5. The controller delegates to `aircraftModel.removeEngine(selectedEngine)`, which enforces all invariants (null check, minimum-one constraint, certified-engine check).
+6. If the removal is valid, the controller persists the updated aggregate via `AircraftModelRepository.save()`.
+7. The UI confirms: `Engine model successfully removed.`
 
----
-
-## Sequence Diagram
+The following sequence diagram illustrates the flow:
 
 ![Sequence Diagram](svg/US058-SD.svg)
 
----
-
-## Class Diagram
+The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US058-class-diagram.svg)
 
 ---
 
-### 4.2 Acceptance Tests
+### 4.2. Acceptance Tests
 
 **Test 1** — Engine can be removed when more than one engine is certified.
 

@@ -6,6 +6,10 @@ import aisafe.maker.domain.Maker;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link AircraftModel} aggregate root.
+ * Verifies construction validation, engine management, and capacity constraints.
+ */
 class AircraftModelTest {
 
     private static Maker validMaker() {

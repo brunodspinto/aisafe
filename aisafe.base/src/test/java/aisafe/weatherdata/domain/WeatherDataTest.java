@@ -6,6 +6,10 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@code WeatherData} domain object.
+ * Verifies construction and weather-attribute validation.
+ */
 class WeatherDataTest {
 
     private static final LocalDateTime VALID_DATE = LocalDateTime.of(2025, 5, 1, 12, 0);

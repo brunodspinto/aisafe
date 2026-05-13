@@ -9,6 +9,11 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Decommission Aircraft" use case (US071).
+ * Allows selection of a company and one of its active aircraft for decommissioning,
+ * with an explicit confirmation step.
+ */
 public class DecommissionAircraftUI extends AbstractUI {
 
     private final DecommissionAircraftController controller =

@@ -60,7 +60,11 @@ public class FlightPlan implements AggregateRoot<String> {
     }
 
     /**
-     * Factory method to create a FlightPlan from a parsed AST and the original DSL content.
+     * Factory method that creates a {@link FlightPlan} from a parsed AST and the original DSL source.
+     *
+     * @param ast        the validated parse tree containing the designator and flight type
+     * @param dslContent the raw DSL text to store alongside the plan
+     * @return a new {@link FlightPlan} in {@link FlightPlanStatus#DRAFT} status
      */
     public static FlightPlan fromDsl(final FlightPlanAst ast, final String dslContent) {
         return new FlightPlan(
@@ -70,20 +74,22 @@ public class FlightPlan implements AggregateRoot<String> {
         );
     }
 
-    // --- Getters ---
-
+    /** @return unique flight plan designator (always upper-case) */
     public String designator() {
         return designator;
     }
 
+    /** @return flight type (e.g. "IFR", "VFR") */
     public String flightType() {
         return flightType;
     }
 
+    /** @return current lifecycle status */
     public FlightPlanStatus status() {
         return status;
     }
 
+    /** @return original DSL source content */
     public String dslContent() {
         return dslContent;
     }

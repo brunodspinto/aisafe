@@ -15,6 +15,10 @@ import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 
+/**
+ * Application-layer controller for the "Add Aircraft to Fleet" use case (US070).
+ * Requires the authenticated user to be an ATCC or Admin collaborator of an air transport company.
+ */
 @UseCaseController
 public class AddAircraftController {
 
@@ -24,15 +28,36 @@ public class AddAircraftController {
     private final AirTransportCompanyRepository companyRepo = PersistenceContext.repositories().airTransportCompanies();
     private final CollaboratorRepository collaboratorRepo = PersistenceContext.repositories().collaborators();
 
+    /**
+     * Returns all registered aircraft models for selection in the UI.
+     *
+     * @return all {@link AircraftModel} instances
+     */
     public Iterable<AircraftModel> allAircraftModels() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         return modelRepo.findAll();
     }
 
+    /**
+     * Creates and persists a new {@link Aircraft}, adds it to the authenticated user's company fleet,
+     * and returns the updated {@link AirTransportCompany}.
+     *
+     * @param model                the aircraft model
+     * @param registrationNumber   unique registration number
+     * @param registeredCountry    country of registration
+     * @param numberOfCrewElements minimum crew size
+     * @param yearOfManufacture    year of manufacture
+     * @param firstClassSeats      number of first-class seats
+     * @param businessClassSeats   number of business-class seats
+     * @param economyClassSeats    number of economy-class seats
+     * @return the updated company after adding the aircraft
+     * @throws IllegalStateException if the session is invalid or the user is not a company collaborator
+     */
     public AirTransportCompany addAircraft(final AircraftModel model,
                                            final String registrationNumber,
                                            final String registeredCountry,
                                            final int numberOfCrewElements,
+                                           final int yearOfManufacture,
                                            final int firstClassSeats,
                                            final int businessClassSeats,
                                            final int economyClassSeats) {
@@ -51,7 +76,7 @@ public class AddAircraftController {
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for authenticated user."));
 
         final CabinConfiguration cabin = new CabinConfiguration(firstClassSeats, businessClassSeats, economyClassSeats);
-        final Aircraft aircraft = new Aircraft(registrationNumber, registeredCountry, numberOfCrewElements, cabin, model);
+        final Aircraft aircraft = new Aircraft(registrationNumber, registeredCountry, numberOfCrewElements, yearOfManufacture, cabin, model);
         aircraftRepo.save(aircraft);
 
         company.addAircraftToFleet(aircraft);

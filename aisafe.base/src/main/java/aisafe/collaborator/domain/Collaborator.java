@@ -38,7 +38,11 @@ public class Collaborator implements AggregateRoot<Long> {
     protected Collaborator() {}
 
     /**
-     * Creates a collaborator associated with an AirTransportCompany.
+     * Creates a collaborator associated with an air transport company.
+     *
+     * @param user    the system user (non-null)
+     * @param company the company this collaborator belongs to (non-null)
+     * @throws IllegalArgumentException if either argument is null
      */
     public Collaborator(final User user, final AirTransportCompany company) {
         if (user == null)
@@ -51,7 +55,11 @@ public class Collaborator implements AggregateRoot<Long> {
     }
 
     /**
-     * Creates a collaborator associated with an AirControlArea.
+     * Creates a collaborator associated with an air control area.
+     *
+     * @param user the system user (non-null)
+     * @param area the air control area this collaborator belongs to (non-null)
+     * @throws IllegalArgumentException if either argument is null
      */
     public Collaborator(final User user, final AirControlArea area) {
         if (user == null)
@@ -63,16 +71,25 @@ public class Collaborator implements AggregateRoot<Long> {
         this.airTransportCompany = null;
     }
 
+    /** @return the system user associated with this collaborator */
     public User user() { return user; }
 
+    /** @return the air transport company this collaborator works for, or {@code null} if area-based */
     public AirTransportCompany airTransportCompany() { return airTransportCompany; }
 
+    /** @return the air control area this collaborator works for, or {@code null} if company-based */
     public AirControlArea airControlArea() { return airControlArea; }
 
+    /** @return {@code true} if this collaborator belongs to an air transport company */
     public boolean isCompanyCollaborator() { return airTransportCompany != null; }
 
+    /** @return {@code true} if this collaborator belongs to an air control area */
     public boolean isAreaCollaborator() { return airControlArea != null; }
 
+    /**
+     * @return the name of the customer (company or area) this collaborator belongs to,
+     *         or {@code "Unknown"} if neither is set
+     */
     public String customerName() {
         if (isCompanyCollaborator()) return airTransportCompany.name();
         if (isAreaCollaborator()) return airControlArea.name();

@@ -27,7 +27,13 @@ public class GeoBoundary implements ValueObject {
     }
 
     /**
-     * Constructor with business rules validation.
+     * Creates a geographic bounding box with validation.
+     *
+     * @param northLatitude  northern boundary in decimal degrees (-90 to 90); must be &gt; southLatitude
+     * @param southLatitude  southern boundary in decimal degrees (-90 to 90)
+     * @param eastLongitude  eastern boundary in decimal degrees (-180 to 180)
+     * @param westLongitude  western boundary in decimal degrees (-180 to 180)
+     * @throws IllegalArgumentException if any coordinate is out of range or north &le; south
      */
     public GeoBoundary(double northLatitude, double southLatitude, double eastLongitude, double westLongitude) {
         validateCoordinates(northLatitude, southLatitude, eastLongitude, westLongitude);
@@ -61,20 +67,22 @@ public class GeoBoundary implements ValueObject {
         // so that direct relationship is not validated here.
     }
 
-    // Access methods (Getters)
-
+    /** @return northern boundary latitude in decimal degrees */
     public double northLatitude() {
         return northLatitude;
     }
 
+    /** @return southern boundary latitude in decimal degrees */
     public double southLatitude() {
         return southLatitude;
     }
 
+    /** @return eastern boundary longitude in decimal degrees */
     public double eastLongitude() {
         return eastLongitude;
     }
 
+    /** @return western boundary longitude in decimal degrees */
     public double westLongitude() {
         return westLongitude;
     }

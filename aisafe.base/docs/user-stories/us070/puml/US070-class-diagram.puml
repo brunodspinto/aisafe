@@ -94,13 +94,9 @@ AddAircraftController .down.> AircraftRepository
 AddAircraftController .down.> AircraftModelRepository
 AddAircraftController .down.> AuthorizationService
 
-note bottom of Aircraft: Stores only the AircraftModel ID\nto maintain Low Coupling.
-
 Aircraft "1" *-- "1" CabinConfiguration : "has (Embedded) >"
 Aircraft "1" --> "1" OperationalStatus : "has >"
 Aircraft "1" ..> "1" AircraftModel : "references by ID >"
-
-note right of AirTransportCompany: Maintains a Set of\nregistration IDs (Strings)\nto maintain Low Coupling.
 
 AirTransportCompany "1" ..> "*" Aircraft : "references by registration >"
 

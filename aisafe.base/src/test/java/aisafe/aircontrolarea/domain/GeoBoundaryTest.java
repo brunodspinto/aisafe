@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@link GeoBoundary} value object.
+ * Verifies coordinate-boundary construction and validation rules.
+ */
 class GeoBoundaryTest {
 
     @Test

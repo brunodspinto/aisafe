@@ -20,6 +20,13 @@ public class Maker implements AggregateRoot<String> {
 
     protected Maker() {}
 
+    /**
+     * Creates a new maker.
+     *
+     * @param name    manufacturer name (non-blank); used as the unique identifier
+     * @param country country of the manufacturer (non-blank)
+     * @throws IllegalArgumentException if either value is null or blank
+     */
     public Maker(final String name, final String country) {
         if (name == null || name.isBlank())
             throw new IllegalArgumentException("Maker name cannot be null or empty.");
@@ -29,7 +36,10 @@ public class Maker implements AggregateRoot<String> {
         this.country = country.trim();
     }
 
+    /** @return unique manufacturer name (primary key) */
     public String name() { return name; }
+
+    /** @return country of the manufacturer */
     public String country() { return country; }
 
     @Override

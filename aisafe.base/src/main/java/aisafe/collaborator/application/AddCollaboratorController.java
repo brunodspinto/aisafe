@@ -27,6 +27,11 @@ import eapli.framework.time.util.CurrentTimeCalendars;
 import java.time.LocalDate;
 import java.util.Set;
 
+/**
+ * Application-layer controller for the "Add Customer's Collaborator" use case (US060).
+ * Supports creating collaborators for both air transport companies and air control areas.
+ * Requires a Back-Office Operator or Admin role.
+ */
 @UseCaseController
 public class AddCollaboratorController {
 
@@ -47,16 +52,44 @@ public class AddCollaboratorController {
     private final AirControlAreaRepository areaRepo =
             PersistenceContext.repositories().airControlAreas();
 
+    /**
+     * Returns all registered air transport companies for selection in the UI.
+     *
+     * @return all {@link AirTransportCompany} instances
+     */
     public Iterable<AirTransportCompany> allCompanies() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
         return companyRepo.findAll();
     }
 
+    /**
+     * Returns all registered air control areas for selection in the UI.
+     *
+     * @return all {@link AirControlArea} instances
+     */
     public Iterable<AirControlArea> allAreas() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
         return areaRepo.findAll();
     }
 
+    /**
+     * Creates a new system user and registers them as a collaborator of the given company.
+     *
+     * @param username             system username
+     * @param password             system password
+     * @param firstName            first name
+     * @param lastName             last name
+     * @param emailStr             e-mail for the system user
+     * @param roles                roles to assign in the system
+     * @param phoneNumber          phone number
+     * @param position             job position
+     * @param email                e-mail value object for the AISafe user
+     * @param securityClearance    security clearance level and expiry
+     * @param skillsAssessmentDate date of the last skills assessment
+     * @param companyIataCode      IATA code of the company to associate with
+     * @return the saved {@link Collaborator}
+     * @throws IllegalArgumentException if the company code is not found
+     */
     public Collaborator addCompanyCollaborator(final String username,
                                                final String password,
                                                final String firstName,
@@ -86,6 +119,24 @@ public class AddCollaboratorController {
         return collab;
     }
 
+    /**
+     * Creates a new system user and registers them as a collaborator of the given air control area.
+     *
+     * @param username             system username
+     * @param password             system password
+     * @param firstName            first name
+     * @param lastName             last name
+     * @param emailStr             e-mail for the system user
+     * @param roles                roles to assign in the system
+     * @param phoneNumber          phone number
+     * @param position             job position
+     * @param email                e-mail value object for the AISafe user
+     * @param securityClearance    security clearance level and expiry
+     * @param skillsAssessmentDate date of the last skills assessment
+     * @param areaCode             code of the air control area to associate with
+     * @return the saved {@link Collaborator}
+     * @throws IllegalArgumentException if the area code is not found
+     */
     public Collaborator addAreaCollaborator(final String username,
                                             final String password,
                                             final String firstName,

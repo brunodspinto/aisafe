@@ -11,6 +11,11 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Register Aircraft Model" use case (US056).
+ * Guides the user through selecting a maker, first engine model, aircraft type,
+ * and entering all performance parameters.
+ */
 public class RegisterAircraftModelUI extends AbstractUI {
 
     private final RegisterAircraftModelController controller = new RegisterAircraftModelController();

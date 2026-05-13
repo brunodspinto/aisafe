@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@link AirControlArea} aggregate root.
+ * Verifies construction validation, identity, and equality.
+ */
 class AirControlAreaTest {
 
     private static GeoBoundary validBoundary() {

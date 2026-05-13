@@ -5,6 +5,10 @@ import aisafe.aircontrolarea.domain.GeoBoundary;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Airport} aggregate root.
+ * Verifies construction validation, identity, and equality.
+ */
 class AirportTest {
 
     private static AirControlArea validArea() {

@@ -22,8 +22,9 @@ public final class AuthorizationService {
 			AuthzRegistry.authorizationService();
 
 	/**
-	 * Check: Can user create flight plans?
-	 * Allowed: ADMIN, BACKOFFICE_OPERATOR
+	 * Asserts that the current user may create flight plans (ADMIN or BACKOFFICE_OPERATOR).
+	 *
+	 * @throws UnauthorizedException if the user is not authenticated or lacks the required role
 	 */
 	public static void requireCanCreateFlightPlan() {
 		if (!AuthenticationContext.isAuthenticated()) {
@@ -37,8 +38,9 @@ public final class AuthorizationService {
 	}
 
 	/**
-	 * Check: Can user read flight plans?
-	 * Allowed: All authenticated users
+	 * Asserts that the current user may read flight plans (any authenticated user).
+	 *
+	 * @throws UnauthorizedException if no session is active
 	 */
 	public static void requireCanReadFlightPlan() {
 		if (!AuthenticationContext.isAuthenticated()) {
@@ -47,8 +49,9 @@ public final class AuthorizationService {
 	}
 
 	/**
-	 * Check: Can user update flight plans?
-	 * Allowed: ADMIN, BACKOFFICE_OPERATOR
+	 * Asserts that the current user may update flight plans (ADMIN or BACKOFFICE_OPERATOR).
+	 *
+	 * @throws UnauthorizedException if the user is not authenticated or lacks the required role
 	 */
 	public static void requireCanUpdateFlightPlan() {
 		if (!AuthenticationContext.isAuthenticated()) {
@@ -62,8 +65,9 @@ public final class AuthorizationService {
 	}
 
 	/**
-	 * Check: Can user delete flight plans?
-	 * Allowed: ADMIN only
+	 * Asserts that the current user may delete flight plans (ADMIN only).
+	 *
+	 * @throws UnauthorizedException if the user is not authenticated or lacks the ADMIN role
 	 */
 	public static void requireCanDeleteFlightPlan() {
 		if (!AuthenticationContext.isAuthenticated()) {
@@ -77,8 +81,9 @@ public final class AuthorizationService {
 	}
 
 	/**
-	 * Check: Can user approve flight plans?
-	 * Allowed: ADMIN, ATCC, FLIGHT_CONTROL_OPERATOR
+	 * Asserts that the current user may approve flight plans (ADMIN, ATCC, or FLIGHT_CONTROL_OPERATOR).
+	 *
+	 * @throws UnauthorizedException if the user is not authenticated or lacks the required role
 	 */
 	public static void requireCanApproveFlightPlan() {
 		if (!AuthenticationContext.isAuthenticated()) {

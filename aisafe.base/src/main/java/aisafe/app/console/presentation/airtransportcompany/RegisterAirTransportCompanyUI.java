@@ -6,6 +6,10 @@ import eapli.framework.domain.repositories.IntegrityViolationException;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Air Transport Company" use case (US058).
+ * Validates IATA/ICAO format in the UI layer before delegating to the controller.
+ */
 public class RegisterAirTransportCompanyUI extends AbstractUI {
 
     private final RegisterAirTransportCompanyController controller =
@@ -29,6 +33,7 @@ public class RegisterAirTransportCompanyUI extends AbstractUI {
         return false;
     }
 
+    /** Reads and validates the company name (at least 2 characters). */
     private String readName() {
         while (true) {
             final String value = Console.readLine("Company Name").trim();
@@ -40,6 +45,7 @@ public class RegisterAirTransportCompanyUI extends AbstractUI {
         }
     }
 
+    /** Reads and validates the 2-letter IATA code. */
     private String readIataCode() {
         while (true) {
             final String value = Console.readLine("IATA Code (2 uppercase letters, e.g. TP)").trim();
@@ -51,6 +57,7 @@ public class RegisterAirTransportCompanyUI extends AbstractUI {
         }
     }
 
+    /** Reads and validates the 2–3-letter ICAO code. */
     private String readIcaoCode() {
         while (true) {
             final String value = Console.readLine("ICAO Code (2-3 uppercase letters, e.g. TAP)").trim();
