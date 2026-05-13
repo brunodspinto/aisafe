@@ -3,6 +3,10 @@ package aisafe.aircraft.domain;
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 
+/**
+ * Value object representing the seat distribution across cabin classes of an aircraft.
+ * At least one seat must exist across all classes combined.
+ */
 @Embeddable
 public class CabinConfiguration implements ValueObject {
 
@@ -10,6 +14,14 @@ public class CabinConfiguration implements ValueObject {
     private int businessClassSeats;
     private int economyClassSeats;
 
+    /**
+     * Creates a cabin configuration with the given seat counts per class.
+     *
+     * @param firstClassSeats    number of first-class seats (non-negative)
+     * @param businessClassSeats number of business-class seats (non-negative)
+     * @param economyClassSeats  number of economy-class seats (non-negative)
+     * @throws IllegalArgumentException if any count is negative or all are zero
+     */
     public CabinConfiguration(final int firstClassSeats, final int businessClassSeats, final int economyClassSeats) {
         if (firstClassSeats < 0)
             throw new IllegalArgumentException("First class seats cannot be negative.");
@@ -28,10 +40,18 @@ public class CabinConfiguration implements ValueObject {
         // for ORM
     }
 
+    /** @return number of first-class seats */
     public int firstClassSeats() { return firstClassSeats; }
+
+    /** @return number of business-class seats */
     public int businessClassSeats() { return businessClassSeats; }
+
+    /** @return number of economy-class seats */
     public int economyClassSeats() { return economyClassSeats; }
 
+    /**
+     * @return sum of all seat classes
+     */
     public int totalSeats() {
         return firstClassSeats + businessClassSeats + economyClassSeats;
     }

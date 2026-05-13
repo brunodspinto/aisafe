@@ -12,6 +12,10 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Aggregate root representing a physical aircraft registered in an air transport company's fleet.
+ * An aircraft is uniquely identified by its registration number and starts in {@link OperationalStatus#ACTIVE} status.
+ */
 @Entity
 @Table(name = "T_AIRCRAFT")
 public class Aircraft implements AggregateRoot<String> {
@@ -26,6 +30,9 @@ public class Aircraft implements AggregateRoot<String> {
     @Column(nullable = false)
     private int numberOfCrewElements;
 
+    @Column(nullable = false)
+    private int yearOfManufacture;
+
     @Embedded
     private CabinConfiguration cabinConfiguration;
 
@@ -36,9 +43,21 @@ public class Aircraft implements AggregateRoot<String> {
     @ManyToOne
     private AircraftModel aircraftModel;
 
+    /**
+     * Creates a new aircraft and sets its status to {@link OperationalStatus#ACTIVE}.
+     *
+     * @param registrationNumber   unique ICAO/national registration (e.g. "CS-TUG"); must not be blank
+     * @param registeredCountry    country where the aircraft is registered; must not be blank
+     * @param numberOfCrewElements minimum crew size; must be at least 1
+     * @param yearOfManufacture    year the aircraft was built; must be between 1900 and the current year
+     * @param cabinConfiguration   seat distribution across cabin classes; must not be {@code null}
+     * @param aircraftModel        the aircraft model; must not be {@code null}
+     * @throws IllegalArgumentException if any constraint is violated
+     */
     public Aircraft(final String registrationNumber,
                     final String registeredCountry,
                     final int numberOfCrewElements,
+                    final int yearOfManufacture,
                     final CabinConfiguration cabinConfiguration,
                     final AircraftModel aircraftModel) {
         if (registrationNumber == null || registrationNumber.isBlank())
@@ -47,6 +66,8 @@ public class Aircraft implements AggregateRoot<String> {
             throw new IllegalArgumentException("Registered country cannot be blank.");
         if (numberOfCrewElements < 1)
             throw new IllegalArgumentException("Number of crew elements must be at least 1.");
+        if (yearOfManufacture < 1900 || yearOfManufacture > java.time.Year.now().getValue())
+            throw new IllegalArgumentException("Year of manufacture must be between 1900 and the current year.");
         if (cabinConfiguration == null)
             throw new IllegalArgumentException("Cabin configuration is required.");
         if (aircraftModel == null)
@@ -59,6 +80,7 @@ public class Aircraft implements AggregateRoot<String> {
         this.registrationNumber = registrationNumber.toUpperCase().trim();
         this.registeredCountry = registeredCountry.trim();
         this.numberOfCrewElements = numberOfCrewElements;
+        this.yearOfManufacture = yearOfManufacture;
         this.cabinConfiguration = cabinConfiguration;
         this.aircraftModel = aircraftModel;
         this.operationalStatus = OperationalStatus.ACTIVE;
@@ -71,6 +93,7 @@ public class Aircraft implements AggregateRoot<String> {
     public String registrationNumber() { return registrationNumber; }
     public String registeredCountry() { return registeredCountry; }
     public int numberOfCrewElements() { return numberOfCrewElements; }
+    public int yearOfManufacture() { return yearOfManufacture; }
     public CabinConfiguration cabinConfiguration() { return cabinConfiguration; }
     public OperationalStatus operationalStatus() { return operationalStatus; }
     public AircraftModel aircraftModel() { return aircraftModel; }

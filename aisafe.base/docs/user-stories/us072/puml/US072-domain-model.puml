@@ -1,0 +1,56 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US072 - Domain Model Excerpt
+
+package "Air Transport Company" {
+    class AirTransportCompany <<aggregate root>> {
+        - iataCode : IATACode
+        - name : String
+        - fleet : Set<String>
+    }
+}
+
+package "Aircraft" {
+    class Aircraft <<aggregate root>> {
+        - registrationNumber : String
+        - registeredCountry : String
+        - numberOfCrewElements : int
+        - yearOfManufacture : int
+        - operationalStatus : OperationalStatus
+    }
+
+    class CabinConfiguration <<value object>> {
+        - firstClassSeats : int
+        - businessClassSeats : int
+        - economyClassSeats : int
+        + totalSeats() : int
+    }
+
+    enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "Aircraft Model" {
+    class AircraftModel <<aggregate root>> {
+        - modelName : String
+        - maxCapacity : int
+    }
+
+    class Maker <<value object>> {
+        - name : String
+        - country : String
+    }
+}
+
+AirTransportCompany "1" ..> "*" Aircraft : "references by registration >"
+Aircraft "1" *-- "1" CabinConfiguration
+Aircraft "1" --> "1" OperationalStatus
+Aircraft "1" --> "1" AircraftModel : "of model >"
+AircraftModel "1" --> "1" Maker : "made by >"
+
+@enduml

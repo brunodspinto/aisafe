@@ -302,7 +302,7 @@ public final class AiSafeBootstrap {
                 final aisafe.aircraft.domain.CabinConfiguration cabin =
                         new aisafe.aircraft.domain.CabinConfiguration(8, 20, 150);
                 final aisafe.aircraft.domain.Aircraft aircraft =
-                        new aisafe.aircraft.domain.Aircraft(registration, "Portugal", 6, cabin, model);
+                        new aisafe.aircraft.domain.Aircraft(registration, "Portugal", 6, 2018, cabin, model);
                 aircraftRepo.save(aircraft);
                 company.addAircraftToFleet(aircraft);
                 companyRepo.save(company);

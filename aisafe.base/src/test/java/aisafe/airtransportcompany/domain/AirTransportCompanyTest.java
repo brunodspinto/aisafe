@@ -107,7 +107,7 @@ class AirTransportCompanyTest {
         final AircraftModel model = new AircraftModel("737-800", maker, AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, engine);
         final CabinConfiguration cabin = new CabinConfiguration(0, 20, 150);
-        return new Aircraft(registration, "Portugal", 6, cabin, model);
+        return new Aircraft(registration, "Portugal", 6, 2018, cabin, model);
     }
 
     @Test

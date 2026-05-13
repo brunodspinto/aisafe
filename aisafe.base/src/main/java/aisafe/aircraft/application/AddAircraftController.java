@@ -33,6 +33,7 @@ public class AddAircraftController {
                                            final String registrationNumber,
                                            final String registeredCountry,
                                            final int numberOfCrewElements,
+                                           final int yearOfManufacture,
                                            final int firstClassSeats,
                                            final int businessClassSeats,
                                            final int economyClassSeats) {
@@ -51,7 +52,7 @@ public class AddAircraftController {
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for authenticated user."));
 
         final CabinConfiguration cabin = new CabinConfiguration(firstClassSeats, businessClassSeats, economyClassSeats);
-        final Aircraft aircraft = new Aircraft(registrationNumber, registeredCountry, numberOfCrewElements, cabin, model);
+        final Aircraft aircraft = new Aircraft(registrationNumber, registeredCountry, numberOfCrewElements, yearOfManufacture, cabin, model);
         aircraftRepo.save(aircraft);
 
         company.addAircraftToFleet(aircraft);
