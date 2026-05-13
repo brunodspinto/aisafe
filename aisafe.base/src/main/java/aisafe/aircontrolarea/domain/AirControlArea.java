@@ -83,8 +83,12 @@ public class AirControlArea implements AggregateRoot<String> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AirControlArea that = (AirControlArea) o;
-        // We compare only the areaCode
         return Objects.equals(areaCode, that.areaCode);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(areaCode);
     }
 
     @Override

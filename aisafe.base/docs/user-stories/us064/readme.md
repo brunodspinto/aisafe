@@ -260,4 +260,4 @@ The `disableCollaborator()` method delegates entirely to the EAPLI `UserManageme
 
 - The deactivation is **not permanent** — `SystemUser` can be re-activated. However, no re-enable flow exists for collaborators in this sprint; that would require a separate US.
 - The `CollaboratorRepository` JPA queries filter on `e.user.systemUser.active = true`, so disabled collaborators are automatically excluded from all future `findActive*` calls without any change to the domain model.
-- The `Collaborator` aggregate does not hold a direct reference to `AirTransportCompany` or `AirControlArea` as a JPA `@ManyToOne` — it stores only the customer name as a denormalized string, keeping cross-aggregate coupling minimal.
+- The `Collaborator` aggregate holds `@ManyToOne` references to both `AirTransportCompany` and `AirControlArea`. Exactly one of these is non-null depending on the collaborator type; the other is always null. The `isCompanyCollaborator()` and `isAreaCollaborator()` helpers reflect this invariant.
