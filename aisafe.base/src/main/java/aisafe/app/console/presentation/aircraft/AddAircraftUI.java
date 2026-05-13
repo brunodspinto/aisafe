@@ -9,6 +9,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Add Aircraft to Fleet" use case (US070).
+ * Guides the user through selecting an aircraft model and entering aircraft details.
+ */
 public class AddAircraftUI extends AbstractUI {
 
     private final AddAircraftController controller = new AddAircraftController();

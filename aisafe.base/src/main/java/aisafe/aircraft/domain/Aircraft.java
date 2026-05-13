@@ -90,12 +90,25 @@ public class Aircraft implements AggregateRoot<String> {
         // for ORM
     }
 
+    /** @return unique registration number (always upper-case) */
     public String registrationNumber() { return registrationNumber; }
+
+    /** @return country where the aircraft is registered */
     public String registeredCountry() { return registeredCountry; }
+
+    /** @return minimum number of crew members required */
     public int numberOfCrewElements() { return numberOfCrewElements; }
+
+    /** @return year the aircraft was manufactured */
     public int yearOfManufacture() { return yearOfManufacture; }
+
+    /** @return cabin seat distribution across classes */
     public CabinConfiguration cabinConfiguration() { return cabinConfiguration; }
+
+    /** @return current operational status */
     public OperationalStatus operationalStatus() { return operationalStatus; }
+
+    /** @return aircraft model associated with this aircraft */
     public AircraftModel aircraftModel() { return aircraftModel; }
 
     @Override
@@ -120,12 +133,20 @@ public class Aircraft implements AggregateRoot<String> {
                 registrationNumber, registeredCountry, aircraftModel.modelName(), operationalStatus);
     }
 
+    /**
+     * Permanently retires this aircraft by setting its status to {@link OperationalStatus#DECOMMISSIONED}.
+     *
+     * @throws IllegalStateException if the aircraft is already decommissioned
+     */
     public void decommission() {
         if (this.operationalStatus == OperationalStatus.DECOMMISSIONED)
             throw new IllegalStateException("Aircraft is already decommissioned.");
         this.operationalStatus = OperationalStatus.DECOMMISSIONED;
     }
 
+    /**
+     * @return {@code true} if the aircraft's status is {@link OperationalStatus#ACTIVE}
+     */
     public boolean isActive() {
         return this.operationalStatus == OperationalStatus.ACTIVE;
     }

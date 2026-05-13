@@ -7,6 +7,10 @@ import eapli.framework.presentation.console.AbstractUI;
 
 import java.util.List;
 
+/**
+ * Console UI for the "List Company Fleet" use case (US072).
+ * Offers filter options (model, maker, capacity, year) and prints a tabular fleet summary.
+ */
 public class ListFleetUI extends AbstractUI {
 
     private final ListFleetController controller = new ListFleetController();
@@ -55,6 +59,11 @@ public class ListFleetUI extends AbstractUI {
         return false;
     }
 
+    /**
+     * Prints the fleet list as a formatted table, or a "no aircraft found" message if empty.
+     *
+     * @param fleet aircraft to display
+     */
     private void printFleet(final List<Aircraft> fleet) {
         if (fleet.isEmpty()) {
             System.out.println("\nNo aircraft found matching the criteria.");

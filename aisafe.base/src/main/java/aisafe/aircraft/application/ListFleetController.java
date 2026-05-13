@@ -14,6 +14,10 @@ import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Application-layer controller for the "List Company Fleet" use case (US072).
+ * Resolves the authenticated user's company and provides filtered views of its fleet.
+ */
 @UseCaseController
 public class ListFleetController {
 
@@ -42,11 +46,22 @@ public class ListFleetController {
         return result;
     }
 
+    /**
+     * Returns the full fleet of the authenticated user's company.
+     *
+     * @return list of all aircraft belonging to the company
+     */
     public List<Aircraft> companyFleet() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         return loadFleet(resolveCompany());
     }
 
+    /**
+     * Returns fleet aircraft whose model name matches (case-insensitive).
+     *
+     * @param modelName model name to filter by
+     * @return matching aircraft
+     */
     public List<Aircraft> fleetByModel(final String modelName) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
@@ -57,6 +72,12 @@ public class ListFleetController {
         return result;
     }
 
+    /**
+     * Returns fleet aircraft manufactured by the given maker (case-insensitive).
+     *
+     * @param makerName maker name to filter by
+     * @return matching aircraft
+     */
     public List<Aircraft> fleetByMaker(final String makerName) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
@@ -67,6 +88,12 @@ public class ListFleetController {
         return result;
     }
 
+    /**
+     * Returns fleet aircraft whose total seat count is at least {@code minSeats}.
+     *
+     * @param minSeats minimum number of total seats (inclusive)
+     * @return matching aircraft
+     */
     public List<Aircraft> fleetByMinCapacity(final int minSeats) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
@@ -77,6 +104,12 @@ public class ListFleetController {
         return result;
     }
 
+    /**
+     * Returns fleet aircraft manufactured in or after the given year.
+     *
+     * @param fromYear lower bound year (inclusive)
+     * @return matching aircraft
+     */
     public List<Aircraft> fleetByManufactureYearFrom(final int fromYear) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
