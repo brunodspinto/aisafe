@@ -28,6 +28,7 @@ public class Email implements ValueObject {
         this.address = address.toLowerCase();
     }
 
+    /** For JPA. */
     protected Email() {
         // for ORM
     }

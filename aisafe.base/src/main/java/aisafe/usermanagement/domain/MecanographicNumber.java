@@ -26,6 +26,7 @@ public class MecanographicNumber implements ValueObject, Comparable<Mecanographi
         this.number = mecanographicNumber;
     }
 
+    /** For JPA. */
     protected MecanographicNumber() {
         // for ORM
     }

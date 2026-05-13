@@ -73,6 +73,7 @@ public class User implements AggregateRoot<MecanographicNumber> {
         this.skillsAssessmentDate = skillsAssessmentDate;
     }
 
+    /** For JPA. */
     protected User() {
         // for ORM
     }

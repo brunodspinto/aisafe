@@ -35,6 +35,7 @@ public class SecurityClearance implements ValueObject {
         this.expirationDate = expirationDate;
     }
 
+    /** For JPA. */
     protected SecurityClearance() {
         // for ORM
     }
