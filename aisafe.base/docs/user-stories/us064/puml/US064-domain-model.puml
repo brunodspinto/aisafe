@@ -43,10 +43,4 @@ Collaborator "1" --> "1" User : "linked to >"
 Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to >"
 Collaborator "0..*" --> "0..1" AirControlArea : "belongs to >"
 
-note right of SystemUser
-  deactivate() sets active = false.
-  Once disabled, the collaborator
-  no longer appears in findActive queries.
-end note
-
 @enduml
