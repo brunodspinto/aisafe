@@ -4,11 +4,12 @@ import aisafe.dsl.ast.FlightPlanAst;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Version;
 
 import java.util.Objects;
 
@@ -18,10 +19,13 @@ import java.util.Objects;
  * a multi-step validation process (US080, US081, US085).
  */
 @Entity
-public class FlightPlan implements AggregateRoot<String> {
+public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
 
-    @Id
-    private String designator;
+    @EmbeddedId
+    private FlightPlanDesignator designator;
+
+    @Version
+    private Long version;
 
     private String flightType;
 
@@ -43,8 +47,8 @@ public class FlightPlan implements AggregateRoot<String> {
      * Creates a new FlightPlan from a validated DSL file.
      * Status starts as DRAFT.
      */
-    public FlightPlan(final String designator, final String flightType, final String dslContent) {
-        if (designator == null || designator.trim().isEmpty()) {
+    public FlightPlan(final FlightPlanDesignator designator, final String flightType, final String dslContent) {
+        if (designator == null) {
             throw new IllegalArgumentException("Flight plan designator cannot be null or empty.");
         }
         if (flightType == null || flightType.trim().isEmpty()) {
@@ -53,7 +57,7 @@ public class FlightPlan implements AggregateRoot<String> {
         if (dslContent == null || dslContent.trim().isEmpty()) {
             throw new IllegalArgumentException("DSL content cannot be null or empty.");
         }
-        this.designator = designator.trim().toUpperCase();
+        this.designator = designator;
         this.flightType = flightType.trim().toUpperCase();
         this.dslContent = dslContent;
         this.status = FlightPlanStatus.DRAFT;
@@ -68,15 +72,15 @@ public class FlightPlan implements AggregateRoot<String> {
      */
     public static FlightPlan fromDsl(final FlightPlanAst ast, final String dslContent) {
         return new FlightPlan(
-                ast.identifier(),
+                FlightPlanDesignator.valueOf(ast.identifier()),
                 ast.flightType().name(),
                 dslContent
         );
     }
 
-    /** @return unique flight plan designator (always upper-case) */
+    /** @return unique flight plan designator string (always upper-case) */
     public String designator() {
-        return designator;
+        return designator.toString();
     }
 
     /** @return flight type (e.g. "IFR", "VFR") */
@@ -93,8 +97,6 @@ public class FlightPlan implements AggregateRoot<String> {
     public String dslContent() {
         return dslContent;
     }
-
-    // --- Identity Methods ---
 
     @Override
     public boolean equals(final Object o) {
@@ -115,7 +117,7 @@ public class FlightPlan implements AggregateRoot<String> {
     }
 
     @Override
-    public String identity() {
+    public FlightPlanDesignator identity() {
         return this.designator;
     }
 
