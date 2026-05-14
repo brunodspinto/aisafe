@@ -17,10 +17,18 @@ import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 
+/**
+ * Bootstrap entry-point that seeds baseline AISafe data (users and reference entities).
+ */
 public final class AiSafeBootstrap {
 
     private AiSafeBootstrap() {}
 
+    /**
+     * Starts the bootstrap process.
+     *
+     * @param args CLI args (unused)
+     */
     public static void main(final String[] args) {
         AuthzRegistry.configure(
                 PersistenceContext.repositories().systemUsers(),
@@ -47,6 +55,7 @@ public final class AiSafeBootstrap {
         System.out.println("Bootstrap completed successfully!");
     }
 
+    /** Creates the default admin account if it does not exist yet. */
     private static void bootstrapAdmin() {
         final var userRepo = PersistenceContext.repositories().systemUsers();
         final var adminUsername = "admin";
@@ -70,6 +79,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Creates the default weather-person account if absent. */
     private static void bootstrapWeatherPerson() {
         final var userRepo = PersistenceContext.repositories().systemUsers();
         final var username = "weather_person";
@@ -93,6 +103,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds a default air control area used by dependent bootstrap entities. */
     private static void bootstrapAirControlAreas() {
         final var areaRepo = PersistenceContext.repositories().airControlAreas();
         final String defaultAreaCode = "PT-N";
@@ -112,6 +123,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds reference engine models. */
     private static void bootstrapEngineModels() {
         final var engineRepo = PersistenceContext.repositories().engineModels();
 
@@ -120,6 +132,9 @@ public final class AiSafeBootstrap {
         bootstrapEngineModel(engineRepo, "PT6A-65B", "Pratt & Whitney Canada", EngineType.TURBOPROP, 17.0, 14.0, 0.290);
     }
 
+    /**
+     * Seeds one engine model if it does not already exist.
+     */
     private static void bootstrapEngineModel(
             final aisafe.enginemodel.repositories.EngineModelRepository repo,
             final String name, final String makerName, final EngineType engineType,
@@ -132,6 +147,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds collaborator users and links them to an air control area. */
     private static void bootstrapCollaborators() {
         final var checkRepo = PersistenceContext.repositories().systemUsers();
         final String username = "fco1";
@@ -182,6 +198,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds reference air transport companies. */
     private static void bootstrapAirTransportCompanies() {
         final var repo = PersistenceContext.repositories().airTransportCompanies();
 
@@ -190,6 +207,9 @@ public final class AiSafeBootstrap {
         bootstrapAirTransportCompany(repo, "Lufthansa", "LH", "DLH");
     }
 
+    /**
+     * Seeds one air transport company if absent.
+     */
     private static void bootstrapAirTransportCompany(
             final aisafe.airtransportcompany.repositories.AirTransportCompanyRepository repo,
             final String name, final String iata, final String icao) {
@@ -202,6 +222,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds sample airports linked to an existing control area. */
     private static void bootstrapAirports() {
         final var airportRepo = PersistenceContext.repositories().airports();
         final var areaRepo = PersistenceContext.repositories().airControlAreas();
@@ -251,6 +272,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds an ATCC user and collaborator association with a company. */
     private static void bootstrapAtccUser() {
         final var checkRepo = PersistenceContext.repositories().systemUsers();
         final String username = "atcc1";
@@ -297,6 +319,7 @@ public final class AiSafeBootstrap {
         }
     }
 
+    /** Seeds sample aircraft and associates them with a company fleet. */
     private static void bootstrapAircrafts() {
         final var aircraftRepo = PersistenceContext.repositories().aircraft();
         final var companyRepo = PersistenceContext.repositories().airTransportCompanies();
@@ -327,24 +350,26 @@ public final class AiSafeBootstrap {
         }
     }
 
-        private static void bootstrapMakers() {
-            final var makerRepo = PersistenceContext.repositories().makers();
+    /** Seeds reference aircraft makers. */
+    private static void bootstrapMakers() {
+        final var makerRepo = PersistenceContext.repositories().makers();
 
-            if (makerRepo.ofIdentity(MakerName.valueOf("Boeing")).isEmpty()) {
-                makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Boeing"), "USA"));
-                System.out.println("Maker created: Boeing");
-            } else {
-                System.out.println("Maker already exists: Boeing");
-            }
-
-            if (makerRepo.ofIdentity(MakerName.valueOf("Airbus")).isEmpty()) {
-                makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Airbus"), "France"));
-                System.out.println("Maker created: Airbus");
-            } else {
-                System.out.println("Maker already exists: Airbus");
-            }
+        if (makerRepo.ofIdentity(MakerName.valueOf("Boeing")).isEmpty()) {
+            makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Boeing"), "USA"));
+            System.out.println("Maker created: Boeing");
+        } else {
+            System.out.println("Maker already exists: Boeing");
         }
 
+        if (makerRepo.ofIdentity(MakerName.valueOf("Airbus")).isEmpty()) {
+            makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("Airbus"), "France"));
+            System.out.println("Maker created: Airbus");
+        } else {
+            System.out.println("Maker already exists: Airbus");
+        }
+    }
+
+    /** Seeds reference aircraft models based on existing makers and engines. */
     private static void bootstrapAircraftModels() {
         final var aircraftModelRepo = PersistenceContext.repositories().aircraftModels();
         final var makerRepo = PersistenceContext.repositories().makers();
@@ -367,6 +392,9 @@ public final class AiSafeBootstrap {
         });
     }
 
+    /**
+     * Runs the bootstrap pipeline programmatically.
+     */
     public static void runBootstrap() {
         bootstrapAdmin();
         bootstrapWeatherPerson();
