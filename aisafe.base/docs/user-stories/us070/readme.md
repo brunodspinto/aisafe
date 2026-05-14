@@ -41,13 +41,14 @@ The main classes involved are:
 
 | Class | Type | Responsibility |
 |-------|------|----------------|
-| `Aircraft` | Entity / Aggregate Root | Holds registration (identity), registered country, operational status, and reference to the model |
-| `CabinConfiguration` | Value Object | Validates and stores the number of seats (first, business, economy) and calculates total capacity |
+| `Aircraft` | Entity / Aggregate Root | Holds registration (identity), registered country, crew count, year of manufacture, operational status, and reference to the model |
+| `RegistrationNumber` | Value Object (Identity) | Validates, normalises (uppercase), and stores the registration number; used as `@EmbeddedId` |
+| `CabinConfiguration` | Value Object | Validates and stores the number of seats (first, business, economy) and calculates total capacity; null for CARGO aircraft |
 | `AircraftRepository` | Repository Interface | Persistence contract for the Aircraft aggregate |
 | `AirTransportCompanyRepository` | Repository Interface | Used to fetch the ATCC's company and update its fleet |
 | `AircraftModelRepository` | Repository Interface | Used to fetch available aircraft models for user selection |
 | `AddAircraftController` | Application Controller | Orchestrates the use case, validates capacity rules, enforces ATCC role |
-| `AddAircraftUI` | UI | Collects registration, country, and cabin seat distribution from the operator |
+| `AddAircraftUI` | UI | Collects registration, country, crew count, year, and cabin seat distribution from the operator |
 
 The following domain model excerpt shows the aggregate structure:
 
@@ -59,14 +60,14 @@ The following domain model excerpt shows the aggregate structure:
 
 ### 4.1. Realization
 
-1. The UI (`AddAircraftUI`) prompts the ATCC for the aircraft's registration number, country, model selection, and seat configuration (first, business, economy).
-2. Input is validated inline before calling the controller (non-blank strings, positive seat numbers).
+1. The UI (`AddAircraftUI`) prompts the ATCC for the aircraft's registration number, country, number of crew elements, year of manufacture, model selection, and seat configuration (first, business, economy).
+2. Input is validated inline before calling the controller (non-blank strings, crew ≥ 1, year between 1900 and current year, total seats > 0).
 3. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`.
-4. The controller fetches the authenticated user's `AirTransportCompany` (via `AirTransportCompanyRepository`) and the selected `AircraftModel`.
-5. The controller instantiates `CabinConfiguration` and validates that its total seats do not exceed the `AircraftModel`'s maximum capacity (Domain Rule).
+4. The controller identifies the authenticated user's `AirTransportCompany` via `CollaboratorRepository` and `AirTransportCompanyRepository`.
+5. The controller instantiates `CabinConfiguration` (for PASSENGER/MIXED models) and validates that its total seats do not exceed the `AircraftModel`'s maximum capacity. CARGO models do not require a cabin configuration.
 6. The controller instantiates `Aircraft` with the validated data — domain invariants are enforced inside the constructor.
 7. The aircraft is persisted via `AircraftRepository.save()`.
-8. The new aircraft's identity (registration) is added to the company's fleet, and the company is updated via `AirTransportCompanyRepository.save()` (triggering Optimistic Locking via `@Version`).
+8. The company's fleet is updated via `company.addAircraftToFleet()` and persisted via `AirTransportCompanyRepository.save()` (triggering Optimistic Locking via `@Version`).
 9. The UI confirms success: `Aircraft '...' successfully added to the fleet.`
 
 The following sequence diagram illustrates the flow:
@@ -145,7 +146,7 @@ void ensureExactMaxCapacityIsAccepted() {
 @Test
 void ensureRegistrationNumberCannotBeNull() {
     assertThrows(IllegalArgumentException.class,
-            () -> new Aircraft(null, "Portugal", model, cabin));
+            () -> new Aircraft(null, "Portugal", 2, 2020, model, cabin));
 }
 ```
 
@@ -155,7 +156,7 @@ void ensureRegistrationNumberCannotBeNull() {
 @Test
 void ensureRegistrationNumberCannotBeBlank() {
     assertThrows(IllegalArgumentException.class,
-            () -> new Aircraft("   ", "Portugal", model, cabin));
+            () -> new Aircraft("   ", "Portugal", 2, 2020, model, cabin));
 }
 ```
 
@@ -164,8 +165,8 @@ void ensureRegistrationNumberCannotBeBlank() {
 ```java
 @Test
 void ensureAircraftIdentityIsRegistrationNumber() {
-    final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", model, cabin);
-    assertEquals("CS-TUA", aircraft.identity());
+    final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 2, 2020, model, cabin);
+    assertEquals(RegistrationNumber.valueOf("CS-TUA"), aircraft.identity());
 }
 ```
 
@@ -179,7 +180,7 @@ void ensureAircraftIdentityIsRegistrationNumber() {
 @Test
 void ensureCountryCannotBeNull() {
     assertThrows(IllegalArgumentException.class,
-            () -> new Aircraft("CS-TUA", null, model, cabin));
+            () -> new Aircraft("CS-TUA", null, 2, 2020, model, cabin));
 }
 ```
 
@@ -189,7 +190,38 @@ void ensureCountryCannotBeNull() {
 @Test
 void ensureCountryCannotBeBlank() {
     assertThrows(IllegalArgumentException.class,
-            () -> new Aircraft("CS-TUA", "   ", model, cabin));
+            () -> new Aircraft("CS-TUA", "   ", 2, 2020, model, cabin));
+}
+```
+
+**Test:** `ensureNumberOfCrewElementsMustBeAtLeastOne`
+
+```java
+@Test
+void ensureNumberOfCrewElementsMustBeAtLeastOne() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Aircraft("CS-TUA", "Portugal", 0, 2020, model, cabin));
+}
+```
+
+**Test:** `ensureYearOfManufactureMustBeAfter1900`
+
+```java
+@Test
+void ensureYearOfManufactureMustBeAfter1900() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Aircraft("CS-TUA", "Portugal", 2, 1899, model, cabin));
+}
+```
+
+**Test:** `ensureYearOfManufactureCannotBeInFuture`
+
+```java
+@Test
+void ensureYearOfManufactureCannotBeInFuture() {
+    final int futureYear = LocalDate.now().getYear() + 1;
+    assertThrows(IllegalArgumentException.class,
+            () -> new Aircraft("CS-TUA", "Portugal", 2, futureYear, model, cabin));
 }
 ```
 
@@ -202,8 +234,19 @@ void ensureCountryCannotBeBlank() {
 ```java
 @Test
 void ensureNewAircraftIsActiveByDefault() {
-    final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", model, cabin);
-    assertEquals(AircraftStatus.ACTIVE, aircraft.status());
+    final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 2, 2020, model, cabin);
+    assertEquals(OperationalStatus.ACTIVE, aircraft.operationalStatus());
+}
+```
+
+**Test:** `ensureCargoAircraftDoesNotRequireCabinConfiguration`
+
+```java
+@Test
+void ensureCargoAircraftDoesNotRequireCabinConfiguration() {
+    final AircraftModel cargoModel = new AircraftModel(/* designation, AircraftType.CARGO, ... */);
+    final Aircraft aircraft = new Aircraft("CS-TUA", "Portugal", 2, 2020, cargoModel, null);
+    assertNull(aircraft.cabinConfiguration());
 }
 ```
 
@@ -220,7 +263,7 @@ void ensureOnlyATCCCanAddAircraft() {
 
     final AddAircraftController controller = new AddAircraftController();
     assertThrows(UnauthorizedException.class,
-            () -> controller.addAircraft("CS-TUA", "Portugal", modelId, 8, 24, 120));
+            () -> controller.addAircraft(model, "CS-TUA", "Portugal", 2, 2020, 8, 24, 120));
 }
 ```
 
@@ -233,7 +276,8 @@ The implementation is distributed across the following packages in `aisafe.base`
 | Package | Class | Role |
 |---------|-------|------|
 | `aisafe.aircraft.domain` | `Aircraft` | Aggregate root, table `T_AIRCRAFT` |
-| `aisafe.aircraft.domain` | `CabinConfiguration` | Value object (`@Embeddable`) — seat distribution and total capacity |
+| `aisafe.aircraft.domain` | `RegistrationNumber` | Identity value object (`@Embeddable`, `@EmbeddedId`) — normalises and validates the registration number |
+| `aisafe.aircraft.domain` | `CabinConfiguration` | Value object (`@Embeddable`) — seat distribution and total capacity; absent for CARGO aircraft |
 | `aisafe.aircraft.repositories` | `AircraftRepository` | Repository interface |
 | `aisafe.aircraft.application` | `AddAircraftController` | Use case orchestrator |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryAircraftRepository` | In-memory persistence |
@@ -267,8 +311,10 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 ## 7. Observations
 
-- `CabinConfiguration` acts as an autonomous validator. By delegating seat counting and validation to this Value Object, the `Aircraft` aggregate root remains clean and highly cohesive.
-- The capacity rule (AC070.2) is enforced during `Aircraft` instantiation by passing the `AircraftModel` to the constructor, which immediately checks that `cabin.totalSeats() <= model.maxCapacity()`.
-- `AirTransportCompany` uses `@ElementCollection` to store a set of Aircraft registration strings rather than direct entity references, preserving aggregate boundary isolation and Low Coupling.
+- `RegistrationNumber` is implemented as a dedicated `@Embeddable` Value Object used as `@EmbeddedId` on `Aircraft`. It normalises the input to uppercase, ensuring consistent identity comparison.
+- `CabinConfiguration` acts as an autonomous validator. By delegating seat counting and validation to this Value Object, the `Aircraft` aggregate root remains clean and highly cohesive. For CARGO aircraft, `CabinConfiguration` is `null` by design — the constructor enforces this distinction based on the `AircraftModel`'s type.
+- The capacity rule (AC070.2) is enforced during `Aircraft` instantiation: if `maxCapacity > 0`, the constructor checks that `cabin.totalSeats() <= model.maxCapacity()`.
+- `numberOfCrewElements` must be ≥ 1, and `yearOfManufacture` must be between 1900 and the current year — both validated in the `Aircraft` constructor.
+- `AirTransportCompany` uses `@ElementCollection` to store Aircraft registration strings rather than direct entity references, preserving aggregate boundary isolation and Low Coupling.
 - The `@Version` annotation on `AirTransportCompany` triggers Optimistic Locking when two ATCCs add an aircraft to the same company simultaneously; the second operation receives a user-friendly concurrency error.
-- The `Aircraft` aggregate is independently persisted — the link to the company's fleet is stored on the `AirTransportCompany` side, not inside `Aircraft` itself.
+- The `Aircraft` aggregate is independently persisted — the link to the company's fleet is stored on the `AirTransportCompany` side via `addAircraftToFleet()`, not inside `Aircraft` itself.
