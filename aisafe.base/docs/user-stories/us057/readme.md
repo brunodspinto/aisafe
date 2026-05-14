@@ -59,7 +59,7 @@ The following domain model excerpt shows the aggregate structure:
 2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR)`.
 3. The controller fetches the selected `AircraftModel` from `AircraftModelRepository`.
 4. The controller fetches the selected `EngineModel` from `EngineModelRepository` and extracts its identity.
-5. The `AircraftModel` aggregate validates compatibility (AC057.1) and checks for duplicates (AC057.2) inside `addCertifiedEngine()`.
+5. The `AircraftModel` aggregate validates compatibility (AC057.1) and checks for duplicates (AC057.2) inside `addEngine()`.
 6. The updated `AircraftModel` is persisted via `AircraftModelRepository.save()`. JPA detects any version conflict and throws `OptimisticLockException` (AC057.3).
 7. The UI confirms success or displays the appropriate error message.
 
@@ -84,10 +84,12 @@ All tests are automated with JUnit 5 and located in `src/test/java/aisafe/aircra
 ```java
 @Test
 void ensureCanAddCompatibleEngineType() {
-    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
-    final EngineModel engine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
-    model.addCertifiedEngine(engine);
-    assertTrue(model.certifiedEngines().contains(engine));
+    // AircraftModel constructor requires AircraftType (PASSENGER/CARGO/MIXED) and a first certified engine
+    final EngineModel firstEngine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
+    final AircraftModel model = new AircraftModel("Boeing 737", AircraftType.PASSENGER, firstEngine, /* other params */);
+    final EngineModel secondEngine = new EngineModel("LEAP-1B", EngineType.TURBOFAN, /* other params */);
+    model.addEngine(secondEngine);
+    assertTrue(model.certifiedEngines().contains(secondEngine));
 }
 ```
 
@@ -96,9 +98,10 @@ void ensureCanAddCompatibleEngineType() {
 ```java
 @Test
 void ensureCannotAddIncompatibleEngineType() {
-    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
-    final EngineModel engine = new EngineModel("PT6", EngineType.TURBOPROP, /* other params */);
-    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(engine));
+    final EngineModel firstEngine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
+    final AircraftModel model = new AircraftModel("Boeing 737", AircraftType.PASSENGER, firstEngine, /* other params */);
+    final EngineModel incompatibleEngine = new EngineModel("PT6", EngineType.TURBOPROP, /* other params */);
+    assertThrows(IllegalArgumentException.class, () -> model.addEngine(incompatibleEngine));
 }
 ```
 
@@ -111,10 +114,9 @@ void ensureCannotAddIncompatibleEngineType() {
 ```java
 @Test
 void ensureCannotAddDuplicateEngineModel() {
-    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
-    final EngineModel engine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
-    model.addCertifiedEngine(engine);
-    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(engine));
+    final EngineModel firstEngine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
+    final AircraftModel model = new AircraftModel("Boeing 737", AircraftType.PASSENGER, firstEngine, /* other params */);
+    assertThrows(IllegalArgumentException.class, () -> model.addEngine(firstEngine));
 }
 ```
 
@@ -123,8 +125,9 @@ void ensureCannotAddDuplicateEngineModel() {
 ```java
 @Test
 void ensureCannotAddNullEngineModel() {
-    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
-    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(null));
+    final EngineModel firstEngine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
+    final AircraftModel model = new AircraftModel("Boeing 737", AircraftType.PASSENGER, firstEngine, /* other params */);
+    assertThrows(IllegalArgumentException.class, () -> model.addEngine(null));
 }
 ```
 
@@ -140,10 +143,10 @@ void ensureOptimisticLockingThrowsExceptionOnConcurrentUpdate() {
     final AircraftModel model1 = repository.findByIdentity(modelIdentity).get();
     final AircraftModel model2 = repository.findByIdentity(modelIdentity).get();
 
-    model1.addCertifiedEngine(engine1);
+    model1.addEngine(engine1);
     repository.save(model1);
 
-    model2.addCertifiedEngine(engine2);
+    model2.addEngine(engine2);
     assertThrows(OptimisticLockException.class, () -> repository.save(model2));
 }
 ```
@@ -213,5 +216,6 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 - The `AircraftModel` aggregate stores certified engines as a `@ManyToMany List<EngineModel>`. Engine compatibility is validated by comparing the new engine's type against the first certified engine in the list, and duplicates are detected by comparing engine name and maker name before adding.
 - The `@Version` field on `AircraftModel` is the sole mechanism for optimistic locking; no pessimistic locking strategy is used.
-- Engine type compatibility is enforced exclusively in the domain layer (`AircraftModel.addCertifiedEngine()`), keeping the controller free of business rules.
+- Engine type compatibility is enforced exclusively in the domain layer (`AircraftModel.addEngine()`), keeping the controller free of business rules. Compatibility is determined by comparing the new engine's type against the first engine already certified in the list.
 - The UI must filter available engine models by engine type to reduce operator error, even though the domain enforces the rule independently.
+- **Domain model note:** The domain model V5 lists `maxRange` as a field of `AircraftModel`. This field is not yet present in the current Java implementation and should be added in a future sprint to maintain alignment with the domain model.
