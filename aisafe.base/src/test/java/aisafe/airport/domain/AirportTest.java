@@ -1,6 +1,7 @@
 package aisafe.airport.domain;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class AirportTest {
 
     private static AirControlArea validArea() {
-        return new AirControlArea("PT-N", "Northern Portugal", 1200.0,
+        return new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0,
                 new GeoBoundary(42.15, 36.95, -6.18, -9.50));
     }
 

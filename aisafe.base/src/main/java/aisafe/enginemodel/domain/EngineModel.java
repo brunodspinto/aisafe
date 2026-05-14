@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 /**
  * Entity and Aggregate Root representing an aircraft engine model.
@@ -30,6 +31,9 @@ public class EngineModel implements AggregateRoot<Long> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private String name;

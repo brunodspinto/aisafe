@@ -1,6 +1,7 @@
 package aisafe.aircraft.application;
 
 import aisafe.aircraft.domain.Aircraft;
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.collaborator.repositories.CollaboratorRepository;
@@ -55,7 +56,7 @@ public class ListFleetController {
     private List<Aircraft> loadFleet(final AirTransportCompany company) {
         final List<Aircraft> result = new ArrayList<>();
         for (final String reg : company.fleet()) {
-            aircraftRepo.ofIdentity(reg).ifPresent(result::add);
+            aircraftRepo.ofIdentity(RegistrationNumber.valueOf(reg)).ifPresent(result::add);
         }
         return result;
     }

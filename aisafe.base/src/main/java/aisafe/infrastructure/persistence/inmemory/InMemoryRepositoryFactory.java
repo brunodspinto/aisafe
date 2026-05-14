@@ -49,8 +49,18 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public AirTransportCompanyRepository airTransportCompanies(final TransactionalContext tx) {
+        return new InMemoryAirTransportCompanyRepository();
+    }
+
+    @Override
     public AirTransportCompanyRepository airTransportCompanies() {
         return new InMemoryAirTransportCompanyRepository();
+    }
+
+    @Override
+    public AirControlAreaRepository airControlAreas(final TransactionalContext tx) {
+        return new InMemoryAirControlAreaRepository();
     }
 
     @Override
@@ -59,8 +69,18 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public FlightPlanRepository flightPlans(final TransactionalContext tx) {
+        return new InMemoryFlightPlanRepository();
+    }
+
+    @Override
     public FlightPlanRepository flightPlans() {
         return new InMemoryFlightPlanRepository();
+    }
+
+    @Override
+    public WeatherDataRepository weatherData(final TransactionalContext tx) {
+        return new InMemoryWeatherDataRepository();
     }
 
     @Override
@@ -74,8 +94,18 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public AirportRepository airports(final TransactionalContext tx) {
+        return new InMemoryAirportRepository();
+    }
+
+    @Override
     public AirportRepository airports() {
         return new InMemoryAirportRepository();
+    }
+
+    @Override
+    public EngineModelRepository engineModels(final TransactionalContext tx) {
+        return new InMemoryEngineModelRepository();
     }
 
     @Override
@@ -84,8 +114,18 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public MakerRepository makers(final TransactionalContext tx) {
+        return new InMemoryMakerRepository();
+    }
+
+    @Override
     public MakerRepository makers() {
         return new InMemoryMakerRepository();
+    }
+
+    @Override
+    public AircraftModelRepository aircraftModels(final TransactionalContext tx) {
+        return new InMemoryAircraftModelRepository();
     }
 
     @Override
@@ -101,6 +141,11 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public CollaboratorRepository collaborators() {
         return new InMemoryCollaboratorRepository();
+    }
+
+    @Override
+    public AircraftRepository aircraft(final TransactionalContext tx) {
+        return new InMemoryAircraftRepository();
     }
 
     @Override

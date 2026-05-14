@@ -1,6 +1,7 @@
 package aisafe.aircontrolarea.application;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
@@ -49,7 +50,7 @@ public class RegisterAirControlAreaController {
                 authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
                 final String normalizedAreaCode = normalizeAreaCode(areaCode);
-                if (repository.ofIdentity(normalizedAreaCode).isPresent()) {
+                if (repository.ofIdentity(AirControlAreaCode.valueOf(normalizedAreaCode)).isPresent()) {
                         throw new IllegalArgumentException("Air Control Area code already exists: " + normalizedAreaCode);
                 }
 
@@ -60,7 +61,7 @@ public class RegisterAirControlAreaController {
 
         // Then the Aggregate Root entity
         final AirControlArea newArea =
-                                new AirControlArea(normalizedAreaCode, name == null ? null : name.trim(), minimumFuelRequired, boundaries);
+                                new AirControlArea(AirControlAreaCode.valueOf(normalizedAreaCode), name == null ? null : name.trim(), minimumFuelRequired, boundaries);
 
         // Save in the repository (persist to database)
         return repository.save(newArea);

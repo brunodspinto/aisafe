@@ -2,8 +2,9 @@ package aisafe.maker.domain;
 
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 
 import java.util.Objects;
 
@@ -11,10 +12,13 @@ import java.util.Objects;
  * Entity and Aggregate Root representing an aircraft or engine manufacturer.
  */
 @Entity
-public class Maker implements AggregateRoot<String> {
+public class Maker implements AggregateRoot<MakerName> {
 
-    @Id
-    private String name;
+    @EmbeddedId
+    private MakerName name;
+
+    @Version
+    private Long version;
 
     private String country;
 
@@ -23,27 +27,27 @@ public class Maker implements AggregateRoot<String> {
     /**
      * Creates a new maker.
      *
-     * @param name    manufacturer name (non-blank); used as the unique identifier
+     * @param name    manufacturer name (non-null); used as the unique identifier
      * @param country country of the manufacturer (non-blank)
      * @throws IllegalArgumentException if either value is null or blank
      */
-    public Maker(final String name, final String country) {
-        if (name == null || name.isBlank())
+    public Maker(final MakerName name, final String country) {
+        if (name == null)
             throw new IllegalArgumentException("Maker name cannot be null or empty.");
         if (country == null || country.isBlank())
             throw new IllegalArgumentException("Country cannot be null or empty.");
-        this.name = name.trim();
+        this.name = name;
         this.country = country.trim();
     }
 
-    /** @return unique manufacturer name (primary key) */
-    public String name() { return name; }
+    /** @return unique manufacturer name string (primary key) */
+    public String name() { return name.toString(); }
 
     /** @return country of the manufacturer */
     public String country() { return country; }
 
     @Override
-    public String identity() { return name; }
+    public MakerName identity() { return name; }
 
     @Override
     public boolean sameAs(final Object other) {

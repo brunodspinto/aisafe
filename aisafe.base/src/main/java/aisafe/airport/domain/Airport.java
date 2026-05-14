@@ -4,11 +4,12 @@ import aisafe.aircontrolarea.domain.AirControlArea;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Embedded;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 import java.util.Objects;
 
@@ -24,8 +25,11 @@ import java.util.Objects;
         })
 public class Airport implements AggregateRoot<AirportIATACode> {
 
-    @Id
+    @EmbeddedId
     private AirportIATACode iataCode;
+
+    @Version
+    private Long version;
 
     @Embedded
     private AirportICAOCode icaoCode;

@@ -3,6 +3,7 @@ package aisafe.aircraftmodel.domain;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
 import aisafe.maker.domain.Maker;
+import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -13,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class AircraftModelTest {
 
     private static Maker validMaker() {
-        return new Maker("Boeing", "USA");
+        return new Maker(MakerName.valueOf("Boeing"), "USA");
     }
 
     private static EngineModel validEngine() {
@@ -294,6 +295,14 @@ class AircraftModelTest {
         model.addEngine(second);
         final EngineModel notCertified = new EngineModel("V2500", "IAE", EngineType.TURBOFAN, 111.0, 0.33);
         assertThrows(IllegalArgumentException.class, () -> model.removeEngine(notCertified));
+    }
+
+    @Test
+    void ensureCannotAddDuplicateEngineModel() {
+        final AircraftModel model = validAircraftModel();
+        final EngineModel anotherTurbofan = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
+        model.addEngine(anotherTurbofan); // Adiciona a primeira vez
+        assertThrows(IllegalArgumentException.class, () -> model.addEngine(anotherTurbofan));
     }
 
 }

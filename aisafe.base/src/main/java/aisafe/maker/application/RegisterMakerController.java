@@ -1,6 +1,7 @@
 package aisafe.maker.application;
 
 import aisafe.maker.domain.Maker;
+import aisafe.maker.domain.MakerName;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -31,12 +32,12 @@ public class RegisterMakerController {
     public Maker registerMaker(final String name, final String country) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
-        if (makerRepository.ofIdentity(name.trim()).isPresent()) {
+        if (makerRepository.ofIdentity(MakerName.valueOf(name)).isPresent()) {
             throw new IllegalArgumentException(
                     "A maker with name '" + name + "' already exists.");
         }
 
-        return makerRepository.save(new Maker(name, country));
+        return makerRepository.save(new Maker(MakerName.valueOf(name.trim()), country));
     }
 
     /**

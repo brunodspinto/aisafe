@@ -5,10 +5,10 @@ import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -19,11 +19,13 @@ import jakarta.persistence.Version;
  */
 @Entity
 @Table(name = "T_AIRCRAFT")
-public class Aircraft implements AggregateRoot<String> {
+public class Aircraft implements AggregateRoot<RegistrationNumber> {
 
-    @Id
-    @Column(name = "registration_number", nullable = false, unique = true)
-    private String registrationNumber;
+    @EmbeddedId
+    private RegistrationNumber registrationNumber;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private String registeredCountry;
@@ -47,7 +49,7 @@ public class Aircraft implements AggregateRoot<String> {
     /**
      * Creates a new aircraft and sets its status to {@link OperationalStatus#ACTIVE}.
      *
-     * @param registrationNumber   unique ICAO/national registration (e.g. "CS-TUG"); must not be blank
+     * @param registrationNumber   unique ICAO/national registration (e.g. "CS-TUG"); must not be null
      * @param registeredCountry    country where the aircraft is registered; must not be blank
      * @param numberOfCrewElements minimum crew size; must be at least 1
      * @param yearOfManufacture    year the aircraft was built; must be between 1900 and the current year
@@ -55,13 +57,13 @@ public class Aircraft implements AggregateRoot<String> {
      * @param aircraftModel        the aircraft model; must not be {@code null}
      * @throws IllegalArgumentException if any constraint is violated
      */
-    public Aircraft(final String registrationNumber,
+    public Aircraft(final RegistrationNumber registrationNumber,
                     final String registeredCountry,
                     final int numberOfCrewElements,
                     final int yearOfManufacture,
                     final CabinConfiguration cabinConfiguration,
                     final AircraftModel aircraftModel) {
-        if (registrationNumber == null || registrationNumber.isBlank())
+        if (registrationNumber == null)
             throw new IllegalArgumentException("Registration number cannot be blank.");
         if (registeredCountry == null || registeredCountry.isBlank())
             throw new IllegalArgumentException("Registered country cannot be blank.");
@@ -78,7 +80,7 @@ public class Aircraft implements AggregateRoot<String> {
                     "Total seats (" + cabinConfiguration.totalSeats()
                     + ") exceeds the aircraft model's maximum capacity (" + aircraftModel.maxCapacity() + ").");
 
-        this.registrationNumber = registrationNumber.toUpperCase().trim();
+        this.registrationNumber = registrationNumber;
         this.registeredCountry = registeredCountry.trim();
         this.numberOfCrewElements = numberOfCrewElements;
         this.yearOfManufacture = yearOfManufacture;
@@ -92,7 +94,7 @@ public class Aircraft implements AggregateRoot<String> {
     }
 
     /** @return unique registration number (always upper-case) */
-    public String registrationNumber() { return registrationNumber; }
+    public String registrationNumber() { return registrationNumber.toString(); }
 
     /** @return country where the aircraft is registered */
     public String registeredCountry() { return registeredCountry; }
@@ -113,7 +115,7 @@ public class Aircraft implements AggregateRoot<String> {
     public AircraftModel aircraftModel() { return aircraftModel; }
 
     @Override
-    public String identity() { return registrationNumber; }
+    public RegistrationNumber identity() { return registrationNumber; }
 
     @Override
     public boolean sameAs(final Object other) { return DomainEntities.areEqual(this, other); }

@@ -2,6 +2,7 @@ package aisafe.aircraft.application;
 
 import aisafe.aircraft.domain.Aircraft;
 import aisafe.aircraft.domain.CabinConfiguration;
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
@@ -76,7 +77,7 @@ public class AddAircraftController {
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for authenticated user."));
 
         final CabinConfiguration cabin = new CabinConfiguration(firstClassSeats, businessClassSeats, economyClassSeats);
-        final Aircraft aircraft = new Aircraft(registrationNumber, registeredCountry, numberOfCrewElements, yearOfManufacture, cabin, model);
+        final Aircraft aircraft = new Aircraft(RegistrationNumber.valueOf(registrationNumber), registeredCountry, numberOfCrewElements, yearOfManufacture, cabin, model);
         aircraftRepo.save(aircraft);
 
         company.addAircraftToFleet(aircraft);

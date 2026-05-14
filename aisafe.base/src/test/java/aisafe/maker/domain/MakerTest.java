@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class MakerTest {
 
     private static Maker validMaker() {
-        return new Maker("Boeing", "USA");
+        return new Maker(MakerName.valueOf("Boeing"), "USA");
     }
 
     @Test
@@ -22,48 +22,48 @@ class MakerTest {
 
     @Test
     void ensureNameCannotBeNull() {
-        assertThrows(IllegalArgumentException.class, () -> new Maker(null, "USA"));
+        assertThrows(IllegalArgumentException.class, () -> new Maker((MakerName) null, "USA"));
     }
 
     @Test
     void ensureNameCannotBeBlank() {
-        assertThrows(IllegalArgumentException.class, () -> new Maker("   ", "USA"));
+        assertThrows(IllegalArgumentException.class, () -> new Maker(MakerName.valueOf("   "), "USA"));
     }
 
     @Test
     void ensureCountryCannotBeNull() {
-        assertThrows(IllegalArgumentException.class, () -> new Maker("Boeing", null));
+        assertThrows(IllegalArgumentException.class, () -> new Maker(MakerName.valueOf("Boeing"), null));
     }
 
     @Test
     void ensureCountryCannotBeBlank() {
-        assertThrows(IllegalArgumentException.class, () -> new Maker("Boeing", "   "));
+        assertThrows(IllegalArgumentException.class, () -> new Maker(MakerName.valueOf("Boeing"), "   "));
     }
 
     @Test
     void ensureTwoMakersWithSameNameAreEqual() {
-        final Maker a = new Maker("Boeing", "USA");
-        final Maker b = new Maker("Boeing", "United States");
+        final Maker a = new Maker(MakerName.valueOf("Boeing"), "USA");
+        final Maker b = new Maker(MakerName.valueOf("Boeing"), "United States");
         assertEquals(a, b);
     }
 
     @Test
     void ensureTwoMakersWithDifferentNamesAreNotEqual() {
-        final Maker a = new Maker("Boeing", "USA");
-        final Maker b = new Maker("Airbus", "France");
+        final Maker a = new Maker(MakerName.valueOf("Boeing"), "USA");
+        final Maker b = new Maker(MakerName.valueOf("Airbus"), "France");
         assertNotEquals(a, b);
     }
 
     @Test
     void ensureIdentityReturnsName() {
         final Maker maker = validMaker();
-        assertEquals("Boeing", maker.identity());
+        assertEquals(MakerName.valueOf("Boeing"), maker.identity());
     }
 
     @Test
     void ensureHashCodeIsConsistentWithEquals() {
-        final Maker a = new Maker("Boeing", "USA");
-        final Maker b = new Maker("Boeing", "USA");
+        final Maker a = new Maker(MakerName.valueOf("Boeing"), "USA");
+        final Maker b = new Maker(MakerName.valueOf("Boeing"), "USA");
         assertEquals(a.hashCode(), b.hashCode());
     }
 
@@ -91,8 +91,8 @@ class MakerTest {
 
     @Test
     void ensureSameAsReturnsTrueForEqualMakers() {
-        final Maker a = new Maker("Boeing", "USA");
-        final Maker b = new Maker("Boeing", "USA");
+        final Maker a = new Maker(MakerName.valueOf("Boeing"), "USA");
+        final Maker b = new Maker(MakerName.valueOf("Boeing"), "USA");
         assertTrue(a.sameAs(b));
     }
 

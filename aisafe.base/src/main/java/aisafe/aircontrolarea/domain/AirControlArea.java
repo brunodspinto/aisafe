@@ -1,8 +1,9 @@
 package aisafe.aircontrolarea.domain;
 
 import jakarta.persistence.Embedded;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import java.util.Objects;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
@@ -13,11 +14,13 @@ import eapli.framework.domain.model.DomainEntities;
  * Entity and Aggregate Root representing an Air Control Area.
  */
 @Entity
-public class AirControlArea implements AggregateRoot<String> {
+public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
 
-    // The @Id annotation tells JPA that this is the unique identifier (Primary Key).
-    @Id
-    private String areaCode;
+    @EmbeddedId
+    private AirControlAreaCode areaCode;
+
+    @Version
+    private Long version;
 
     private String name;
 
@@ -37,14 +40,15 @@ public class AirControlArea implements AggregateRoot<String> {
     /**
      * Creates a valid air control area.
      *
-     * @param areaCode             unique area code (non-blank)
+     * @param areaCode             unique area code (non-null)
      * @param name                 descriptive name (non-blank)
      * @param minimumFuelRequired  minimum fuel required for operations in this area (non-negative)
      * @param boundaries           geographic bounding box (non-null)
      * @throws IllegalArgumentException if any constraint is violated
      */
-    public AirControlArea(String areaCode, String name, double minimumFuelRequired, GeoBoundary boundaries) {
-        if (areaCode == null || areaCode.trim().isEmpty()) {
+    public AirControlArea(final AirControlAreaCode areaCode, final String name,
+                          final double minimumFuelRequired, final GeoBoundary boundaries) {
+        if (areaCode == null) {
             throw new IllegalArgumentException("Air Control Area code cannot be null or empty.");
         }
         if (name == null || name.trim().isEmpty()) {
@@ -63,9 +67,9 @@ public class AirControlArea implements AggregateRoot<String> {
         this.boundaries = boundaries;
     }
 
-    /** @return unique area code (primary key) */
+    /** @return unique area code string (primary key) */
     public String areaCode() {
-        return areaCode;
+        return areaCode.toString();
     }
 
     /** @return descriptive name of this area */
@@ -83,11 +87,8 @@ public class AirControlArea implements AggregateRoot<String> {
         return boundaries;
     }
 
-    // --- Identity Methods ---
-    // The equality of an Entity is defined ONLY by its ID.
-
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AirControlArea that = (AirControlArea) o;
@@ -105,8 +106,7 @@ public class AirControlArea implements AggregateRoot<String> {
     }
 
     @Override
-    public String identity() {
-        // Retorna o identificador único desta entidade
+    public AirControlAreaCode identity() {
         return this.areaCode;
     }
 

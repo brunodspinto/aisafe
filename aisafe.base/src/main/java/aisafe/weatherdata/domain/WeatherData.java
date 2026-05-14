@@ -8,6 +8,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Version;
 import java.time.LocalDateTime;
 
 /**
@@ -25,6 +26,9 @@ public class WeatherData implements AggregateRoot<Long> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Version
+    private Long version;
 
     @Column(nullable = false)
     private String areaCode;
