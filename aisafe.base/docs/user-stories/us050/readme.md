@@ -1,4 +1,4 @@
-# US 50 - Register an Air Control Area
+# US050 - Register an Air Control Area
 
 ## 1. Context
 
@@ -9,7 +9,7 @@
 - **Analysis:** Define the domain model for the AirControlArea aggregate and identify its invariants (unique code, valid geographic boundaries).
 - **Design:** Design the standard "Register X" sequence diagram and class diagram for the domain and persistence layers.
 - **Implement:** Create the `AirControlArea` entity, `GeoBoundary` value object, JPA repositories, Controller, UI, and the Bootstrap process.
-- **Test:** Unit tests for `AirControlArea` instantiation and `GeoBoundary` spatial validations.
+- **Test:** Unit tests for `AirControlArea` instantiation and `GeoBoundary` spatial validations, plus manual acceptance tests for the UI and bootstrap flow.
 
 ---
 
@@ -82,7 +82,45 @@ This use case follows the standard "Register X" architectural pattern. Following
 
 ### 4.2 Acceptance Tests
 
-Detailed coverage is documented in [tests.md](testsUS050.md).
+Detailed coverage is documented in [tests.md](tests.md).
+
+All automated coverage is implemented with JUnit 5 and is split across:
+
+- `src/test/java/aisafe/aircontrolarea/domain/GeoBoundaryTest.java`
+- `src/test/java/aisafe/aircontrolarea/domain/AirControlAreaTest.java`
+
+**Manual test — US050.1 (register with valid data):**
+
+1. Run `AiSafeConsoleApp` and login as `admin` (or a BACKOFFICE_OPERATOR).
+2. Navigate to `Air Control Areas > 1 — Register Air Control Area`.
+3. Enter a unique area code (e.g., `PT-S`).
+4. Enter a name (e.g., `Southern Portugal`).
+5. Enter minimum fuel required (e.g., `500`).
+6. Enter geographic boundaries: North Latitude: 41.5, South Latitude: 37.0, West Longitude: -10.0, East Longitude: -6.0.
+7. Confirm the registration.
+8. Expected: Success message; area is registered and saved to the database.
+
+**Manual test — US050.2 (unique area code):**
+
+1. Perform the steps above to register an area with code `PT-N`.
+2. Attempt to register another area with the same code `PT-N`.
+3. Expected: The system rejects the operation with an error message stating the code already exists.
+
+**Manual test — US050.3 (valid geographic boundaries):**
+
+1. Try to register an area with North Latitude: 37.0 and South Latitude: 41.5 (reversed).
+2. Expected: System rejects with an error: "North latitude must be greater than South latitude.".
+3. Try to register with Latitude: 91.0 (outside range).
+4. Expected: System rejects with an error: "Latitude must be between -90 and 90.".
+5. Try to register with Longitude: -181.0 (outside range).
+6. Expected: System rejects with an error: "Longitude must be between -180 and 180.".
+
+**Manual test — US050.4 (bootstrap registration):**
+
+1. Run `./run-bootstrap.sh` to initialize the system with seed data.
+2. Check the database or logs to confirm a default air control area (e.g., `PT-N`) was created.
+3. Run the bootstrap again without clearing data.
+4. Expected: No duplicate `PT-N` area is inserted; the system handles the idempotent bootstrap gracefully.
 
 ## 5. Implementation
 
@@ -116,7 +154,7 @@ Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default val
 # Navigate to: 
 # Air Control Management -> Register Air Control Area
 
-````
+```
 ## 7. Observations
 
 The `GeoBoundary` acts as an autonomous validator. By delegating the spatial logic to this Value Object, the `AirControlArea` aggregate root remains clean and highly cohesive.
