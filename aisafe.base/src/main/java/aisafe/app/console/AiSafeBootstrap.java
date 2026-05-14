@@ -252,15 +252,19 @@ public final class AiSafeBootstrap {
     }
 
     private static void bootstrapAtccUser() {
-        final var systemUserRepo = PersistenceContext.repositories().systemUsers();
-        final var userRepo = PersistenceContext.repositories().users();
-        final var collaboratorRepo = PersistenceContext.repositories().collaborators();
-        final var companyRepo = PersistenceContext.repositories().airTransportCompanies();
-
+        final var checkRepo = PersistenceContext.repositories().systemUsers();
         final String username = "atcc1";
 
-        if (systemUserRepo.ofIdentity(
+        if (checkRepo.ofIdentity(
                 eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username)).isEmpty()) {
+
+            final var tx = PersistenceContext.repositories().newTransactionalContext();
+            final var systemUserRepo = PersistenceContext.repositories().systemUsers(tx);
+            final var userRepo = PersistenceContext.repositories().users(tx);
+            final var collaboratorRepo = PersistenceContext.repositories().collaborators(tx);
+            final var companyRepo = PersistenceContext.repositories().airTransportCompanies(tx);
+
+            tx.beginTransaction();
 
             final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
             builder.withUsername(username)
@@ -268,11 +272,10 @@ public final class AiSafeBootstrap {
                     .withName("Air", "Transport")
                     .withEmail("atcc1@aisafe.com")
                     .withRoles(AiSafeRoles.ATCC);
-            final var systemUser = builder.build();
-            systemUserRepo.save(systemUser);
+            final var savedSystemUser = systemUserRepo.save(builder.build());
 
             final var user = new aisafe.usermanagement.domain.User(
-                    systemUser,
+                    savedSystemUser,
                     aisafe.usermanagement.domain.MecanographicNumber.valueOf("ATC001"),
                     "920000001",
                     new aisafe.usermanagement.domain.Email("atcc1@aisafe.com"),
@@ -281,12 +284,14 @@ public final class AiSafeBootstrap {
                             aisafe.usermanagement.domain.SecurityLevel.GUARDED,
                             java.time.LocalDate.of(2030, 1, 1)),
                     java.time.LocalDate.of(2025, 1, 1));
-            userRepo.save(user);
+            final var savedUser = userRepo.save(user);
 
             companyRepo.ofIdentity(IATACode.valueOf("TP")).ifPresent(company -> {
-                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(user, company));
+                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(savedUser, company));
                 System.out.println("ATCC collaborator created: " + username + " for company TAP");
             });
+
+            tx.commit();
         } else {
             System.out.println("ATCC collaborator already exists: " + username);
         }
