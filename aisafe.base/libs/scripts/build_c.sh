@@ -19,5 +19,6 @@ if [ ! -f "${C_SOURCES[0]}" ]; then
 fi
 
 mkdir -p "$PROJECT_ROOT/bin"
-gcc "${C_SOURCES[@]}" -I"$C_DIR" -o "$PROJECT_ROOT/bin/simulation"
+gcc -Wall -Wextra -g "${C_SOURCES[@]}" -I"$C_DIR" \
+    -o "$PROJECT_ROOT/bin/simulation" -lm
 echo "[SUCCESS] C components built in $PROJECT_ROOT/bin/"

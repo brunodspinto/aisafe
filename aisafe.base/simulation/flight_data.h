@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-flight_plan_t *create_sample_flight_plan(void);
+flight_plan_t *create_flight_plan(int index);
 void free_flight_plan(flight_plan_t *plan);
 
 #endif

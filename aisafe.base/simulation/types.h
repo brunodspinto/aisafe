@@ -14,9 +14,11 @@ typedef struct {
 } coordinate_t;
 
 typedef struct {
+    char mode[16];           /* "climb", "cruise", "descend" */
     coordinate_t from;
     coordinate_t to;
-    double altitude_meters;
+    double alt_from_meters;
+    double alt_to_meters;
     double width_meters;
     double wind_speed;
     double wind_direction;
@@ -46,6 +48,8 @@ typedef struct {
     double latitude;
     double longitude;
     double altitude_meters;
+    double speed_knots;
+    double heading_deg;
     time_t timestamp;
     char flight_id[64];
 } aircraft_position_t;
