@@ -1,0 +1,23 @@
+@startuml aggregate-3_11
+skinparam shadowing false
+title Aggregate: FlightRoute — Create a flight route (US073)
+
+participant ":CreateFlightRouteUI" as UI
+participant ":CreateFlightRouteController" as CTRL
+participant "route:FlightRoute" as DOMAIN
+participant ":FlightRouteRepository" as REPO
+
+activate UI
+UI -> CTRL : createFlightRoute(name, originIataCode,\ndestinationIataCode, company)
+activate CTRL
+CTRL -> DOMAIN** : create(name, originIataCode, destinationIataCode)
+
+CTRL -> REPO : save(flightRoute)
+activate REPO
+REPO --> CTRL : savedFlightRoute
+deactivate REPO
+CTRL --> UI : savedFlightRoute
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

@@ -23,7 +23,7 @@ class AircraftTest {
         return new AircraftModel("737-800", maker, AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
-                0.026, 1.5, engine);
+                0.026, 1.5, 5765.0, engine);
     }
 
     private static AircraftModel validCargoModel() {
@@ -32,7 +32,7 @@ class AircraftTest {
         return new AircraftModel("747F", maker, AircraftType.CARGO,
                 178756, 412775, 302000, 162500,
                 13700, 255, 68.4, 541.0,
-                0.026, 1.5, engine);
+                0.026, 1.5, 5765.0, engine);
     }
 
     private static AircraftModel validModelWithCapacity(final int maxCapacity) {

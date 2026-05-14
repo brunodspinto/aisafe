@@ -1,123 +1,219 @@
-### US 57 - Add an Engine Model to an Aircraft Model
+# US 057 - Add an Engine Model to an Aircraft Model
 
 ## 1. Context
-This US is implemented in Sprint 2 and allows the Backoffice Operator to add an engine model to an aircraft model’s list of certified engines in the AISafe system. It depends on US030 (Authentication and Authorization), which must be in place so that only an authenticated Backoffice Operator can invoke this feature.
+This US is implemented in Sprint 2 and allows the Backoffice Operator to add an engine model to an aircraft model's list of certified engines in the AISafe system. It depends on US030 (Authentication and Authorization), which must be in place so that only an authenticated Backoffice Operator can invoke this feature.
 
-The AircraftModel is an independent aggregate that is updated in this operation. This use case depends on the prior existence of aircraft models and engine models (US055 and US056) and acts as a foundational dependency for US070 (Add an aircraft), which requires the aircraft's theoretical model to have certified engines associated with it before a physical aircraft can be instantiated.
+The `AircraftModel` is an independent aggregate that is updated in this operation. This use case depends on the prior existence of aircraft models and engine models (US055 and US056) and acts as a foundational dependency for US070 (Add an aircraft), which requires the aircraft's theoretical model to have certified engines associated with it before a physical aircraft can be instantiated.
 
-
---------------------------------------------------------------------------------
+---
 
 ## 2. Requirements
-**US057** As a Backoffice Operator, I want to add an engine model to an aircraft model’s list of certified engines.
 
-##### Acceptance Criteria
-*   **US057.1:** The engine type must be compatible with the aircraft model.
-*   **US057.2:** The same engine model cannot be added twice to the same aircraft model.
-*   **US057.3:** The system must handle concurrent updates to the same aircraft model (Optimistic Locking) and inform the user if the data was changed by someone else in the meantime [1, 2].
-*   **US057.4:** The user performing this action must be authenticated and have the `BACKOFFICE_OPERATOR` role.
+**US057** As a Backoffice Operator, I want to add an engine model to an aircraft model's list of certified engines.
 
-##### Dependencies / References
-*   Requires **US055** (Create an Aircraft Model) as the base entity must already exist in the system [3, 4].
-*   Requires **US056** (Create an Aircraft Engine Model) as the catalog of engines must be populated [4].
-*   Requires **US030 / US031** (Authentication and Authorization) to validate the Backoffice Operator role.
+**Acceptance Criteria:**
 
---------------------------------------------------------------------------------
+- **AC057.1** The engine type must be compatible with the aircraft model.
+- **AC057.2** The same engine model cannot be added twice to the same aircraft model.
+- **AC057.3** The system must handle concurrent updates to the same aircraft model (Optimistic Locking) and inform the user if the data was changed by someone else in the meantime.
+- **AC057.4** The user performing this action must be authenticated and have the `BACKOFFICE_OPERATOR` role.
+
+**Dependencies/References:**
+
+- **US055** — Create an Aircraft Model: the base entity must already exist in the system.
+- **US056** — Create an Aircraft Engine Model: the catalog of engines must be populated.
+- **US030 / US031** — Authentication and Authorization: required to validate the Backoffice Operator role.
+- Acts as a prerequisite for:
+  - **US070** — Add an Aircraft (an aircraft's model must have at least one certified engine)
+
+---
 
 ## 3. Analysis
+
 Since this use case modifies an existing aggregate rather than creating a new one, the architectural focus shifts to **Data Consistency and Concurrency Control**.
 
-### Main Components
-*   **AircraftModel** — Aggregate root representing the aircraft specification.
-*   **EngineModelCode** (or `EngineModelId`) — Value object acting as an external reference to the `EngineModel` aggregate.
+The main classes involved are:
 
-**Architectural Decision (Low Coupling):** To maintain the boundaries of Domain-Driven Design, the `AircraftModel` will not hold a direct JPA `@ManyToMany` collection of `EngineModel` entities. Instead, it will hold a collection of primitive identifiers (e.g., Strings or specific Value Objects) referencing the certified engines.
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `AircraftModel` | Entity / Aggregate Root | Holds the engine type, list of certified engine references, and version for optimistic locking |
+| `EngineModelCode` | Value Object (Identity Reference) | Stores a reference to an `EngineModel` without crossing aggregate boundaries |
+| `AircraftModelRepository` | Repository Interface | Persistence contract for the aggregate |
+| `AddEngineToAircraftModelController` | Application Controller | Orchestrates the use case; enforces `BACKOFFICE_OPERATOR` role |
+| `AddEngineToAircraftModelUI` | UI | Collects the aircraft model and engine model selections from the operator |
 
-**Architectural Decision (Concurrency Control):** Because multiple Backoffice Operators might try to update the same `AircraftModel` simultaneously, we must implement **Optimistic Locking** [1, 5].
-*   The `AircraftModel` entity will be updated with a `version` attribute annotated with JPA's `@Version` [1].
-*   When a concurrent update conflict occurs, JPA will throw an `OptimisticLockException`, which the repository layer must catch and wrap into a `ConcurrencyException` to be presented to the user [2, 6].
+**Architectural Decision (Low Coupling):** To maintain the boundaries of Domain-Driven Design, the `AircraftModel` will not hold a direct JPA `@ManyToMany` collection of `EngineModel` entities. Instead, it will hold a collection of `EngineModelCode` value objects referencing the certified engines by identity.
 
-### Domain Model
+**Architectural Decision (Concurrency Control):** Because multiple Backoffice Operators might try to update the same `AircraftModel` simultaneously, **Optimistic Locking** is applied. The `AircraftModel` entity holds a `version` attribute annotated with JPA's `@Version`. When a concurrent update conflict occurs, JPA throws an `OptimisticLockException`, which the repository layer catches and wraps into a `ConcurrencyException` to be presented to the user.
+
+The following domain model excerpt shows the aggregate structure:
 
 ![Domain Model](svg/US057-domain-model.svg)
 
+---
+
 ## 4. Design
 
-### 4.1 Realization
+### 4.1. Realization
 
-This use case follows the standard EAPLI Application Engineering Process. The Controller orchestrates the reading of both catalogs (`AircraftModel` and `EngineModel`), allows the user to select them, delegates the business logic (compatibility and duplication checks) to the `AircraftModel` aggregate, and finally saves the updated entity.
+1. The UI (`AddEngineToAircraftModelUI`) lists available aircraft models and engine models for the operator to select.
+2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR)`.
+3. The controller fetches the selected `AircraftModel` from `AircraftModelRepository`.
+4. The controller fetches the selected `EngineModel` from `EngineModelRepository` and extracts its identity.
+5. The `AircraftModel` aggregate validates compatibility (AC057.1) and checks for duplicates (AC057.2) inside `addCertifiedEngine()`.
+6. The updated `AircraftModel` is persisted via `AircraftModelRepository.save()`. JPA detects any version conflict and throws `OptimisticLockException` (AC057.3).
+7. The UI confirms success or displays the appropriate error message.
 
----
-
-## Sequence Diagram
+The following sequence diagram illustrates the flow:
 
 ![Sequence Diagram](svg/US057-SD.svg)
----
 
-## Class Diagram
+The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US057-class-diagram.svg)
 
+### 4.2. Acceptance Tests
+
+All tests are automated with JUnit 5 and located in `src/test/java/aisafe/aircraftmodel/domain/AircraftModelTest.java`, `src/test/java/aisafe/aircraftmodel/application/AddEngineToAircraftModelControllerTest.java`, and `src/test/java/aisafe/infrastructure/persistence/jpa/JpaAircraftModelRepositoryTest.java`.
+
 ---
 
-### 4.2 Acceptance Tests
+**AC057.1 — Engine type compatibility**
 
-### Test 1
-
-Verifies that the same engine model cannot be added twice to the aircraft model.
+**Test:** `ensureCanAddCompatibleEngineType`
 
 ```java
-@Test(expected = IllegalArgumentException.class)
-public void ensureCannotAddDuplicateEngineModel() {
-    // Arrange
-    AircraftModel model = new AircraftModel(...);
-    EngineModel engine = new EngineModel(...);
-    
-    // Act
+@Test
+void ensureCanAddCompatibleEngineType() {
+    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
+    final EngineModel engine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
     model.addCertifiedEngine(engine);
-    model.addCertifiedEngine(engine); // Should throw exception
+    assertTrue(model.certifiedEngines().contains(engine.identity()));
+}
+```
+
+**Test:** `ensureCannotAddIncompatibleEngineType`
+
+```java
+@Test
+void ensureCannotAddIncompatibleEngineType() {
+    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
+    final EngineModel engine = new EngineModel("PT6", EngineType.TURBOPROP, /* other params */);
+    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(engine));
 }
 ```
 
 ---
 
-# 5. Implementation
+**AC057.2 — No duplicate engine models**
 
-## Key Implementation Details
+**Test:** `ensureCannotAddDuplicateEngineModel`
 
-- `AircraftModel` → Added a new attribute `private Long version;` annotated with `@Version` to enforce Optimistic Locking via JPA.
+```java
+@Test
+void ensureCannotAddDuplicateEngineModel() {
+    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
+    final EngineModel engine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
+    model.addCertifiedEngine(engine);
+    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(engine));
+}
+```
 
-- `certifiedEngines` → A `Set<String>` (or specific ID Value Object) is used with `@ElementCollection` to store the references to the `EngineModel` aggregate, avoiding the overhead of fetching entire engine entities when loading the aircraft model.
+**Test:** `ensureCannotAddNullEngineModel`
 
-- `JpaAircraftModelRepository` → The `save()` method is prepared to catch the `OptimisticLockException` thrown by the JPA provider and wrap it into a `ConcurrencyException`, which is then gracefully handled by the UI layer to inform the user.
-
-- The `AuthorizationService` ensures that only users with the `BACKOFFICE_OPERATOR` role can execute this action.
-
----
-
-# 6. Integration / Demonstration
-
-## Run Instructions
-
-To test this functionality, ensure the system has been bootstrapped first so that Aircraft Models and Engine Models exist in the database.
-
-```bash
-# Run bootstrap (creates initial data, including Aircraft and Engine Models)
-./run-bootstrap.sh
-
-# Run backoffice
-./run-backoffice.sh
-
-# Login with:
-# Username: backoffice_operator (or the specific username created in your bootstrap)
-# Password: Password1
-
-# Navigate to: 
-# Aircraft Configuration -> Add Engine to Aircraft Model
+```java
+@Test
+void ensureCannotAddNullEngineModel() {
+    final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
+    assertThrows(IllegalArgumentException.class, () -> model.addCertifiedEngine(null));
+}
 ```
 
 ---
 
-# 7. Observations
+**AC057.3 — Concurrency control (Optimistic Locking)**
 
-The logic to validate engine compatibility and uniqueness is placed entirely inside the `AircraftModel` domain class (`addCertifiedEngine(EngineModel engine)`). This ensures the Aggregate Root maintains its own invariants.
+**Test:** `ensureOptimisticLockingThrowsExceptionOnConcurrentUpdate` (Integration Test)
+
+```java
+@Test
+void ensureOptimisticLockingThrowsExceptionOnConcurrentUpdate() {
+    final AircraftModel model1 = repository.findByIdentity(modelIdentity).get();
+    final AircraftModel model2 = repository.findByIdentity(modelIdentity).get();
+
+    model1.addCertifiedEngine(engine1);
+    repository.save(model1);
+
+    model2.addCertifiedEngine(engine2);
+    assertThrows(OptimisticLockException.class, () -> repository.save(model2));
+}
+```
+
+---
+
+**AC057.4 — Authorization**
+
+**Test:** `ensureOnlyBackofficeOperatorCanAddEngine`
+
+```java
+@Test
+void ensureOnlyBackofficeOperatorCanAddEngine() {
+    when(authz.currentUser()).thenReturn(Optional.of(mock(User.class)));
+    when(authz.hasRole(BACKOFFICE_OPERATOR)).thenReturn(false);
+
+    final AddEngineToAircraftModelController controller = new AddEngineToAircraftModelController();
+    assertThrows(UnauthorizedException.class, () -> controller.addEngineToAircraftModel(modelIdentity, engineIdentity));
+}
+```
+
+---
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.aircraftmodel.domain` | `AircraftModel` | Aggregate root, table `T_AIRCRAFT_MODEL` |
+| `aisafe.aircraftmodel.domain` | `EngineModelCode` | Value object — identity reference to a certified engine |
+| `aisafe.aircraftmodel.repositories` | `AircraftModelRepository` | Repository interface |
+| `aisafe.aircraftmodel.application` | `AddEngineToAircraftModelController` | Use case orchestrator |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryAircraftModelRepository` | In-memory persistence |
+| `aisafe.infrastructure.persistence.jpa` | `JpaAircraftModelRepository` | JPA persistence |
+| `aisafe.app.console.presentation.aircraftmodel` | `AddEngineToAircraftModelUI` | Console UI |
+
+`RepositoryFactory` must expose an `aircraftModels()` method, and both `InMemoryRepositoryFactory` and `JpaRepositoryFactory` must provide implementations.
+
+---
+
+## 6. Integration/Demonstration
+
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21.
+
+**Scenario A: Happy Path & Duplication Prevention**
+
+1. Login with Backoffice Operator credentials.
+2. Select **Aircraft Configuration > Add Engine to Aircraft Model** from the main menu.
+3. Select an existing Aircraft Model (e.g., `Boeing 737`).
+4. Select a compatible Engine Model (e.g., `CFM56`).
+5. The system confirms: `Engine 'CFM56' successfully added to aircraft model 'Boeing 737'.`
+6. Repeat steps 2–4 with the **same** Aircraft and Engine models.
+7. The system rejects the operation with a business rule violation message.
+
+**Scenario B: Concurrency Control (Optimistic Locking)**
+
+1. Open **two separate terminal windows** and run the Backoffice Application in both.
+2. Login as `backoffice_operator` in both terminals.
+3. In **Terminal 1**, navigate to `Add Engine to Aircraft Model` and select an Aircraft Model, but do **not** confirm yet.
+4. In **Terminal 2**, select the **same** Aircraft Model, select an engine, and confirm the addition. (Operation succeeds.)
+5. Return to **Terminal 1**, select an engine, and confirm.
+6. The system detects the version mismatch and aborts the operation, displaying a user-friendly concurrency error.
+
+---
+
+## 7. Observations
+
+- The `AircraftModel` aggregate stores certified engines as a collection of `EngineModelCode` value objects rather than JPA entity references, preserving aggregate boundary isolation.
+- The `@Version` field on `AircraftModel` is the sole mechanism for optimistic locking; no pessimistic locking strategy is used.
+- Engine type compatibility is enforced exclusively in the domain layer (`AircraftModel.addCertifiedEngine()`), keeping the controller free of business rules.
+- The UI must filter available engine models by engine type to reduce operator error, even though the domain enforces the rule independently.

@@ -56,6 +56,7 @@ public class AircraftModel implements AggregateRoot<Long> {
     private double wingArea;
     private double dragCoefficient;
     private double liftCoefficient;
+    private double maxRange;
 
     @ManyToMany
     private List<EngineModel> certifiedEngines = new ArrayList<>();
@@ -97,6 +98,7 @@ public class AircraftModel implements AggregateRoot<Long> {
                          final double wingArea,
                          final double dragCoefficient,
                          final double liftCoefficient,
+                         final double maxRange,
                          final EngineModel firstEngine) {
 
         if (modelName == null || modelName.isBlank())
@@ -129,6 +131,8 @@ public class AircraftModel implements AggregateRoot<Long> {
             throw new IllegalArgumentException("Drag coefficient must be positive.");
         if (liftCoefficient <= 0)
             throw new IllegalArgumentException("Lift coefficient must be positive.");
+        if (maxRange <= 0)
+            throw new IllegalArgumentException("Max range must be positive.");
 
         this.modelName = modelName.trim();
         this.maker = maker;
@@ -143,6 +147,7 @@ public class AircraftModel implements AggregateRoot<Long> {
         this.wingArea = wingArea;
         this.dragCoefficient = dragCoefficient;
         this.liftCoefficient = liftCoefficient;
+        this.maxRange = maxRange;
         this.certifiedEngines.add(firstEngine);
     }
 
@@ -227,6 +232,8 @@ public class AircraftModel implements AggregateRoot<Long> {
 
     /** @return aerodynamic lift coefficient */
     public double liftCoefficient() { return liftCoefficient; }
+
+    public double maxRange() { return maxRange; }
 
     /** @return unmodifiable list of certified engine models */
     public List<EngineModel> certifiedEngines() { return Collections.unmodifiableList(certifiedEngines); }
