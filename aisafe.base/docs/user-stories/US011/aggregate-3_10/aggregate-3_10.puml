@@ -1,0 +1,59 @@
+@startuml aggregate-3_10
+skinparam shadowing false
+
+title Aggregate: Simulation — Simulate flights in an area (US100)
+
+participant ":SimulationUI" as UI
+participant ":SimulationController" as CTRL
+participant "simulation:Simulation" as SIM
+participant "report:SimulationReport" as REPORT
+participant "violation:SafetyViolation" as VIOLATION
+participant ":SimulationRepository" as REPO
+
+activate UI
+UI -> CTRL : runSimulation(areaCode, timeRangeStart,\ntimeRangeEnd, timeStep,\nsafetyThreshold, flights)
+activate CTRL
+
+CTRL -> SIM** : create(areaCode, timeRangeStart,\ntimeRangeEnd, timeStep, safetyThreshold)
+note right of SIM
+  Simulation enforces invariant:
+  - timeRangeStart must precede
+    timeRangeEnd
+  - timeStep must be positive
+  - safetyThreshold must be positive
+  - Status starts as PENDING
+end note
+
+CTRL -> SIM : run(flights)
+activate SIM
+SIM -> REPORT** : create()
+
+loop for each time step
+    SIM -> SIM : advanceTimeStep()
+    SIM -> SIM : detectSafetyViolations()
+    opt violation detected
+        SIM -> VIOLATION** : create(description,\nflightDesignator, timestamp,\nspeed, heading, latitude,\nlongitude, altitude)
+        note right of VIOLATION
+          SafetyViolation is a Value Object —
+          immutable record of a safety event.
+          Once recorded it never changes.
+        end note
+        SIM -> REPORT : recordViolation(violation)
+    end
+end
+
+SIM -> REPORT : finalise(totalFlights, passed)
+SIM --> CTRL : completedSimulation
+deactivate SIM
+
+CTRL -> REPO : save(simulation)
+activate REPO
+REPO --> CTRL : savedSimulation
+deactivate REPO
+
+CTRL --> UI : savedSimulation
+deactivate CTRL
+UI --> : displays simulation report
+deactivate UI
+
+@enduml
