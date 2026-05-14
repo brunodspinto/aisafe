@@ -15,14 +15,6 @@ UI -> CTRL : runSimulation(areaCode, timeRangeStart,\ntimeRangeEnd, timeStep,\ns
 activate CTRL
 
 CTRL -> SIM** : create(areaCode, timeRangeStart,\ntimeRangeEnd, timeStep, safetyThreshold)
-note right of SIM
-  Simulation enforces invariant:
-  - timeRangeStart must precede
-    timeRangeEnd
-  - timeStep must be positive
-  - safetyThreshold must be positive
-  - Status starts as PENDING
-end note
 
 CTRL -> SIM : run(flights)
 activate SIM

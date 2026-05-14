@@ -17,13 +17,6 @@ CTRL -> FLIGHT : addFlightPlan(aircraftId, departureDateTime,\nfuelLoad, segment
 activate FLIGHT
 
 FLIGHT -> FP** : create(totalFuelLoad, cargoWeight,\npassengerCount, crewCount,\ntotalWeight, estimatedDuration, segments)
-note right of FP
-  Flight enforces invariant:
-  - FlightPlan must have at least
-    one FlightSegment
-  - Fuel load must be positive
-  - FlightPlan status starts as DRAFT
-end note
 
 FLIGHT --> CTRL : updatedFlight
 deactivate FLIGHT

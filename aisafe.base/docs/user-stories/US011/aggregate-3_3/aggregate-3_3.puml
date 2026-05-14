@@ -1,0 +1,23 @@
+@startuml aggregate-3_3
+skinparam shadowing false
+title Aggregate: Maker — Register a new manufacturer
+
+participant ":RegisterMakerUI" as UI
+participant ":RegisterMakerController" as CTRL
+participant "maker:Maker" as DOMAIN
+participant ":MakerRepository" as REPO
+
+activate UI
+UI -> CTRL : registerMaker(name, country)
+activate CTRL
+CTRL -> DOMAIN** : create(name, country)
+
+CTRL -> REPO : save(maker)
+activate REPO
+REPO --> CTRL : savedMaker
+deactivate REPO
+CTRL --> UI : savedMaker
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

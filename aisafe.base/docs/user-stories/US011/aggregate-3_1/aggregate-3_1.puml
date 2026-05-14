@@ -24,10 +24,7 @@ activate Domain
 Domain --> Controller : company
 deactivate Domain
 
-note right of Controller
-  Repository creation via PersistenceContext and Factory
-  was omitted in this diagram for readability purposes.
-end note
+
 
 Controller -> Repository : save(company)
 activate Repository

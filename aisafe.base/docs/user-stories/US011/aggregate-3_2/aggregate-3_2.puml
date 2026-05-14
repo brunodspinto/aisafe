@@ -17,23 +17,12 @@ activate CTRL
 CTRL -> SVC : registerNewUser(username, password,\nfirstName, lastName, email, roles)
 activate SVC
 SVC -> SU** : create(username, password, firstName,\nlastName, email, roles)
-note right of SU
-  EAPLI enforces:
-  - unique username
-  - password policy
-  - role assignment
-end note
+
 SVC --> CTRL : systemUser
 deactivate SVC
 
 CTRL -> USER** : create(systemUser, mecanographicNumber,\nphoneNumber, email, position,\nsecurityClearance, skillsDate)
-note right of USER
-  User enforces invariant:
-  - Email must be valid (format)
-  - SecurityClearance must be active
-    (expiration date in the future)
-  - SecurityLevel must be defined
-end note
+
 
 CTRL -> REPO : save(user)
 activate REPO
