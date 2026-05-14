@@ -36,13 +36,12 @@ The main classes involved are:
 
 | Class | Type | Responsibility |
 |-------|------|----------------|
-| `AircraftModel` | Entity / Aggregate Root | Holds the engine type, list of certified engine references, and version for optimistic locking |
-| `EngineModelCode` | Value Object (Identity Reference) | Stores a reference to an `EngineModel` without crossing aggregate boundaries |
+| `AircraftModel` | Entity / Aggregate Root | Holds the aircraft type, list of certified `EngineModel` entities, and version for optimistic locking |
 | `AircraftModelRepository` | Repository Interface | Persistence contract for the aggregate |
 | `AddEngineToAircraftModelController` | Application Controller | Orchestrates the use case; enforces `BACKOFFICE_OPERATOR` role |
 | `AddEngineToAircraftModelUI` | UI | Collects the aircraft model and engine model selections from the operator |
 
-**Architectural Decision (Low Coupling):** To maintain the boundaries of Domain-Driven Design, the `AircraftModel` will not hold a direct JPA `@ManyToMany` collection of `EngineModel` entities. Instead, it will hold a collection of `EngineModelCode` value objects referencing the certified engines by identity.
+**Architectural Decision (Certified Engines):** The `AircraftModel` holds a `@ManyToMany List<EngineModel>` of certified engines. Engine compatibility is validated inside `addEngine()` by comparing the new engine's type against the type of the first engine already certified in the list, ensuring consistency.
 
 **Architectural Decision (Concurrency Control):** Because multiple Backoffice Operators might try to update the same `AircraftModel` simultaneously, **Optimistic Locking** is applied. The `AircraftModel` entity holds a `version` attribute annotated with JPA's `@Version`. When a concurrent update conflict occurs, JPA throws an `OptimisticLockException`, which the repository layer catches and wraps into a `ConcurrencyException` to be presented to the user.
 
@@ -88,7 +87,7 @@ void ensureCanAddCompatibleEngineType() {
     final AircraftModel model = new AircraftModel("Boeing 737", EngineType.TURBOFAN, /* other params */);
     final EngineModel engine = new EngineModel("CFM56", EngineType.TURBOFAN, /* other params */);
     model.addCertifiedEngine(engine);
-    assertTrue(model.certifiedEngines().contains(engine.identity()));
+    assertTrue(model.certifiedEngines().contains(engine));
 }
 ```
 
@@ -175,7 +174,6 @@ The implementation is distributed across the following packages in `aisafe.base`
 | Package | Class | Role |
 |---------|-------|------|
 | `aisafe.aircraftmodel.domain` | `AircraftModel` | Aggregate root, table `T_AIRCRAFT_MODEL` |
-| `aisafe.aircraftmodel.domain` | `EngineModelCode` | Value object — identity reference to a certified engine |
 | `aisafe.aircraftmodel.repositories` | `AircraftModelRepository` | Repository interface |
 | `aisafe.aircraftmodel.application` | `AddEngineToAircraftModelController` | Use case orchestrator |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryAircraftModelRepository` | In-memory persistence |
@@ -213,7 +211,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 ## 7. Observations
 
-- The `AircraftModel` aggregate stores certified engines as a collection of `EngineModelCode` value objects rather than JPA entity references, preserving aggregate boundary isolation.
+- The `AircraftModel` aggregate stores certified engines as a `@ManyToMany List<EngineModel>`. Engine compatibility is validated by comparing the new engine's type against the first certified engine in the list, and duplicates are detected by comparing engine name and maker name before adding.
 - The `@Version` field on `AircraftModel` is the sole mechanism for optimistic locking; no pessimistic locking strategy is used.
 - Engine type compatibility is enforced exclusively in the domain layer (`AircraftModel.addCertifiedEngine()`), keeping the controller free of business rules.
 - The UI must filter available engine models by engine type to reduce operator error, even though the domain enforces the rule independently.
