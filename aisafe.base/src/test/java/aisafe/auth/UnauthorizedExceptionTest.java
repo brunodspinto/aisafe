@@ -9,6 +9,9 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class UnauthorizedExceptionTest {
 
+    /**
+     * Verifies that the exception preserves the provided message.
+     */
     @Test
     void ensureExceptionCanBeCreatedWithMessage() {
         final String message = "Access denied";
@@ -16,6 +19,9 @@ class UnauthorizedExceptionTest {
         assertEquals(message, ex.getMessage());
     }
 
+    /**
+     * Verifies that the exception preserves both message and cause.
+     */
     @Test
     void ensureExceptionCanBeCreatedWithCause() {
         final String message = "Authorization failed";
@@ -25,6 +31,9 @@ class UnauthorizedExceptionTest {
         assertEquals(cause, ex.getCause());
     }
 
+    /**
+     * Verifies that the exception can be thrown by authorization checks.
+     */
     @Test
     void ensureExceptionCanBeThrown() {
         assertThrows(UnauthorizedException.class, () -> {

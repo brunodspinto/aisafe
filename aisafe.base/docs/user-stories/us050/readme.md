@@ -1,10 +1,15 @@
-# US050 — Register an Air Control Area
+# US050 - Register an Air Control Area
 
 ## 1. Context
 
-This US is implemented in Sprint 2 and allows the Backoffice Operator to register a new air control area in the AISafe system. It depends on US030 (Authentication and Authorization), which must be in place so that only an authenticated Backoffice Operator can invoke this feature.
+*This US allows the Backoffice Operator to register a new air control area in the AISafe system.*
 
-The `AirControlArea` is an independent aggregate with no upstream dependencies and acts as a foundational dependency for US041 (Register Weather Data) and US052 (Create an Airport), both of which require a pre-existing area. Registration must also be achievable via the bootstrap process on system startup.
+### 1.1 List of Issues
+
+- **Analysis:** Define the domain model for the AirControlArea aggregate and identify its invariants (unique code, valid geographic boundaries).
+- **Design:** Design the standard "Register X" sequence diagram and class diagram for the domain and persistence layers.
+- **Implement:** Create the `AirControlArea` entity, `GeoBoundary` value object, JPA repositories, Controller, UI, and the Bootstrap process.
+- **Test:** Unit tests for `AirControlArea` instantiation and `GeoBoundary` spatial validations, plus manual acceptance tests for the UI and bootstrap flow.
 
 ---
 
@@ -72,175 +77,50 @@ The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US050-class-diagram.svg)
 
----
-
-### 4.2. Acceptance Tests
-
-All tests are automated with JUnit 5 and located in `src/test/java/aisafe/aircontrolarea/domain/GeoBoundaryTest.java` and `src/test/java/aisafe/aircontrolarea/domain/AirControlAreaTest.java`.
 
 ---
 
-**AC050.1 — Valid area creation**
+### 4.2 Acceptance Tests
 
-**Test:** `ensureValidAirControlAreaIsCreatedSuccessfully`
+Detailed coverage is documented in [tests.md](tests.md).
 
-```java
-@Test
-void ensureValidAirControlAreaIsCreatedSuccessfully() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    final AirControlArea area = new AirControlArea("PT-N", "North Portugal", 500.0, boundary);
-    assertNotNull(area);
-    assertEquals("PT-N", area.identity());
-}
-```
+All automated coverage is implemented with JUnit 5 and is split across:
 
-**Test:** `ensureAreaCodeCannotBeNull`
+- `src/test/java/aisafe/aircontrolarea/domain/GeoBoundaryTest.java`
+- `src/test/java/aisafe/aircontrolarea/domain/AirControlAreaTest.java`
 
-```java
-@Test
-void ensureAirControlAreaMustHaveValidCode() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    assertThrows(IllegalArgumentException.class,
-            () -> new AirControlArea(null, "North Portugal", 500.0, boundary));
-}
-```
+**Manual test — US050.1 (register with valid data):**
 
-**Test:** `ensureAreaCodeCannotBeBlank`
+1. Run `AiSafeConsoleApp` and login as `admin` (or a BACKOFFICE_OPERATOR).
+2. Navigate to `Air Control Areas > 1 — Register Air Control Area`.
+3. Enter a unique area code (e.g., `PT-S`).
+4. Enter a name (e.g., `Southern Portugal`).
+5. Enter minimum fuel required (e.g., `500`).
+6. Enter geographic boundaries: North Latitude: 41.5, South Latitude: 37.0, West Longitude: -10.0, East Longitude: -6.0.
+7. Confirm the registration.
+8. Expected: Success message; area is registered and saved to the database.
 
-```java
-@Test
-void ensureAirControlAreaCannotHaveEmptyCode() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    assertThrows(IllegalArgumentException.class,
-            () -> new AirControlArea("   ", "North Portugal", 500.0, boundary));
-}
-```
+**Manual test — US050.2 (unique area code):**
 
-**Test:** `ensureAreaNameCannotBeNull`
+1. Perform the steps above to register an area with code `PT-N`.
+2. Attempt to register another area with the same code `PT-N`.
+3. Expected: The system rejects the operation with an error message stating the code already exists.
 
-```java
-@Test
-void ensureAirControlAreaMustHaveValidName() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    assertThrows(IllegalArgumentException.class,
-            () -> new AirControlArea("PT-N", null, 500.0, boundary));
-}
-```
+**Manual test — US050.3 (valid geographic boundaries):**
 
-**Test:** `ensureMinimumFuelCannotBeNegative`
+1. Try to register an area with North Latitude: 37.0 and South Latitude: 41.5 (reversed).
+2. Expected: System rejects with an error: "North latitude must be greater than South latitude.".
+3. Try to register with Latitude: 91.0 (outside range).
+4. Expected: System rejects with an error: "Latitude must be between -90 and 90.".
+5. Try to register with Longitude: -181.0 (outside range).
+6. Expected: System rejects with an error: "Longitude must be between -180 and 180.".
 
-```java
-@Test
-void ensureAirControlAreaCannotHaveNegativeFuel() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    assertThrows(IllegalArgumentException.class,
-            () -> new AirControlArea("PT-N", "North Portugal", -1.0, boundary));
-}
-```
+**Manual test — US050.4 (bootstrap registration):**
 
-**Test:** `ensureBoundariesCannotBeNull`
-
-```java
-@Test
-void ensureAirControlAreaMustHaveBoundaries() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new AirControlArea("PT-N", "North Portugal", 500.0, null));
-}
-```
-
----
-
-**AC050.2 — Unique area code**
-
-**Test:** `ensureControllerRejectsDuplicateAreaCode`
-
-```java
-@Test
-void ensureControllerRejectsDuplicateAreaCode() {
-    when(repository.containsOfIdentity("PT-N")).thenReturn(true);
-
-    final RegisterAirControlAreaController controller = new RegisterAirControlAreaController();
-    assertThrows(IllegalStateException.class,
-            () -> controller.registerAirControlArea("PT-N", "North Portugal", 500.0,
-                    45.0, 35.0, 10.0, -10.0));
-}
-```
-
----
-
-**AC050.3 — Geographic boundary validation**
-
-**Test:** `ensureValidGeoBoundaryIsCreated`
-
-```java
-@Test
-void ensureValidGeoBoundaryIsCreatedSuccessfully() {
-    final GeoBoundary boundary = new GeoBoundary(45.0, 35.0, 10.0, -10.0);
-    assertNotNull(boundary);
-}
-```
-
-**Test:** `ensureNorthLatitudeMustBeGreaterThanSouth`
-
-```java
-@Test
-void ensureNorthLatitudeMustBeStrictlyGreaterThanSouthLatitude() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(35.0, 45.0, 10.0, -10.0));
-}
-```
-
-**Test:** `ensureNorthAndSouthCannotBeEqual`
-
-```java
-@Test
-void ensureNorthLatitudeCannotBeEqualToSouthLatitude() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(45.0, 45.0, 10.0, -10.0));
-}
-```
-
-**Test:** `ensureNorthLatitudeCannotExceed90`
-
-```java
-@Test
-void ensureNorthLatitudeCannotBeGreaterThan90() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(91.0, 35.0, 10.0, -10.0));
-}
-```
-
-**Test:** `ensureSouthLatitudeCannotGoBelowMinus90`
-
-```java
-@Test
-void ensureSouthLatitudeCannotBeLessThanMinus90() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(45.0, -91.0, 10.0, -10.0));
-}
-```
-
-**Test:** `ensureEastLongitudeMustBeValid`
-
-```java
-@Test
-void ensureEastLongitudeCannotBeInvalid() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(45.0, 35.0, 181.0, -10.0));
-}
-```
-
-**Test:** `ensureWestLongitudeMustBeValid`
-
-```java
-@Test
-void ensureWestLongitudeCannotBeInvalid() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new GeoBoundary(45.0, 35.0, 10.0, -181.0));
-}
-```
-
----
+1. Run `./run-bootstrap.sh` to initialize the system with seed data.
+2. Check the database or logs to confirm a default air control area (e.g., `PT-N`) was created.
+3. Run the bootstrap again without clearing data.
+4. Expected: No duplicate `PT-N` area is inserted; the system handles the idempotent bootstrap gracefully.
 
 ## 5. Implementation
 
@@ -258,30 +138,25 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 `RepositoryFactory` must expose an `airControlAreas()` method, and both `InMemoryRepositoryFactory` and `JpaRepositoryFactory` must provide implementations. Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default valid air control area if one does not already exist.
 
----
+## 6. Integration / Demonstration
 
-## 6. Integration/Demonstration
+### Run Instructions
 
-**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21.
+```bash
+# Run bootstrap (creates initial data)
+./run-bootstrap.sh
 
-**To register an Air Control Area:**
+# Run backoffice
+./run-backoffice.sh
 
-1. Login with Backoffice Operator credentials.
-2. Select **Air Control Management > Register Air Control Area** from the main menu.
-3. Enter the area code (e.g., `PT-N`).
-4. Enter the area name (e.g., `North Portugal`).
-5. Enter the minimum fuel required (e.g., `500.0`).
-6. Enter the geographic boundaries: north latitude, south latitude, east longitude, west longitude.
-7. The system confirms: `Air Control Area 'PT-N' registered successfully.`
+# Login with:
+# Username: admin (or a backoffice operator account)
+# Password: Password1
 
-**Bootstrap verification:**
+# Navigate to: 
+# Air Control Management -> Register Air Control Area
 
-1. Run the bootstrap application.
-2. Confirm that the default air control area is created when missing.
-3. Confirm that the bootstrap does **not** duplicate the same area code on subsequent runs.
-
----
-
+```
 ## 7. Observations
 
 - `GeoBoundary` acts as an autonomous validator. By delegating all spatial logic to this Value Object, the `AirControlArea` aggregate root remains clean and highly cohesive.

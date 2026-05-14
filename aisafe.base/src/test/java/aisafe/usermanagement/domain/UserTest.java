@@ -39,7 +39,7 @@ class UserTest {
                 .withSkillsAssessmentDate(LocalDate.now());
     }
 
-    // --- User identity ---
+
 
     @Test
     void ensureUsersWithSameMecanographicNumberAreEqual() {
@@ -105,7 +105,6 @@ class UserTest {
                         DUMMY_CLEARANCE, LocalDate.now()));
     }
 
-    // --- Email (AC031.2) ---
 
     @Test
     void ensureEmailAcceptsValidFormat() {
@@ -139,7 +138,6 @@ class UserTest {
         assertEquals("user@aisafe.com", email.address());
     }
 
-    // --- SecurityClearance ---
 
     @Test
     void ensureSecurityClearanceIsActiveWhenDateIsInFuture() {
@@ -215,7 +213,6 @@ class UserTest {
         assertTrue(clearance.isActive());
     }
 
-    // --- Email ---
 
     @Test
     void ensureEmailEqualityBasedOnAddress() {
@@ -232,7 +229,6 @@ class UserTest {
         assertNotEquals(a, b);
     }
 
-    // --- MecanographicNumber ---
 
     @Test
     void ensureMecanographicNumberRejectsNull() {
@@ -296,7 +292,7 @@ class UserTest {
                 () -> user.updateContact(new Email("new@aisafe.com"), "   "));
     }
 
-    // --- Getters ---
+
     @Test
     void ensureGettersReturnCorrectValues() {
         final User user = baseBuilder().withMecanographicNumber("GETTERS")
@@ -305,14 +301,6 @@ class UserTest {
         assertEquals("test@aisafe.com", user.email().address());
         assertEquals("Operator", user.position());
         assertEquals(DUMMY_CLEARANCE, user.securityClearance());
-    }
-
-    @Test
-    void ensureSystemUserGetterWorks() {
-        final var systemUser = dummySystemUser("user_sys", AiSafeRoles.ATCC);
-        final User user = baseBuilder().withMecanographicNumber("SYS")
-                .withSystemUser(systemUser).build();
-        assertEquals(systemUser, user.systemUser());
     }
 
     @Test

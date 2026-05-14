@@ -42,7 +42,8 @@ public class RegisterEngineModelController {
      */
     public EngineModel registerEngineModel(final String name, final String makerName,
                                            final EngineType engineType,
-                                           final double thrust, final double tsfc) {
+                                           final double thrustAtStandstill,
+                                           final double thrustAtCruiseSpeed, final double tsfc) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
         final String trimmedName = name == null ? null : name.trim();
@@ -53,7 +54,7 @@ public class RegisterEngineModelController {
                     "An engine model with name '" + trimmedName + "' and maker '" + trimmedMaker + "' already exists.");
         }
 
-        final EngineModel model = new EngineModel(trimmedName, trimmedMaker, engineType, thrust, tsfc);
+        final EngineModel model = new EngineModel(trimmedName, trimmedMaker, engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc);
         return repository.save(model);
     }
 }

@@ -19,7 +19,7 @@ class AircraftTest {
 
     private static AircraftModel validModel() {
         final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
-        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
+        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 115.0, 0.35);
         return new AircraftModel("737-800", maker, AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
@@ -28,7 +28,7 @@ class AircraftTest {
 
     private static AircraftModel validCargoModel() {
         final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
-        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
+        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 115.0, 0.35);
         return new AircraftModel("747F", maker, AircraftType.CARGO,
                 178756, 412775, 302000, 162500,
                 13700, 255, 68.4, 541.0,
