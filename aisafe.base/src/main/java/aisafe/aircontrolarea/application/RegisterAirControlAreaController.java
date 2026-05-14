@@ -67,6 +67,12 @@ public class RegisterAirControlAreaController {
         return repository.save(newArea);
     }
 
+        /**
+         * Normalizes an area code for consistent identity lookup and persistence.
+         *
+         * @param areaCode raw area code input
+         * @return uppercased and trimmed area code, or {@code null} when input is null
+         */
         private String normalizeAreaCode(final String areaCode) {
                 if (areaCode == null) {
                         return null;
