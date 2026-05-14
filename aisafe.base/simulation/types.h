@@ -66,10 +66,26 @@ typedef struct {
     double performance_threshold;
 } simulation_params_t;
 
+/* Rectangular boundary of an Air Control Area */
+typedef struct {
+    double north_latitude;
+    double south_latitude;
+    double east_longitude;
+    double west_longitude;
+} geo_boundary_t;
+
+/* Tracks whether a flight has entered/exited the ACA */
+typedef enum {
+    ACA_BEFORE = 0, /* hasn't entered yet (or never will) */
+    ACA_INSIDE = 1, /* currently inside the ACA */
+    ACA_AFTER  = 2  /* has exited the ACA */
+} aca_state_t;
+
 typedef struct {
     aircraft_position_t positions[MAX_POSITIONS];
     int count;
     char flight_id[64];
+    aca_state_t aca_state; /* AC6: entry/exit tracking */
 } flight_history_t;
 
 #endif /* FLIGHT_SIMULATION_TYPES_H */

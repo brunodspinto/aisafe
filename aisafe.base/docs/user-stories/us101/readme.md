@@ -27,6 +27,9 @@ enough data to anticipate future safety violations.
 | AC1 | Each flight process sends position updates to the parent via a POSIX pipe | Done |
 | AC2 | The parent process reads and displays live position updates | Done |
 | AC3 | The system stores past positions including speed and heading to enable future anticipation of safety violations | Done |
+| AC5 | Only positions inside the Air Control Area (ACA) boundary are stored and displayed | Done |
+| AC6 | Aircraft entry into and exit from the ACA are detected and logged at runtime | Done |
+| AC7 | Simulation step count is derived from real physics (distance ÷ speed), giving a second-by-second model | Done |
 
 ---
 
@@ -266,13 +269,15 @@ for (i = 0; i < N_FLIGHTS; i++) {
 
 | File | Change summary |
 |------|---------------|
-| `simulation/types.h` | Added `speed_knots`, `heading_deg` to `aircraft_position_t`; replaced `altitude_meters` in `segment_t` with `mode[16]`, `alt_from_meters`, `alt_to_meters` |
+| `simulation/types.h` | Added `speed_knots`, `heading_deg` to `aircraft_position_t`; replaced `altitude_meters` in `segment_t` with `mode[16]`, `alt_from_meters`, `alt_to_meters`; **added `geo_boundary_t`, `aca_state_t`; expanded `flight_history_t` with `aca_state`** |
 | `simulation/flight_data.h` | Changed declaration from `create_sample_flight_plan(void)` to `create_flight_plan(int index)` |
 | `simulation/flight_data.c` | Implemented 3 distinct OPO→MAD flight plans from `Flight_Plan_v0c.json`; fixed OPO→LIS destination bug |
-| `simulation/flight_process.c` | Added altitude interpolation, speed-by-phase, heading calculation; replaced `send_position()` with direct `write()`; added `close(pipe_fd)` before `exit()` |
-| `simulation/ipc.c` | Removed `send_position`, `recv_position`, `create_pipe`, `close_pipe`, `pipe_t`; updated `print_history` to show speed and heading |
-| `simulation/ipc.h` | Removed all declarations except `store_position` and `print_history` |
-| `simulation/main.c` | Full rewrite — one shared pipe, no `select()`, `waitpid` + `WIFEXITED` |
+| `simulation/flight_process.c` | Added altitude interpolation, speed-by-phase, heading calculation; replaced `send_position()` with direct `write()`; added `close(pipe_fd)` before `exit()`; **AC7: step count derived from distance/speed physics** |
+| `simulation/ipc.c` | Removed `send_position`, `recv_position`, `create_pipe`, `close_pipe`, `pipe_t`; **replaced `store_position` with `find_or_create_flight`; updated `print_history` to show ACA state and "never entered ACA"** |
+| `simulation/ipc.h` | **Replaced `store_position` with `find_or_create_flight`** |
+| `simulation/main.c` | Full rewrite — one shared pipe, no `select()`, `waitpid` + `WIFEXITED`; **AC5/AC6: ACA boundary filter + ENTERING/EXITING detection** |
+| `simulation/aca_filter.c` | **New — `is_in_aca()` rectangular boundary check** |
+| `simulation/aca_filter.h` | **New — public interface for ACA filter** |
 | `libs/scripts/build_c.sh` | Added `-Wall -Wextra -g -lm` flags |
 
 ### 5.2 Key Implementation Details
@@ -323,47 +328,44 @@ Zero compiler warnings (enforced by `-Wall -Wextra`).
 
 ```
 === Flight Simulation (US101) ===
+ACA: lat [36.0, 43.0]  lon [-10.0, -6.0]
 
 Flight loaded: FLIGHT_01
 Flight loaded: FLIGHT_02
 Flight loaded: FLIGHT_03
-[Flight FLIGHT_01] Executing 1 legs
-[Flight FLIGHT_02] Executing 1 legs
-[Flight FLIGHT_03] Executing 1 legs
 
-=== Live Position Updates ===
-[FLIGHT_01] lat=41.2629 lon=-8.6852 alt=69m   spd=250kt hdg=42.5
-[FLIGHT_02] lat=41.5629 lon=-8.6852 alt=69m   spd=250kt hdg=57.1
-[FLIGHT_03] lat=40.9629 lon=-8.6852 alt=69m   spd=250kt hdg=33.1
+=== Live Position Updates (ACA only) ===
+[FLIGHT_01] >>> ENTERING ACA
+[FLIGHT_01] lat=41.2629 lon=-8.6852 alt=69m spd=250kt hdg=42.5
+[FLIGHT_02] >>> ENTERING ACA
+[FLIGHT_02] lat=41.5629 lon=-8.6852 alt=69m spd=250kt hdg=57.1
+[FLIGHT_03] >>> ENTERING ACA
+[FLIGHT_03] lat=40.9629 lon=-8.6852 alt=69m spd=250kt hdg=33.1
 ...
-[FLIGHT_01] lat=42.0000 lon=-8.0100 alt=9249m spd=460kt hdg=105.1
-[FLIGHT_02] lat=42.0000 lon=-8.0100 alt=9249m spd=460kt hdg=105.1
-[FLIGHT_03] lat=42.0000 lon=-8.0100 alt=9249m spd=460kt hdg=105.1
+[FLIGHT_02] <<< EXITING ACA
 ...
-[FLIGHT_01] lat=40.5916 lon=-3.7114 alt=2338m spd=220kt hdg=124.8
-[FLIGHT_02] lat=40.5916 lon=-3.7114 alt=2338m spd=220kt hdg=124.8
-[FLIGHT_03] lat=40.5916 lon=-3.7114 alt=2338m spd=220kt hdg=124.8
+[FLIGHT_01] <<< EXITING ACA
+...
+[FLIGHT_03] <<< EXITING ACA
 
-=== Position History ===
-Flight FLIGHT_01: 15 positions recorded
-  [0] lat=41.2629 lon=-8.6852 alt=69m   spd=250kt hdg=42.5
+=== Position History (ACA only) ===
+Flight FLIGHT_01: 25 positions inside ACA [exited ACA]
+  [0] lat=41.2629 lon=-8.6852 alt=69m spd=250kt hdg=42.5
   ...
-  [14] lat=40.5916 lon=-3.7114 alt=2338m spd=220kt hdg=124.8
-Flight FLIGHT_02: 15 positions recorded
+Flight FLIGHT_02: 22 positions inside ACA [exited ACA]
   ...
-Flight FLIGHT_03: 15 positions recorded
+Flight FLIGHT_03: 29 positions inside ACA [exited ACA]
   ...
 [FLIGHT_01] ended with code 0
 [FLIGHT_02] ended with code 0
 [FLIGHT_03] ended with code 0
 ```
 
-Each flight records **15 positions** (5 steps × 3 segments). The altitude profile per
-flight clearly shows climb (69 m → 9 249 m), cruise (9 249 m constant) and descend
-(9 249 m → 610 m, with the simulation stopping at 2 338 m because the last step uses
-`progress = 4/5`). Speed transitions confirm phase detection. Positions appear
-interleaved from all three child processes, demonstrating concurrent operation on the
-shared pipe.
+Step counts per flight differ (22–29) because they are derived from real distance and
+speed (AC7): climb ~12 steps, cruise steps end when the aircraft crosses lon = −6.0°
+(the ACA's eastern boundary). Positions from the descent segment (approaching MAD at
+−3.56°E) are outside the ACA and never stored (AC5). All three flights show ENTERING
+and EXITING events (AC6).
 
 ---
 
@@ -391,6 +393,20 @@ pipes. While functionally correct, it diverges from the professor's teaching mat
 The single-pipe model eliminates the multiplexing complexity while remaining correct
 because of POSIX atomic-write semantics.
 
-**Step count** — `STEP_COUNT 5` produces 15 positions per flight (5 per segment × 3
-segments). This is sufficient for demonstration. Increasing this constant requires no
-other code changes.
+**AC5 — ACA filtering** — The parent calls `is_in_aca()` (in `aca_filter.c`) for every
+position received from the pipe. Only positions whose latitude/longitude fall within the
+configured `geo_boundary_t` rectangle are stored in the history or printed. Positions
+outside the ACA are processed only to update the flight's ACA state (AC6).
+
+**AC6 — Entry/exit detection** — Each flight history slot carries an `aca_state_t`
+field (`ACA_BEFORE`, `ACA_INSIDE`, `ACA_AFTER`). The parent transitions the state on
+the first in-boundary position ("ENTERING") and on the first out-of-boundary position
+after having been inside ("EXITING"). If a flight is never seen inside the ACA,
+`print_history` reports "never entered ACA".
+
+**AC7 — Physics-derived step count** — `flight_process.c` no longer uses a fixed
+`STEP_COUNT`. For each segment it computes the equirectangular distance in metres,
+converts speed from knots to m/s, and divides by `STEP_SECONDS` (60 s) to get the
+number of steps. This ensures that a longer cruise segment generates proportionally
+more position reports than a short climb segment — matching a second-by-second model.
+The `timestamp` in every `aircraft_position_t` advances by `STEP_SECONDS` per step.

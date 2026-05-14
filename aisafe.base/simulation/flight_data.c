@@ -79,8 +79,9 @@ flight_plan_t *create_flight_plan(int index) {
 }
 
 void free_flight_plan(flight_plan_t *plan) {
+    int i;
     if (!plan) return;
-    for (int i = 0; i < plan->leg_count; i++) {
+    for (i = 0; i < plan->leg_count; i++) {
         free(plan->legs[i].segments);
     }
     free(plan->legs);
