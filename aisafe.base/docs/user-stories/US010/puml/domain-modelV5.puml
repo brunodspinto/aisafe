@@ -280,7 +280,6 @@ package "Simulation Aggregate" <<Rectangle>> {
 
 package "Collaborator Aggregate" <<Rectangle>> {
     class Collaborator <<entity, aggregate root>> {
-        status
     }
 
     Enum CollaboratorStatus {
