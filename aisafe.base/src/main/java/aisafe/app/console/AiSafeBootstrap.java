@@ -352,7 +352,7 @@ public final class AiSafeBootstrap {
                             "737-800", boeing, aisafe.aircraftmodel.domain.AircraftType.PASSENGER,
                             41140, 79016, 62732, 20894,
                             12500, 230, 34.3, 125.0,
-                            0.026, 1.5, engine);
+                            0.026, 1.5, 5765.0, engine);
                     aircraftModelRepo.save(model);
                     System.out.println("Aircraft model created: 737-800 by Boeing");
                 } else {

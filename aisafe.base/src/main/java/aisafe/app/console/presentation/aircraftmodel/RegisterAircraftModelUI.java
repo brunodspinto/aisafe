@@ -78,6 +78,7 @@ public class RegisterAircraftModelUI extends AbstractUI {
             final double wingArea = Console.readDouble("Wing Area (m²): ");
             final double dragCoefficient = Console.readDouble("Drag Coefficient (Cd): ");
             final double liftCoefficient = Console.readDouble("Lift Coefficient (Cl): ");
+            final double maxRange = Console.readDouble("Max Range (km): ");
 
             final int engineChoice = Console.readInteger("Select Engine Model (number): ");
             if (engineChoice < 1 || engineChoice > engines.size()) {
@@ -90,7 +91,7 @@ public class RegisterAircraftModelUI extends AbstractUI {
                     modelName, makerName, aircraftType,
                     emptyWeight, mtow, mzfw, maxFuelCapacity,
                     serviceCeiling, cruiseSpeed, wingSpan, wingArea,
-                    dragCoefficient, liftCoefficient, selectedEngine
+                    dragCoefficient, liftCoefficient, maxRange, selectedEngine
             );
 
             System.out.println("\n Aircraft Model successfully registered!");
@@ -98,6 +99,7 @@ public class RegisterAircraftModelUI extends AbstractUI {
             System.out.println("  Maker    : " + model.maker().name());
             System.out.println("  Type     : " + model.aircraftType());
             System.out.println("  Engines  : " + model.certifiedEngines().size() + " certified engine(s)");
+            System.out.println("  Max Range: " + model.maxRange() + " km");
 
         } catch (final IllegalArgumentException e) {
             System.out.println("\n Validation Error: " + e.getMessage());

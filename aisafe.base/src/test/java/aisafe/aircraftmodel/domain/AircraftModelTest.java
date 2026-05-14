@@ -26,7 +26,7 @@ class AircraftModelTest {
                 "737-800", validMaker(), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
-                0.026, 1.5, validEngine()
+                0.026, 1.5, 5765.0, validEngine()
         );
     }
 
@@ -45,7 +45,7 @@ class AircraftModelTest {
                 new AircraftModel(null, validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -54,7 +54,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", null, AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -63,7 +63,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), null,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -72,7 +72,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, null));
+                        0.026, 1.5, 5765.0, null));
     }
 
     @Test
@@ -81,7 +81,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         0, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -90,7 +90,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         79016, 41140, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -106,7 +106,7 @@ class AircraftModelTest {
                 "737-800", validMaker(), AircraftType.CARGO,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
-                0.026, 1.5, validEngine()
+                0.026, 1.5, 5765.0, validEngine()
         );
         assertEquals(a, b);
     }
@@ -118,7 +118,7 @@ class AircraftModelTest {
                 "737-900", validMaker(), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
-                0.026, 1.5, validEngine()
+                0.026, 1.5, 5765.0, validEngine()
         );
         assertNotEquals(a, b);
     }
@@ -182,7 +182,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 0, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -191,7 +191,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 0,
                         12500, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -200,7 +200,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         0, 230, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -209,7 +209,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 0, 34.3, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -218,7 +218,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 0, 125.0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -227,7 +227,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 0,
-                        0.026, 1.5, validEngine()));
+                        0.026, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -236,7 +236,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0, 1.5, validEngine()));
+                        0, 1.5, 5765.0, validEngine()));
     }
 
     @Test
@@ -245,7 +245,7 @@ class AircraftModelTest {
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
-                        0.026, 0, validEngine()));
+                        0.026, 0, 5765.0, validEngine()));
     }
 
     @Test
@@ -303,6 +303,21 @@ class AircraftModelTest {
         final EngineModel anotherTurbofan = new EngineModel("GE90", "GE Aviation", EngineType.TURBOFAN, 330.0, 0.31);
         model.addEngine(anotherTurbofan); // Adiciona a primeira vez
         assertThrows(IllegalArgumentException.class, () -> model.addEngine(anotherTurbofan));
+    }
+
+    @Test
+    void ensureMaxRangeMustBePositive() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                        41140, 79016, 62732, 20894,
+                        12500, 230, 34.3, 125.0,
+                        0.026, 1.5, 0, validEngine()));
+    }
+
+    @Test
+    void ensureMaxRangeGetterWorks() {
+        final AircraftModel model = validAircraftModel();
+        assertEquals(5765.0, model.maxRange());
     }
 
 }
