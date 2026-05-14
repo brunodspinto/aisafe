@@ -5,6 +5,7 @@ import jakarta.persistence.Embeddable;
 
 /**
  * Value object representing the seat distribution across cabin classes of an aircraft.
+ * Only used for PASSENGER and MIXED aircraft — CARGO aircraft have no cabin configuration.
  * At least one seat must exist across all classes combined.
  */
 @Embeddable

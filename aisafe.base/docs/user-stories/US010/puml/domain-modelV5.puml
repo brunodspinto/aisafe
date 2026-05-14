@@ -292,7 +292,7 @@ AircraftModel "1" --> "1" AircraftType : "classified as"
 AircraftModel "1" --> "1..*" EngineModel : "certified with"
 EngineModel "1" --> "1" EngineType : "classified as"
 
-Aircraft "1" *-- "0..*" CabinConfiguration : "has"
+Aircraft "1" *-- "0..1" CabinConfiguration : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
 Aircraft "1" --> "1" OperationalStatus : "has"
 
@@ -324,8 +324,6 @@ WeatherData "1" *-- "1" WeatherSource : "imported from"
 Simulation "1" --> "1" AirControlArea : "covers"
 Simulation "1" --> "0..*" Flight : "references"
 Simulation "1" *-- "1" SimulationReport : "produces"
-Simulation "1" --> "1" SimulationStatus : "has"
-
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
 
 Airport *-- AirportIATACode : "identified by"
