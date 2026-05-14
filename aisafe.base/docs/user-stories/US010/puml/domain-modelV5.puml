@@ -343,9 +343,9 @@ Simulation "1" *-- "1" SimulationReport : "produces"
 Simulation "1" --> "1" SimulationStatus : "has"
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
 
-Airport *-- AirportIATACode : "identified by"
-Airport *-- AirportICAOCode : "has"
-Airport *-- GeoCoordinate : "located at"
+Airport "1" *-- "1" AirportIATACode : "identified by"
+Airport "1" *-- "1" AirportICAOCode : "has"
+Airport "1" *-- "1" GeoCoordinate : "located at"
 Airport "0..*" --> "1" AirControlArea : "belongs to"
 
 Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
