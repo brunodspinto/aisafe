@@ -453,7 +453,7 @@ The feature is accessible through the console application after logging in as a 
 
 ```bash
 mvn clean test
-./run-backoffice.sh
+./run-jpa.sh
 ```
 
 **To create a flight plan from a file:**

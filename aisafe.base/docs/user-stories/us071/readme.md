@@ -108,11 +108,14 @@ The four acceptance tests for US071 are implemented in `AircraftTest`:
 ### Run Instructions
 
 ```bash
-# Run bootstrap (creates initial data, including companies and active aircraft)
+# Terminal 1 — keep running
+./start-h2.sh
+
+# Terminal 2 — seed data once (first time only)
 ./run-bootstrap.sh
 
-# Run backoffice / user application
-./run-backoffice.sh
+# Terminal 2 — run the application
+./run-jpa.sh
 
 # Login with:
 # Username: atcc (or a specific Air Transport Company Collaborator account)

@@ -279,10 +279,12 @@ mvn clean test
 **To run the application:**
 ```bash
 # For development and quick testing (data is lost on exit)
-./run-bootstrap.sh && ./run-inmemory.sh
+./run-inmemory.sh
 
-# For demonstration with persistent data
-./run-bootstrap.sh && ./run-jpa.sh
+# For demonstration with persistent data (requires H2 server in a separate terminal)
+./start-h2.sh      # Terminal 1 — keep running
+./run-bootstrap.sh # Terminal 2 — first time only
+./run-jpa.sh       # Terminal 2 — every time
 ```
 
 **To register an aircraft model:**
