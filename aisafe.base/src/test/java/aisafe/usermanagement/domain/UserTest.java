@@ -321,4 +321,101 @@ class UserTest {
                 .withSystemUser(dummySystemUser("user_id", AiSafeRoles.ATCC)).build();
         assertEquals(MecanographicNumber.valueOf("IDENTITY"), user.identity());
     }
+
+    @Test
+    void ensureSecurityClearanceLevelGetterWorks() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertEquals(SecurityLevel.HIGH, clearance.level());
+    }
+
+    @Test
+    void ensureSecurityClearanceExpirationDateGetterWorks() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance clearance = new SecurityClearance(SecurityLevel.LOW, date);
+        assertEquals(date, clearance.expirationDate());
+    }
+
+    @Test
+    void ensureSecurityClearanceToStringContainsLevel() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertTrue(clearance.toString().contains("HIGH"));
+    }
+
+    @Test
+    void ensureSecurityClearanceHashCodeIsConsistent() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, date);
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.HIGH, date);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureMecanographicNumberToStringReturnsValue() {
+        final MecanographicNumber number = MecanographicNumber.valueOf("12345");
+        assertEquals("12345", number.toString());
+    }
+
+    @Test
+    void ensureMecanographicNumberHashCodeIsConsistent() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        final MecanographicNumber b = MecanographicNumber.valueOf("12345");
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsTrueForSameInstance() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertEquals(a, a);
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsFalseForNull() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertNotEquals(null, a);
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsFalseForDifferentType() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertNotEquals("12345", a);
+    }
+
+    @Test
+    void ensureEmailToStringReturnsAddress() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals("user@aisafe.com", email.toString());
+    }
+
+    @Test
+    void ensureEmailHashCodeIsConsistent() {
+        final Email a = new Email("user@aisafe.com");
+        final Email b = new Email("user@aisafe.com");
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsTrueForSameInstance() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals(email, email);
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsFalseForNull() {
+        final Email email = new Email("user@aisafe.com");
+        assertNotEquals(null, email);
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsFalseForDifferentType() {
+        final Email email = new Email("user@aisafe.com");
+        assertNotEquals("user@aisafe.com", email);
+    }
+
+    @Test
+    void ensureEmailAddressGetterWorks() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals("user@aisafe.com", email.address());
+    }
 }

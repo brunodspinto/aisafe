@@ -255,8 +255,9 @@ mvn clean test
 # Run with In-Memory persistence (data is lost when the application exits)
 ./run-inmemory.sh
 
-# Run with JPA persistence (data persists between sessions)
-./run-jpa.sh
+# Run with JPA persistence (requires H2 server running in a separate terminal)
+./start-h2.sh  # Terminal 1 — keep running
+./run-jpa.sh   # Terminal 2
 ```
 
 **Persistence modes:**

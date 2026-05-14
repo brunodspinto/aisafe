@@ -104,11 +104,14 @@ The following class diagram shows the classes involved:
 ### Run Instructions
 
 ```bash
-# Run bootstrap (creates initial data)
+# Terminal 1 — keep running
+./start-h2.sh
+
+# Terminal 2 — seed data once (first time only)
 ./run-bootstrap.sh
 
-# Run the application
-./run-backoffice.sh
+# Terminal 2 — run the application
+./run-jpa.sh
 
 # Login with:
 # Username: atcc1

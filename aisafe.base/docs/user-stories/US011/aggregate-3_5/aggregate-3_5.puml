@@ -1,0 +1,23 @@
+@startuml aggregate-3_5
+skinparam shadowing false
+title Aggregate: AircraftModel — Register a new aircraft model (US055)
+
+participant ":RegisterAircraftModelUI" as UI
+participant ":RegisterAircraftModelController" as CTRL
+participant "model:AircraftModel" as DOMAIN
+participant ":AircraftModelRepository" as REPO
+
+activate UI
+UI -> CTRL : registerAircraftModel(modelName, maker,\naircraftType, emptyWeight, mtow, ..., firstEngine)
+activate CTRL
+CTRL -> DOMAIN** : create(modelName, maker, aircraftType,\nemptyWeight, mtow, mzfw, ..., firstEngine)
+
+CTRL -> REPO : save(aircraftModel)
+activate REPO
+REPO --> CTRL : savedAircraftModel
+deactivate REPO
+CTRL --> UI : savedAircraftModel
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

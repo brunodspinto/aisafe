@@ -1,0 +1,37 @@
+@startuml aggregate-3_2
+skinparam shadowing false
+
+title Aggregate: User — Register a new user (US031)
+
+participant ":AddUserUI" as UI
+participant ":AddUserController" as CTRL
+participant ":UserManagementService\n(EAPLI)" as SVC
+participant "systemUser:SystemUser\n(EAPLI)" as SU
+participant "user:User" as USER
+participant ":UserRepository" as REPO
+
+activate UI
+UI -> CTRL : addUser(username, password, firstName,\nlastName, email, roles, phoneNumber,\nposition, securityClearance, skillsDate)
+activate CTRL
+
+CTRL -> SVC : registerNewUser(username, password,\nfirstName, lastName, email, roles)
+activate SVC
+SVC -> SU** : create(username, password, firstName,\nlastName, email, roles)
+
+SVC --> CTRL : systemUser
+deactivate SVC
+
+CTRL -> USER** : create(systemUser, mecanographicNumber,\nphoneNumber, email, position,\nsecurityClearance, skillsDate)
+
+
+CTRL -> REPO : save(user)
+activate REPO
+REPO --> CTRL : savedUser
+deactivate REPO
+
+CTRL --> UI : savedUser
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+
+@enduml

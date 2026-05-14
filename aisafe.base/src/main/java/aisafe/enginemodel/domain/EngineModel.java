@@ -46,7 +46,8 @@ public class EngineModel implements AggregateRoot<Long> {
     private EngineType engineType;
 
     @Column(nullable = false)
-    private double thrust;
+    private double thrustAtStandstill;
+    private double thrustAtCruiseSpeed;
 
     @Column(nullable = false)
     private double tsfc;
@@ -68,7 +69,7 @@ public class EngineModel implements AggregateRoot<Long> {
      * @param tsfc       the thrust-specific fuel consumption (must be &gt; 0)
      */
     public EngineModel(final String name, final String makerName, final EngineType engineType,
-                       final double thrust, final double tsfc) {
+                       final double thrustAtStandstill, final double thrustAtCruiseSpeed, final double tsfc) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Engine model name cannot be null or blank.");
         }
@@ -78,8 +79,11 @@ public class EngineModel implements AggregateRoot<Long> {
         if (engineType == null) {
             throw new IllegalArgumentException("Engine type cannot be null.");
         }
-        if (thrust <= 0) {
-            throw new IllegalArgumentException("Thrust must be greater than zero.");
+        if (thrustAtStandstill <= 0){
+            throw new IllegalArgumentException("Thrust at standstill must be greater than zero.");
+        }
+        if (thrustAtCruiseSpeed <= 0) {
+            throw new IllegalArgumentException("Thrust at cruise speed must be greater than zero.");
         }
         if (tsfc <= 0) {
             throw new IllegalArgumentException("TSFC must be greater than zero.");
@@ -87,7 +91,8 @@ public class EngineModel implements AggregateRoot<Long> {
         this.name = name.trim();
         this.makerName = makerName.trim();
         this.engineType = engineType;
-        this.thrust = thrust;
+        this.thrustAtStandstill = thrustAtStandstill;
+        this.thrustAtCruiseSpeed = thrustAtCruiseSpeed;
         this.tsfc = tsfc;
     }
 
@@ -107,9 +112,8 @@ public class EngineModel implements AggregateRoot<Long> {
     }
 
     /** @return maximum thrust in kN */
-    public double thrust() {
-        return thrust;
-    }
+    public double thrustAtStandstill() { return thrustAtStandstill; }
+    public double thrustAtCruiseSpeed() { return thrustAtCruiseSpeed; }
 
     /** @return thrust-specific fuel consumption in kg/(kN·h) */
     public double tsfc() {

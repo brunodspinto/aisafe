@@ -109,9 +109,9 @@ class AirTransportCompanyTest {
 
     private static Aircraft validAircraft(final String registration) {
         final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
-        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
+        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 115.0, 0.35);
         final AircraftModel model = new AircraftModel("737-800", maker, AircraftType.PASSENGER,
-                41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, engine);
+                41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, 5765.0, engine);
         final CabinConfiguration cabin = new CabinConfiguration(0, 20, 150);
         return new Aircraft(RegistrationNumber.valueOf(registration), "Portugal", 6, 2018, cabin, model);
     }

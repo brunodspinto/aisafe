@@ -1,0 +1,34 @@
+@startuml aggregate-3_12
+skinparam shadowing false
+
+title Aggregate: Flight — Create a flight plan (US080)
+
+participant ":CreateFlightPlanUI" as UI
+participant ":CreateFlightPlanController" as CTRL
+participant "flight:Flight" as FLIGHT
+participant "flightPlan:FlightPlan" as FP
+participant ":FlightRepository" as REPO
+
+activate UI
+UI -> CTRL : createFlightPlan(flightDesignator, aircraftId,\ndepartureDateTime, fuelLoad, segments)
+activate CTRL
+
+CTRL -> FLIGHT : addFlightPlan(aircraftId, departureDateTime,\nfuelLoad, segments)
+activate FLIGHT
+
+FLIGHT -> FP** : create(totalFuelLoad, cargoWeight,\npassengerCount, crewCount,\ntotalWeight, estimatedDuration, segments)
+
+FLIGHT --> CTRL : updatedFlight
+deactivate FLIGHT
+
+CTRL -> REPO : save(flight)
+activate REPO
+REPO --> CTRL : savedFlight
+deactivate REPO
+
+CTRL --> UI : savedFlight
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+
+@enduml

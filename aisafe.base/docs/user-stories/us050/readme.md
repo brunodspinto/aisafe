@@ -15,48 +15,42 @@
 
 ## 2. Requirements
 
-**US050** As a Backoffice Operator, I want to register an air control area. The area code must be unique in the system. Geographic boundaries must be valid. This must also be achievable by a bootstrap process.
+**US050** As a Backoffice Operator, I want to register an air control area.
 
-### Acceptance Criteria
+**Acceptance Criteria:**
 
-- **US050.1:** The system must allow the Backoffice Operator to register a new air control area by providing a unique area code, a name, the minimum fuel required, and its geographic boundaries.
-- **US050.2:** The area code must be globally unique in the system.
-- **US050.3:** The geographic boundaries must be logically valid (e.g., North latitude cannot be inferior to South latitude).
-- **US050.4:** The registration must be achievable by a bootstrap process upon system startup.
+- **AC050.1** The system must allow the Backoffice Operator to register a new air control area by providing a unique area code, a name, the minimum fuel required, and its geographic boundaries.
+- **AC050.2** The area code must be globally unique in the system (it is the aggregate identity).
+- **AC050.3** The geographic boundaries must be logically valid (north latitude must be strictly greater than south latitude; latitudes within −90 to 90; longitudes within −180 to 180).
+- **AC050.4** The registration must also be achievable by a bootstrap process upon system startup.
 
-### Dependencies / References
+**Dependencies/References:**
 
-- No prior dependencies.
-- Acts as a foundational dependency for:
-    - **US052** (Create an Airport)
-    - **US041** (Register Weather Data)
+- US030 — Authentication and Authorization must be implemented first.
+- No domain prerequisites.
+- Acts as a prerequisite for:
+  - US041 — Register Weather Data (weather data is geographically bound to an area)
+  - US052 — Create an Airport (an airport belongs to an air control area)
 
 ---
 
 ## 3. Analysis
 
-The `AirControlArea` aggregate was designed following Domain-Driven Design (DDD) principles to ensure low coupling and high cohesion.
+The `AirControlArea` aggregate was designed following DDD principles. Its identity is the `areaCode` string, which must be globally unique. The geographic boundary logic is fully encapsulated in the `GeoBoundary` Value Object, keeping the aggregate root clean and cohesive.
 
-### Main Components
+The `AirControlAreaCode` was considered as a dedicated Value Object but discarded — the code remains a primitive `String`, with uniqueness enforced in the controller before saving and backed by the JPA `@Id` constraint.
 
-- `AirControlArea` — Aggregate root representing the airspace.
-- `GeoBoundary` — Value object encapsulating geographic coordinates.
+The main classes involved are:
 
-> **Architectural Decision:** Initially considered, the `AirControlAreaCode` was discarded as a dedicated Value Object. The code remains a primitive `String`, but uniqueness is enforced explicitly in the controller before saving and is also backed by the database primary key.
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `AirControlArea` | Entity / Aggregate Root | Holds area code (identity), name, minimum fuel, and geographic boundaries |
+| `GeoBoundary` | Value Object | Validates and stores geographic coordinates (north/south latitude, east/west longitude) |
+| `AirControlAreaRepository` | Repository Interface | Persistence contract for the AirControlArea aggregate |
+| `RegisterAirControlAreaController` | Application Controller | Orchestrates the use case; enforces uniqueness and `BACKOFFICE_OPERATOR` role |
+| `RegisterAirControlAreaUI` | UI | Collects area code, name, fuel, and boundary coordinates from the operator |
 
-The `GeoBoundary` ensures that:
-- North latitude > South latitude
-- Latitudes are between -90 and 90
-- Longitudes are between -180 and 180
-
-### Persistence (JPA)
-
-- `GeoBoundary` → `@Embeddable`
-- Used inside `AirControlArea` with `@Embedded`
-- Avoids unnecessary joins by keeping the boundaries in the same table as the Air Control Area.
-
-
-### Domain Model
+The following domain model excerpt shows the aggregate structure:
 
 ![Domain Model](svg/US050-domain-model.svg)
 
@@ -64,16 +58,22 @@ The `GeoBoundary` ensures that:
 
 ## 4. Design
 
-### 4.1 Realization
+### 4.1. Realization
 
-This use case follows the standard "Register X" architectural pattern. Following the Application Engineering Process guidelines, the Sequence Diagram focuses on the core domain orchestration and omits the explicit fetching of the Persistence Context to avoid UML programming boilerplate.
+1. The UI (`RegisterAirControlAreaUI`) prompts the operator for the area code, name, minimum fuel required, and geographic boundaries (north/south latitude, east/west longitude).
+2. Input is validated inline before calling the controller (non-blank strings, numeric values within valid ranges).
+3. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(BACKOFFICE_OPERATOR)`.
+4. The controller checks that no area with the same code already exists via `AirControlAreaRepository`.
+5. The controller instantiates `GeoBoundary` — spatial invariants are enforced inside the constructor.
+6. The controller instantiates `AirControlArea` with the validated data — remaining domain invariants are enforced inside the constructor.
+7. The area is persisted via `AirControlAreaRepository.save()`.
+8. The UI confirms success: `Air Control Area '...' registered successfully.`
 
-### Sequence Diagram
+The following sequence diagram illustrates the flow:
 
 ![Sequence Diagram](svg/US050-SD.svg)
 
-
-### Class Diagram
+The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US050-class-diagram.svg)
 
@@ -124,17 +124,19 @@ All automated coverage is implemented with JUnit 5 and is split across:
 
 ## 5. Implementation
 
-### Key Implementation Details
+The implementation is distributed across the following packages in `aisafe.base`:
 
-- `AirControlArea` → Annotated with `@Entity` and implements `AggregateRoot<String>`.
-- `areaCode` → Annotated with `@Id` and normalized before persistence; the controller rejects duplicates before save.
-- `GeoBoundary` → Implements `ValueObject` and uses `@Embeddable`.
-- Mapped inside `AirControlArea` using the `@Embedded` annotation.
-- Two repository implementations were provided:
-    - `InMemoryAirControlAreaRepository` (for testing)
-    - `JpaAirControlAreaRepository` (for production)
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.aircontrolarea.domain` | `AirControlArea` | Aggregate root, table `T_AIR_CONTROL_AREA` |
+| `aisafe.aircontrolarea.domain` | `GeoBoundary` | Value object (`@Embeddable`) — geographic boundary validation |
+| `aisafe.aircontrolarea.repositories` | `AirControlAreaRepository` | Repository interface |
+| `aisafe.aircontrolarea.application` | `RegisterAirControlAreaController` | Use case orchestrator |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryAirControlAreaRepository` | In-memory persistence |
+| `aisafe.infrastructure.persistence.jpa` | `JpaAirControlAreaRepository` | JPA persistence |
+| `aisafe.app.console.presentation.aircontrolarea` | `RegisterAirControlAreaUI` | Console UI |
 
-Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default valid air control area if it does not already exist.
+`RepositoryFactory` must expose an `airControlAreas()` method, and both `InMemoryRepositoryFactory` and `JpaRepositoryFactory` must provide implementations. Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default valid air control area if one does not already exist.
 
 ## 6. Integration / Demonstration
 
@@ -157,6 +159,7 @@ Bootstrap support is implemented in `AiSafeBootstrap`, which seeds a default val
 ```
 ## 7. Observations
 
-The `GeoBoundary` acts as an autonomous validator. By delegating the spatial logic to this Value Object, the `AirControlArea` aggregate root remains clean and highly cohesive.
-
-The system uses an `AirControlAreaRepository` (with a JPA implementation `JpaAirControlAreaRepository`) obtained via the `RepositoryFactory` to keep the application layer decoupled from the persistence technology framework.
+- `GeoBoundary` acts as an autonomous validator. By delegating all spatial logic to this Value Object, the `AirControlArea` aggregate root remains clean and highly cohesive.
+- `GeoBoundary` is mapped with `@Embeddable` / `@Embedded` inside `AirControlArea`, avoiding unnecessary table joins and keeping boundary data co-located with the area record.
+- `AirControlAreaCode` was considered as a dedicated Value Object but discarded in favour of a plain `String` identity, which is sufficient given the simple format constraint. Uniqueness is enforced both in the controller (pre-save lookup) and at the database level via the JPA `@Id` constraint.
+- The controller checks for duplicate codes before instantiating the aggregate, providing a user-friendly error rather than relying solely on the database constraint exception.

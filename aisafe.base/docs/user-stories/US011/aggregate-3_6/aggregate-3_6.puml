@@ -1,0 +1,23 @@
+@startuml aggregate-3_6
+skinparam shadowing false
+title Aggregate: Aircraft — Add aircraft to fleet (US070)
+
+participant ":AddAircraftUI" as UI
+participant ":AddAircraftController" as CTRL
+participant "aircraft:Aircraft" as DOMAIN
+participant ":AircraftRepository" as REPO
+
+activate UI
+UI -> CTRL : addAircraft(registrationNumber, registeredCountry,\nnumberOfCrewElements, cabinConfiguration, aircraftModel)
+activate CTRL
+CTRL -> DOMAIN** : create(registrationNumber, registeredCountry,\nnumberOfCrewElements, cabinConfiguration, aircraftModel)
+
+CTRL -> REPO : save(aircraft)
+activate REPO
+REPO --> CTRL : savedAircraft
+deactivate REPO
+CTRL --> UI : savedAircraft
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

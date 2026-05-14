@@ -1,0 +1,23 @@
+@startuml aggregate-3_8
+skinparam shadowing false
+title Aggregate: Airport — Register an airport (US052)
+
+participant ":RegisterAirportUI" as UI
+participant ":RegisterAirportController" as CTRL
+participant "airport:Airport" as DOMAIN
+participant ":AirportRepository" as REPO
+
+activate UI
+UI -> CTRL : registerAirport(iataCode, icaoCode, name,\ntown, country, coordinates, altitude, area)
+activate CTRL
+CTRL -> DOMAIN** : create(iataCode, icaoCode, name,\ntown, country, coordinates, altitude, area)
+
+CTRL -> REPO : save(airport)
+activate REPO
+REPO --> CTRL : savedAirport
+deactivate REPO
+CTRL --> UI : savedAirport
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

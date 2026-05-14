@@ -34,10 +34,11 @@ public class RegisterEngineModelUI extends AbstractUI {
                 }
             }
 
-            final double thrust = Console.readDouble("Thrust (kN): ");
+            final double thrustAtStandstill = Console.readDouble("Thrust at Standstill (kN): ");
+            final double thrustAtCruiseSpeed = Console.readDouble("Thrust at Cruise Speed (kN): ");
             final double tsfc = Console.readDouble("TSFC (kg/(kN·h)): ");
 
-            controller.registerEngineModel(name, makerName, engineType, thrust, tsfc);
+            controller.registerEngineModel(name, makerName, engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc);
 
             System.out.println("\nEngine model successfully registered!");
         } catch (final IllegalArgumentException e) {

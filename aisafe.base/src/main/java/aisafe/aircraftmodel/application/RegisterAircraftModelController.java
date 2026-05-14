@@ -92,6 +92,7 @@ public class RegisterAircraftModelController {
                                                final double wingArea,
                                                final double dragCoefficient,
                                                final double liftCoefficient,
+                                               final double maxRange,
                                                final EngineModel engine) {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
@@ -111,7 +112,7 @@ public class RegisterAircraftModelController {
                 modelName, maker, aircraftType,
                 emptyWeight, mtow, mzfw, maxFuelCapacity,
                 serviceCeiling, cruiseSpeed, wingSpan, wingArea,
-                dragCoefficient, liftCoefficient, engine
+                dragCoefficient, liftCoefficient, maxRange, engine
         );
 
         return aircraftModelRepository.save(model);
