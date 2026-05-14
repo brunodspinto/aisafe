@@ -1,6 +1,7 @@
 package aisafe.aircraft.domain;
 
 import aisafe.aircraftmodel.domain.AircraftModel;
+import aisafe.aircraftmodel.domain.AircraftType;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
@@ -49,11 +50,15 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
     /**
      * Creates a new aircraft and sets its status to {@link OperationalStatus#ACTIVE}.
      *
+     * <p>For {@link AircraftType#CARGO} aircraft, {@code cabinConfiguration} must be {@code null}.
+     * For {@link AircraftType#PASSENGER} and {@link AircraftType#MIXED} aircraft,
+     * {@code cabinConfiguration} must be non-null.
+     *
      * @param registrationNumber   unique ICAO/national registration (e.g. "CS-TUG"); must not be null
      * @param registeredCountry    country where the aircraft is registered; must not be blank
      * @param numberOfCrewElements minimum crew size; must be at least 1
      * @param yearOfManufacture    year the aircraft was built; must be between 1900 and the current year
-     * @param cabinConfiguration   seat distribution across cabin classes; must not be {@code null}
+     * @param cabinConfiguration   seat distribution; null for CARGO, required for PASSENGER/MIXED
      * @param aircraftModel        the aircraft model; must not be {@code null}
      * @throws IllegalArgumentException if any constraint is violated
      */
@@ -71,14 +76,19 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
             throw new IllegalArgumentException("Number of crew elements must be at least 1.");
         if (yearOfManufacture < 1900 || yearOfManufacture > java.time.Year.now().getValue())
             throw new IllegalArgumentException("Year of manufacture must be between 1900 and the current year.");
-        if (cabinConfiguration == null)
-            throw new IllegalArgumentException("Cabin configuration is required.");
         if (aircraftModel == null)
             throw new IllegalArgumentException("Aircraft model is required.");
-        if (aircraftModel.maxCapacity() > 0 && cabinConfiguration.totalSeats() > aircraftModel.maxCapacity())
-            throw new IllegalArgumentException(
-                    "Total seats (" + cabinConfiguration.totalSeats()
-                    + ") exceeds the aircraft model's maximum capacity (" + aircraftModel.maxCapacity() + ").");
+        if (aircraftModel.aircraftType() == AircraftType.CARGO) {
+            if (cabinConfiguration != null)
+                throw new IllegalArgumentException("Cargo aircraft must not have a cabin configuration.");
+        } else {
+            if (cabinConfiguration == null)
+                throw new IllegalArgumentException("Cabin configuration is required for passenger and mixed aircraft.");
+            if (aircraftModel.maxCapacity() > 0 && cabinConfiguration.totalSeats() > aircraftModel.maxCapacity())
+                throw new IllegalArgumentException(
+                        "Total seats (" + cabinConfiguration.totalSeats()
+                        + ") exceeds the aircraft model's maximum capacity (" + aircraftModel.maxCapacity() + ").");
+        }
 
         this.registrationNumber = registrationNumber;
         this.registeredCountry = registeredCountry.trim();
@@ -105,8 +115,13 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
     /** @return year the aircraft was manufactured */
     public int yearOfManufacture() { return yearOfManufacture; }
 
-    /** @return cabin seat distribution across classes */
-    public CabinConfiguration cabinConfiguration() { return cabinConfiguration; }
+    /**
+     * @return cabin seat distribution, or {@code null} for CARGO aircraft
+     */
+    public CabinConfiguration cabinConfiguration() {
+        if (aircraftModel.aircraftType() == AircraftType.CARGO) return null;
+        return cabinConfiguration;
+    }
 
     /** @return current operational status */
     public OperationalStatus operationalStatus() { return operationalStatus; }

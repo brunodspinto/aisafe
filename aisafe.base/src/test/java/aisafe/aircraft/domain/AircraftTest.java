@@ -26,6 +26,15 @@ class AircraftTest {
                 0.026, 1.5, engine);
     }
 
+    private static AircraftModel validCargoModel() {
+        final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
+        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
+        return new AircraftModel("747F", maker, AircraftType.CARGO,
+                178756, 412775, 302000, 162500,
+                13700, 255, 68.4, 541.0,
+                0.026, 1.5, engine);
+    }
+
     private static AircraftModel validModelWithCapacity(final int maxCapacity) {
         return validModel().withMaxCapacity(maxCapacity);
     }
@@ -95,9 +104,21 @@ class AircraftTest {
     }
 
     @Test
-    void ensureNullCabinConfigurationThrows() {
+    void ensurePassengerAircraftWithNullCabinThrows() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Aircraft(RegistrationNumber.valueOf("CS-TUA"), "Portugal", 6, 2018, null, validModel()));
+    }
+
+    @Test
+    void ensureCargoAircraftWithNullCabinIsValid() {
+        final Aircraft aircraft = new Aircraft(RegistrationNumber.valueOf("CS-FCA"), "Portugal", 4, 2015, null, validCargoModel());
+        assertNull(aircraft.cabinConfiguration());
+    }
+
+    @Test
+    void ensureCargoAircraftWithNonNullCabinThrows() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Aircraft(RegistrationNumber.valueOf("CS-FCA"), "Portugal", 4, 2015, validCabin(), validCargoModel()));
     }
 
     @Test
