@@ -9,3 +9,4 @@ bin/
 *.log
 *.tmp
 .vscode/settings.json
+aisafe.base/db
