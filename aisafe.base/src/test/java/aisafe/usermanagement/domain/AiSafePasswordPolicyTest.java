@@ -13,8 +13,6 @@ class AiSafePasswordPolicyTest {
 
     private final AiSafePasswordPolicy policy = new AiSafePasswordPolicy();
 
-    // --- Valid passwords (AC031.3) ---
-
     @Test
     void ensureValidPasswordIsAccepted() {
         assertTrue(policy.isSatisfiedBy("Password1"));
@@ -30,7 +28,6 @@ class AiSafePasswordPolicyTest {
         assertTrue(policy.isSatisfiedBy("SuperSecurePassword123"));
     }
 
-    // --- Invalid passwords (AC031.3) ---
 
     @Test
     void ensurePasswordShorterThanSixCharsIsRejected() {

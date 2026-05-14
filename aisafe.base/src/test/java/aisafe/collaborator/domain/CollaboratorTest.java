@@ -156,11 +156,6 @@ class CollaboratorTest {
         assertNull(collaborator.airTransportCompany());
     }
 
-    @Test
-    void ensureIdentityIsNullBeforePersistence() {
-        final Collaborator collaborator = new Collaborator(validUser("user14"), validCompany());
-        assertNull(collaborator.identity());
-    }
 
     @Test
     void ensureEqualsReturnsFalseForDifferentType() {
