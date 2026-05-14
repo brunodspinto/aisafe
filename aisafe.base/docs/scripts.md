@@ -11,7 +11,6 @@ All scripts live in `aisafe.base/` and must be run from that directory (or they 
 | `start-h2.sh` | JPA | Starts H2 TCP server — prerequisite for all JPA scripts |
 | `run-bootstrap.sh` | JPA | Seeds initial data — run once on a fresh database |
 | `run-jpa.sh` | JPA | Runs the app with H2 persistence |
-| `run-app.sh` | JPA | Alias for `run-jpa.sh` |
 | `run-inmemory.sh` | InMemory | Runs app + bootstrap with no database required |
 
 ---
@@ -48,14 +47,6 @@ Starts the console application with JPA/H2 persistence. Previously saved data (f
 
 ```
 ./run-jpa.sh
-```
-
-### `run-app.sh`
-
-Identical to `run-jpa.sh`. Provided as a convenience alias.
-
-```
-./run-app.sh
 ```
 
 ### `run-inmemory.sh`
