@@ -18,34 +18,39 @@ The following are the acceptance criteria stated in the enunciado for US100:
 | AC100.4 | Pipes facilitate communication between the main process and each flight process | done |
 | AC100.5 | Main process tracks aircraft positions over time using an appropriate data structure | done |
 
-> **Note:** ACA boundary filtering and entry/exit detection are implemented as part of **US101** (`aca_filter.c`). Safety cylinder violation detection and signal handling are part of **US102** (`us102.c`). Both are integrated into the `main.c` select loop.
+> **Note:** ACA boundary filtering and entry/exit detection are implemented as part of **US101** (`aca_filter.c`). Safety cylinder violation detection and signal handling are part of **US102** (`us102.c`). Step synchronisation is part of **US103** (GO/STOP control pipe). All are integrated into the `main.c` select loop.
 
 ### Known gaps / partial implementations
 
-- **Parameter validation**: The enunciado states "all required parameters should be validated." Currently, the ACA boundary and `N_FLIGHTS` are compile-time constants in `main.c` rather than runtime-validated inputs. The `simulation_params_t` struct in `types.h` models the full parameter set but is not yet wired to the simulation entry point.
-- **Weather conditions**: `segment_t` carries `wind_speed` and `wind_direction` fields, but `flight_process.c` does not yet apply wind to the position computation. This is a known stub for a future sprint.
+- **Parameter validation**: The enunciado states "all required parameters should be validated." Currently, the ACA boundary and `N_FLIGHTS_NORMAL` are compile-time constants in `main.c` rather than runtime-validated inputs. The `simulation_params_t` struct in `types.h` models the full parameter set but is not yet wired to the simulation entry point.
+- **Weather conditions**: `segment_t` carries `wind_speed` and `wind_direction` fields, but `flight_process.c` does not yet apply wind to the position computation.
 
 ---
 
 ## 3. Architecture Overview
 
-The simulation follows a **multi-process, pipe-multiplexed** architecture:
+The simulation follows a **multi-process, bidirectional-pipe, select-multiplexed** architecture:
 
 ```
 main (parent)
-  ├─ creates N pipes (one per flight)
+  ├─ creates 2 pipes per flight
+  │     pipe A: child → parent  (position updates)
+  │     pipe B: parent → child  (GO 'G' / STOP 'S' tokens)
   ├─ fork() × N  ──► child processes
-  │     each child: execute_flight_process() → writes positions → pipe → exit()
-  └─ select() loop
-        reads from whichever pipe has data
-        ACA filter (aca_filter.c)
-        position history (ipc.c)
-        safety cylinder check (us102.c)
-        waitpid() when all pipes are closed
+  │     each child: execute_flight_process()
+  │       writes position → pipe A
+  │       blocks on read(pipe B) waiting for 'G' or 'S'
+  │       exits on 'S', SIGUSR1 collision alert, or plan completion
+  └─ select() loop (reads pipe A of all active flights)
+        collects positions until every active flight has reported
+        runs US101 (ACA filter + history)
+        runs US102 (safety cylinder check) across all flight pairs
+        sends 'G' to all if safe, 'S' + SIGTERM if critical violation
+        waitpid() cleanup after loop
 ```
 
-**Why one pipe per flight?**  
-Using a single shared pipe would require flight-index tagging to identify the sender. One pipe per flight lets the parent identify the sender directly from the file-descriptor set returned by `select()`, keeping the parent logic simple and correct.
+**Why bidirectional pipes?**
+The position pipe (child → parent) carries `aircraft_position_t` structs. The control pipe (parent → child) carries single-byte tokens (`'G'` or `'S'`). Together they implement a synchronised time-step: no flight advances past step T+1 until the parent has verified safety at step T across every active flight.
 
 ---
 
@@ -53,50 +58,83 @@ Using a single shared pipe would require flight-index tagging to identify the se
 
 ### 4.1. Pipe creation
 
+Two `pipe()` calls are made per flight before any `fork()`:
+
 ```c
-int fd[2];
-pipe(fd);
-pipes[i].read_fd  = fd[0];
-pipes[i].write_fd = fd[1];
+typedef struct {
+    int pos_read_fd;   /* parent reads positions from child */
+    int pos_write_fd;  /* child writes positions to parent  */
+    int ctrl_write_fd; /* parent writes 'G'/'S' to child   */
+    int ctrl_read_fd;  /* child reads  'G'/'S' from parent */
+} flight_pipes_t;
 ```
 
-`N_FLIGHTS` (currently 3) pipes are created before any `fork()` call so that every descriptor exists in the parent address space before it is inherited.
+All descriptors exist in the parent address space before `fork()` so every child inherits them all.
 
 ### 4.2. Fork and descriptor cleanup
 
 After `fork()`, each child:
 
-1. Closes **all** read ends (children never read from pipes).
-2. Closes every write end **except its own** (each child writes to exactly one pipe).
-3. Calls `execute_flight_process(pipes[i].write_fd, plans[i])`.
+1. Closes all position read ends and all control write ends (children never use these).
+2. Closes the position write ends and control read ends of every other flight.
+3. Retains only its own `pos_write_fd` and `ctrl_read_fd`.
+4. Calls `execute_flight_process(pos_write_fd, ctrl_read_fd, plan)`.
 
-The parent closes all write ends immediately after the last `fork()`, ensuring EOF is delivered to the parent read loop when the last child exits.
+The parent closes `pos_write_fd` and `ctrl_read_fd` for all flights immediately after the last `fork()`.
 
 ### 4.3. Child execution (`flight_process.c`)
 
-Each child simulates its flight plan segment by segment:
+Each child installs a `SIGUSR1` handler before entering the simulation loop:
 
-- **Speed by phase**: climb = 250 kt, cruise = 460 kt, descend = 220 kt.
-- **Step count**: `dist_m / (speed_mps × 60)` (minimum 2 steps per segment). Each step represents 60 simulation seconds.
-- **Position interpolation**: linear lat/lon/altitude between segment endpoints.
-- **Heading**: true bearing derived from `atan2(Δlon, Δlat)`.
-- Each step writes one `aircraft_position_t` struct to the pipe and sleeps 10 ms (real time) to pace the demo.
+```c
+act.sa_handler = handle_sigusr1;
+act.sa_flags   = SA_RESTART;
+sigfillset(&act.sa_mask);   /* block all signals while handler runs */
+sigaction(SIGUSR1, &act, NULL);
+```
 
-At the end of all segments the child closes its write end and calls `exit(0)`, which signals EOF to the parent.
+The handler sets `volatile sig_atomic_t collision_alert = 1` using only `write()` (async-signal-safe).
+
+**Per-step physics (`STEP_SECONDS = 1`):**
+
+- Speed and vertical rate are looked up from altitude-indexed performance tables (`flight_profile_t`) via linear interpolation (`lookup_perf()`).
+- Climb/descend: vertical rate (`vz_mps`) from the table; horizontal advance proportional to speed.
+- Cruise: constant `cruise_speed_knots`; horizontal advance only.
+- Heading: true bearing from `atan2(Δlon, Δlat)`.
+
+After writing each position struct to `pos_write_fd`, the child blocks:
+
+```c
+ssize_t r = read(ctrl_read_fd, &token, 1);
+if (collision_alert || r <= 0 || token == 'S') { exit(1); }
+/* token == 'G': safe to continue */
+```
+
+At end of plan: closes both fds and calls `exit(0)`.
 
 ### 4.4. Parent `select()` loop
 
 ```
-while (open_pipes > 0)
-    select(max_fd + 1, &read_fds, …)
-    for each ready fd i:
+while (n_active > 0):
+    select() — wait for any active flight that has not yet reported this step
+    for each ready fd:
         read aircraft_position_t
-        → ACA filter + history (US101)
-        → motion-vector update + safety check (US102)
-        on EOF: close fd, decrement open_pipes
+        → US101: ACA filter + entry/exit detection + history update
+        → slide motion-vector window (prev/current positions)
+        mark flight as received for this step
+        on EOF: close fds, decrement n_active
+
+    if not all active flights have reported yet: continue
+
+    run US102: monitor_safety_violations() for every active flight pair
+    if abort_sim:
+        send 'S' to all active flights, set n_active = 0, break
+    else:
+        send 'G' to all active flights
+        reset received[] flags for next step
 ```
 
-`select()` blocks until at least one child has data ready, preventing busy-waiting.
+`select()` only watches flights that are still active and have not yet reported for the current step, avoiding spurious wakeups.
 
 ---
 
@@ -105,14 +143,16 @@ while (open_pipes > 0)
 | Type | Purpose |
 |------|---------|
 | `coordinate_t` | Latitude/longitude point |
-| `segment_t` | One segment of a flight (mode, from/to coordinates, altitude range, wind) |
-| `leg_t` | Ordered list of segments with departure/arrival airports |
+| `perf_point_t` | One row of a performance table (altitude, speed, vertical rate) |
+| `flight_profile_t` | Climb and descend performance tables + cruise speed |
+| `segment_t` | One segment (mode, from/to coordinates, altitude range, wind) |
+| `leg_t` | Ordered segments with departure/arrival airports and a `flight_profile_t` |
 | `flight_plan_t` | Named flight with one or more legs |
-| `aircraft_position_t` | Single position snapshot (lat, lon, alt, speed, heading, timestamp, flight ID) |
+| `aircraft_position_t` | Position snapshot (lat, lon, alt, speed, heading, `vz_mps`, timestamp, flight ID) |
 | `geo_boundary_t` | Rectangular ACA boundary (north/south/east/west) |
 | `aca_state_t` | `ACA_BEFORE`, `ACA_INSIDE`, `ACA_AFTER` — per-flight ACA lifecycle state |
-| `flight_history_t` | Array of up to `MAX_POSITIONS` (1000) ACA positions for one flight |
-| `simulation_params_t` | Full simulation configuration (time range, bounds, thresholds) |
+| `flight_history_t` | Up to `MAX_POSITIONS` (1000) ACA-only positions per flight |
+| `simulation_params_t` | Full simulation configuration (time range, bounds, thresholds) — not yet wired |
 
 ---
 
@@ -121,47 +161,44 @@ while (open_pipes > 0)
 The configured ACA corresponds to the **Lisbon FIR (western Iberian Peninsula)**:
 
 ```
-latitude  : [36.0°N, 43.0°N]
-longitude : [10.0°W,  6.0°W]
+latitude  : [36.0 N, 43.0 N]
+longitude : [10.0 W,  6.0 W]
 ```
 
-Porto (OPO, 41.26°N) lies inside the ACA; Madrid (MAD, 40.49°N / 3.56°W) lies outside. Flights therefore **enter the ACA at departure** and **exit during the cruise segment** — exercising both `ACA_BEFORE → ACA_INSIDE` and `ACA_INSIDE → ACA_AFTER` transitions.
+Porto (OPO, 41.26 N) lies inside the ACA; Madrid (MAD, 40.49 N / 3.56 W) lies outside. Flights enter the ACA at departure and exit during the cruise segment — exercising both `ACA_BEFORE → ACA_INSIDE` and `ACA_INSIDE → ACA_AFTER` transitions.
 
-### ACA filter (`aca_filter.c`)
-
-```c
-int is_in_aca(const aircraft_position_t *pos, const geo_boundary_t *aca)
-```
-
-Returns 1 if the position is within or on the boundary of the rectangle (bounds are inclusive).
-
-Only positions for which `is_in_aca()` returns 1 are stored in `flight_history_t`. Entry and exit events are logged by comparing the previous `aca_state` with the new one after each received position.
+The ACA predicate (`aca_filter.c`) uses inclusive bounds (`<=` / `>=`).
 
 ---
 
 ## 7. Flight Plans (`flight_data.c`)
 
-Three OPO → MAD flights are generated from the same 3-segment profile, offset by a small latitude shift to produce distinct trajectories:
+Four OPO → MAD flights are built from the same 3-segment profile with a latitude offset:
 
-| Flight | Lat offset | Route |
-|--------|-----------|-------|
-| FLIGHT_01 | 0.0° | Base OPO → MAD |
+| Flight | Lat offset | Purpose |
+|--------|-----------|---------|
+| FLIGHT_01 | 0.0° | Base trajectory |
 | FLIGHT_02 | +0.3° | Slightly north |
 | FLIGHT_03 | −0.3° | Slightly south |
+| FLIGHT_04 | +0.02° | ~2.2 km north of FLIGHT_01 — triggers cylinder violation |
+
+Normal mode uses flights 01–03. `--collision` mode adds FLIGHT_04.
 
 Each flight has one leg with three segments:
 
 | # | Mode | From | To | Alt range |
 |---|------|------|----|-----------|
-| 0 | climb | OPO (41.26°N, 8.69°W) | (42.0°N, 8.01°W) | 69 m → 9 249 m |
-| 1 | cruise | (42.0°N, 8.01°W) | (41.0°N, 4.30°W) | 9 249 m → 9 249 m |
-| 2 | descend | (41.0°N, 4.30°W) | MAD (40.49°N, 3.56°W) | 9 249 m → 610 m |
+| 0 | climb | OPO (41.26 N, 8.69 W) | (42.0 N, 8.01 W) | 69 m → 9 249 m |
+| 1 | cruise | (42.0 N, 8.01 W) | (41.0 N, 4.30 W) | 9 249 m constant |
+| 2 | descend | (41.0 N, 4.30 W) | MAD (40.49 N, 3.56 W) | 9 249 m → 610 m |
+
+Performance tables contain 13 altitude points each for climb and descend (from the `Flight_Plan_v0c.json` profile). Cruise speed is 460 kt.
 
 ---
 
 ## 8. Safety Cylinder — US102 Integration
 
-After each position update, `monitor_safety_violations()` (`us102.c`) is called from the parent `select()` loop to check the updated flight against every other flight that already has at least two positions (a motion vector).
+After every active flight has reported for a step, `monitor_safety_violations()` (`us102.c`) compares each updated flight against all others with at least two positions.
 
 ### Safety cylinder parameters
 
@@ -172,18 +209,20 @@ After each position update, `monitor_safety_violations()` (`us102.c`) is called 
 | Sub-steps for intersection | 10 |
 | Max violations before abort | 5 |
 
-### Trajectory intersection check
+### Trajectory intersection
 
-Both aircraft are linearly interpolated over `SUB_STEPS` sub-steps from their previous to their current position. At each sub-step the cylinder distances are computed. If **both** horizontal and vertical distances fall below their thresholds simultaneously, a violation is detected.
+Both aircraft are linearly interpolated over `SUB_STEPS` sub-steps. At each sub-step the cylinder distances are computed. If both distances fall below their thresholds simultaneously, a violation is detected.
 
-### Signal protocol
+### Signal and control protocol
 
-| Event | Signal |
+| Event | Action |
 |-------|--------|
-| Violation detected | `SIGUSR1` → both implicated flights |
-| Violation limit (5) reached | `SIGTERM` → all active flights |
+| Violation detected (below limit) | `SIGUSR1` to both implicated flights; parent still sends `'G'` this step |
+| Violation limit (5) reached | `SIGTERM` to all active flights; parent sends `'S'` and terminates loop |
 
-When `SIGTERM` is sent, the parent sets `open_pipes = 0` and exits the `select()` loop, then proceeds to `waitpid()` cleanup.
+`SIGPIPE` is ignored in the parent (`signal(SIGPIPE, SIG_IGN)`) so that writing `'S'` to a pipe whose child was already killed by `SIGTERM` returns `EPIPE` rather than crashing the parent.
+
+`predict_future_collisions()` (`us102.c`) provides an advisory pre-flight check by comparing segment endpoint pairs of two flight plans for cylinder overlap.
 
 ---
 
@@ -191,31 +230,32 @@ When `SIGTERM` is sent, the parent sets `open_pipes = 0` and exits the `select()
 
 | Function | Description |
 |----------|-------------|
-| `find_or_create_flight()` | Looks up a flight by ID in `flight_history_t[]`; allocates a slot and initialises `aca_state = ACA_BEFORE` on first use |
-| `print_history()` | Prints all recorded ACA positions per flight after the simulation ends |
+| `find_or_create_flight()` | Looks up a flight by ID in `flight_history_t[]`; allocates slot and sets `aca_state = ACA_BEFORE` on first use; returns -1 if full |
+| `print_history()` | Prints all ACA-recorded positions per flight after simulation ends |
 
 ---
 
 ## 10. Build and Run
 
-The simulation has no external dependencies beyond a POSIX-compliant C compiler (`gcc`) and the standard math library.
-
 ```bash
 cd aisafe.base/simulation
 
-# Compile
 gcc -Wall -Wextra -o simulation \
     main.c flight_process.c flight_data.c aca_filter.c ipc.c us102.c \
     -lm
 
-# Run
+# Normal mode (3 flights, no guaranteed collision)
 ./simulation
+
+# Collision test mode (adds FLIGHT_04 ~2.2 km from FLIGHT_01)
+./simulation --collision
 ```
 
-Expected output (abbreviated):
+Expected output (abbreviated, normal mode):
 
 ```
 === Flight Simulation (US101 & US102) ===
+Mode: normal
 ACA: lat [36.0, 43.0]  lon [-10.0, -6.0]
 
 Flight loaded: FLIGHT_01
@@ -224,7 +264,7 @@ Flight loaded: FLIGHT_03
 
 === Controlador Aereo Live (US101 & US102) ===
 [FLIGHT_01] >>> ENTERING ACA
-[FLIGHT_01] lat=41.2629 lon=-8.6852 alt=69m spd=250kt hdg=...
+[FLIGHT_01] lat=41.2629 lon=-8.6853 alt=81m spd=210.0kt hdg=... vz=12.0m/s
 ...
 [FLIGHT_01] <<< EXITING ACA
 ...
@@ -232,6 +272,7 @@ Flight loaded: FLIGHT_03
 Flight FLIGHT_01: N positions inside ACA [exited ACA]
   [0] lat=... lon=... alt=...m spd=...kt hdg=...
   ...
+[FLIGHT_01] ended with code 0
 ```
 
 ---
@@ -240,29 +281,35 @@ Flight FLIGHT_01: N positions inside ACA [exited ACA]
 
 ```
 aisafe.base/simulation/
-├── main.c            — US100 entry point: fork/pipe/select orchestration
-├── flight_process.c  — Child process: flight plan execution, pipe writes
-├── flight_data.c     — Flight plan factory (OPO→MAD, 3 variants)
+├── main.c            — US100 entry point: fork/pipe/select/GO-STOP orchestration
+├── flight_process.c  — Child: plan execution, perf-table physics, SIGUSR1 handler
+├── flight_data.c     — Flight plan factory (OPO→MAD, 4 variants with profiles)
 ├── aca_filter.c      — ACA boundary predicate (is_in_aca)
-├── ipc.c             — Position history management, history printer
-├── us102.c           — Safety cylinder violation detection + signals
+├── ipc.c             — Position history management + printer
+├── us102.c           — Safety cylinder violation detection + predict_future_collisions
 ├── types.h           — All shared data structures
-├── flight_process.h  — execute_flight_process() declaration
+├── flight_process.h  — execute_flight_process() declaration (3 params)
 ├── flight_data.h     — create_flight_plan() / free_flight_plan() declarations
 ├── aca_filter.h      — is_in_aca() declaration
 ├── ipc.h             — find_or_create_flight() / print_history() declarations
-└── us102.h           — monitor_safety_violations() declaration
+└── us102.h           — monitor_safety_violations() / predict_future_collisions() declarations
 ```
 
 ---
 
 ## 12. Design Decisions
 
-**One pipe per flight over a shared pipe.**  
-A single shared pipe would mix position records from different children. The parent would need an embedded flight index in every record to route it correctly. One dedicated pipe per flight eliminates this bookkeeping and makes the `select()` read loop straightforward: the position source is identified by which file descriptor fired.
+**Bidirectional pipes (2 per flight) instead of 1.**
+A unidirectional pipe carries positions from child to parent. The second pipe (parent to child) carries GO/STOP tokens. Without it, the parent has no way to tell a child to stop short of a signal, and synchronisation would rely entirely on asynchronous signals rather than the deterministic blocking read.
 
-**Physics-derived step count.**  
-`compute_steps()` divides the real segment distance by `(speed × 60 s)` rather than using a fixed step count. This means longer segments and slower speeds produce proportionally more position updates, keeping simulation time roughly proportional to real flight time.
+**Synchronised time steps via GO/STOP.**
+After collecting one position from every active flight, the parent runs all safety checks before issuing GO. This guarantees that no flight advances to step T+1 until the parent has verified safety at step T across all pairs. Pure signal-based approaches do not provide this guarantee.
 
-**Motion-vector window in the parent, not in child memory.**  
-Because safety cylinder checks require comparing two flights simultaneously, the check must happen in the single entity that can observe all flights — the parent. Each received position slides a two-slot window (`prev_positions[i]`, `current_positions[i]`) forward in the parent.
+**Performance tables instead of constant speeds.**
+`lookup_perf()` interpolates speed and vertical rate from altitude-indexed tables derived from `Flight_Plan_v0c.json`. This makes climb and descent profiles realistic: speed and climb rate decrease with altitude, matching real aircraft behaviour.
+
+**Motion-vector window in the parent.**
+Safety cylinder checks compare two flights simultaneously. Only the parent can observe all flights at once. Each received position slides a two-slot window (`prev_positions[i]`, `current_positions[i]`) in the parent, keeping all comparison logic out of the child processes.
+
+**`SIGPIPE` ignored in the parent.**
+When the violation limit is reached, `us102.c` sends `SIGTERM` to all children before returning. The parent then tries to write `'S'` on the control pipes. If a child dies before the write, the pipe has no reader and a default `SIGPIPE` would kill the parent. Ignoring `SIGPIPE` lets `write()` return `-1`/`EPIPE` harmlessly instead.

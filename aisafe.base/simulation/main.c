@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +52,10 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[a], "--collision") == 0)
             n_flights = N_FLIGHTS_COLLISION;
     }
+
+    /* Ignore SIGPIPE: when us102 sends SIGTERM to children before main sends 'S',
+     * writing to the dead child's ctrl pipe returns EPIPE instead of killing the parent. */
+    signal(SIGPIPE, SIG_IGN);
 
     pid_t          pids[N_FLIGHTS_COLLISION];
     flight_pipes_t pipes[N_FLIGHTS_COLLISION];
