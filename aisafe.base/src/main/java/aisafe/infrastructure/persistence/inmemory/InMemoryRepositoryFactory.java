@@ -18,19 +18,40 @@ import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import eapli.framework.infrastructure.authz.repositories.impl.inmemory.InMemoryUserRepository;
 
+/**
+ * In-memory factory used for tests and the {@code --inmemory} runtime profile.
+ * Each repository is cached so that data persists across multiple calls to
+ * {@code PersistenceContext.repositories().xxx()} within the same JVM run.
+ */
 public class InMemoryRepositoryFactory implements RepositoryFactory {
 
+    private eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUsersRepo;
+    private aisafe.usermanagement.repositories.UserRepository usersRepo;
+    private AirTransportCompanyRepository airTransportCompaniesRepo;
+    private AirControlAreaRepository airControlAreasRepo;
+    private FlightPlanRepository flightPlansRepo;
+    private WeatherDataRepository weatherDataRepo;
+    private AirportRepository airportsRepo;
+    private EngineModelRepository engineModelsRepo;
+    private MakerRepository makersRepo;
+    private AircraftModelRepository aircraftModelsRepo;
+    private CollaboratorRepository collaboratorsRepo;
+    private AircraftRepository aircraftRepo;
+
     @Override
-    public eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUsers(
+    public synchronized eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUsers(
             final TransactionalContext tx) {
-        final var repo = new InMemoryUserRepository();
-        final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
-        builder.withUsername("admin").withPassword("Password1")
-                .withName("System", "Admin")
-                .withEmail("admin@aisafe.com")
-                .withRoles(AiSafeRoles.ADMIN);
-        repo.save(builder.build());
-        return repo;
+        if (systemUsersRepo == null) {
+            final var repo = new InMemoryUserRepository();
+            final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername("admin").withPassword("Password1")
+                    .withName("System", "Admin")
+                    .withEmail("admin@aisafe.com")
+                    .withRoles(AiSafeRoles.ADMIN);
+            repo.save(builder.build());
+            systemUsersRepo = repo;
+        }
+        return systemUsersRepo;
     }
 
     @Override
@@ -39,8 +60,9 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
-    public aisafe.usermanagement.repositories.UserRepository users(final TransactionalContext tx) {
-        return new aisafe.infrastructure.persistence.inmemory.InMemoryAiSafeUserRepository();
+    public synchronized aisafe.usermanagement.repositories.UserRepository users(final TransactionalContext tx) {
+        if (usersRepo == null) usersRepo = new InMemoryAiSafeUserRepository();
+        return usersRepo;
     }
 
     @Override
@@ -49,43 +71,47 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
-    public AirTransportCompanyRepository airTransportCompanies(final TransactionalContext tx) {
-        return new InMemoryAirTransportCompanyRepository();
+    public synchronized AirTransportCompanyRepository airTransportCompanies(final TransactionalContext tx) {
+        if (airTransportCompaniesRepo == null) airTransportCompaniesRepo = new InMemoryAirTransportCompanyRepository();
+        return airTransportCompaniesRepo;
     }
 
     @Override
     public AirTransportCompanyRepository airTransportCompanies() {
-        return new InMemoryAirTransportCompanyRepository();
+        return airTransportCompanies(null);
     }
 
     @Override
-    public AirControlAreaRepository airControlAreas(final TransactionalContext tx) {
-        return new InMemoryAirControlAreaRepository();
+    public synchronized AirControlAreaRepository airControlAreas(final TransactionalContext tx) {
+        if (airControlAreasRepo == null) airControlAreasRepo = new InMemoryAirControlAreaRepository();
+        return airControlAreasRepo;
     }
 
     @Override
     public AirControlAreaRepository airControlAreas() {
-        return new InMemoryAirControlAreaRepository();
+        return airControlAreas(null);
     }
 
     @Override
-    public FlightPlanRepository flightPlans(final TransactionalContext tx) {
-        return new InMemoryFlightPlanRepository();
+    public synchronized FlightPlanRepository flightPlans(final TransactionalContext tx) {
+        if (flightPlansRepo == null) flightPlansRepo = new InMemoryFlightPlanRepository();
+        return flightPlansRepo;
     }
 
     @Override
     public FlightPlanRepository flightPlans() {
-        return new InMemoryFlightPlanRepository();
+        return flightPlans(null);
     }
 
     @Override
-    public WeatherDataRepository weatherData(final TransactionalContext tx) {
-        return new InMemoryWeatherDataRepository();
+    public synchronized WeatherDataRepository weatherData(final TransactionalContext tx) {
+        if (weatherDataRepo == null) weatherDataRepo = new InMemoryWeatherDataRepository();
+        return weatherDataRepo;
     }
 
     @Override
     public WeatherDataRepository weatherData() {
-        return new InMemoryWeatherDataRepository();
+        return weatherData(null);
     }
 
     @Override
@@ -94,63 +120,68 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
-    public AirportRepository airports(final TransactionalContext tx) {
-        return new InMemoryAirportRepository();
+    public synchronized AirportRepository airports(final TransactionalContext tx) {
+        if (airportsRepo == null) airportsRepo = new InMemoryAirportRepository();
+        return airportsRepo;
     }
 
     @Override
     public AirportRepository airports() {
-        return new InMemoryAirportRepository();
+        return airports(null);
     }
 
     @Override
-    public EngineModelRepository engineModels(final TransactionalContext tx) {
-        return new InMemoryEngineModelRepository();
+    public synchronized EngineModelRepository engineModels(final TransactionalContext tx) {
+        if (engineModelsRepo == null) engineModelsRepo = new InMemoryEngineModelRepository();
+        return engineModelsRepo;
     }
 
     @Override
     public EngineModelRepository engineModels() {
-        return new InMemoryEngineModelRepository();
+        return engineModels(null);
     }
 
     @Override
-    public MakerRepository makers(final TransactionalContext tx) {
-        return new InMemoryMakerRepository();
+    public synchronized MakerRepository makers(final TransactionalContext tx) {
+        if (makersRepo == null) makersRepo = new InMemoryMakerRepository();
+        return makersRepo;
     }
 
     @Override
     public MakerRepository makers() {
-        return new InMemoryMakerRepository();
+        return makers(null);
     }
 
     @Override
-    public AircraftModelRepository aircraftModels(final TransactionalContext tx) {
-        return new InMemoryAircraftModelRepository();
+    public synchronized AircraftModelRepository aircraftModels(final TransactionalContext tx) {
+        if (aircraftModelsRepo == null) aircraftModelsRepo = new InMemoryAircraftModelRepository();
+        return aircraftModelsRepo;
     }
 
     @Override
     public AircraftModelRepository aircraftModels() {
-        return new InMemoryAircraftModelRepository();
+        return aircraftModels(null);
     }
 
     @Override
-    public CollaboratorRepository collaborators(final TransactionalContext tx) {
-        return new InMemoryCollaboratorRepository();
+    public synchronized CollaboratorRepository collaborators(final TransactionalContext tx) {
+        if (collaboratorsRepo == null) collaboratorsRepo = new InMemoryCollaboratorRepository();
+        return collaboratorsRepo;
     }
 
     @Override
     public CollaboratorRepository collaborators() {
-        return new InMemoryCollaboratorRepository();
+        return collaborators(null);
     }
 
     @Override
-    public AircraftRepository aircraft(final TransactionalContext tx) {
-        return new InMemoryAircraftRepository();
+    public synchronized AircraftRepository aircraft(final TransactionalContext tx) {
+        if (aircraftRepo == null) aircraftRepo = new InMemoryAircraftRepository();
+        return aircraftRepo;
     }
 
     @Override
     public AircraftRepository aircraft() {
-        return new InMemoryAircraftRepository();
+        return aircraft(null);
     }
-
 }

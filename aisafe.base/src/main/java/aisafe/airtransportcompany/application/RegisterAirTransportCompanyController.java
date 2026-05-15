@@ -11,7 +11,7 @@ import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
 /**
- * Application-layer controller for the "Register Air Transport Company" use case (US058).
+ * Application-layer controller for the "Register Air Transport Company" use case (US060).
  * Only a Back-Office Operator may register companies.
  */
 @UseCaseController
@@ -32,8 +32,25 @@ public class RegisterAirTransportCompanyController {
     public AirTransportCompany registerCompany(final String name, final String iataCode, final String icaoCode) {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR);
-        final AirTransportCompany company = new AirTransportCompany(
-                name, IATACode.valueOf(iataCode), ICAOCode.valueOf(icaoCode));
+
+        final IATACode iata = IATACode.valueOf(iataCode);
+        final ICAOCode icao = ICAOCode.valueOf(icaoCode);
+        final String trimmedName = name == null ? null : name.trim();
+
+        if (repo.ofIdentity(iata).isPresent()) {
+            throw new IllegalArgumentException(
+                    "An air transport company with IATA code '" + iata + "' already exists.");
+        }
+        if (repo.findByIcaoCode(icao).isPresent()) {
+            throw new IllegalArgumentException(
+                    "An air transport company with ICAO code '" + icao + "' already exists.");
+        }
+        if (trimmedName != null && repo.findByName(trimmedName).isPresent()) {
+            throw new IllegalArgumentException(
+                    "An air transport company with name '" + trimmedName + "' already exists.");
+        }
+
+        final AirTransportCompany company = new AirTransportCompany(trimmedName, iata, icao);
         return repo.save(company);
     }
 }

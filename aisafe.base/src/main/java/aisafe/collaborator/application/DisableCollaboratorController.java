@@ -14,7 +14,7 @@ import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.application.UserManagementService;
 
 /**
- * Application-layer controller for the "Disable Customer's Collaborator" use case (US060).
+ * Application-layer controller for the "Disable Customer's Collaborator" use case (US064).
  * Deactivates the system user of the selected collaborator.
  * Requires a Back-Office Operator or Admin role.
  */

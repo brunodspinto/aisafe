@@ -178,7 +178,7 @@ public class AddCollaboratorController {
                 CurrentTimeCalendars.now());
 
         final MecanographicNumber mecNumber =
-                MecanographicNumber.valueOf(String.valueOf(System.currentTimeMillis()));
+                MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
 
         final User user = new User(systemUser, mecNumber, phoneNumber, email,
                 position, securityClearance, skillsAssessmentDate);
