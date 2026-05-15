@@ -74,15 +74,14 @@ typedef struct {
 } aircraft_position_t;
 
 typedef struct {
-    time_t start_time;
-    time_t end_time;
-    double min_latitude;
-    double max_latitude;
-    double min_longitude;
-    double max_longitude;
-    int max_flights;
-    double safety_threshold;
-    double performance_threshold;
+    double aca_north_lat;       /* ACA north boundary (degrees) */
+    double aca_south_lat;       /* ACA south boundary (degrees) */
+    double aca_east_lon;        /* ACA east boundary (degrees)  */
+    double aca_west_lon;        /* ACA west boundary (degrees)  */
+    int    n_flights;           /* number of flights to simulate */
+    double safe_dist_horiz_m;   /* horizontal safety cylinder (meters) */
+    double safe_dist_vert_m;    /* vertical safety cylinder (meters)   */
+    int    max_violations;      /* violations before early termination */
 } simulation_params_t;
 
 /* Rectangular boundary of an Air Control Area */
@@ -104,7 +103,7 @@ typedef struct {
     aircraft_position_t positions[MAX_POSITIONS];
     int count;
     char flight_id[64];
-    aca_state_t aca_state; /* AC6: entry/exit tracking */
+    aca_state_t aca_state; /* US101: ACA entry/exit tracking */
 } flight_history_t;
 
 #endif /* FLIGHT_SIMULATION_TYPES_H */

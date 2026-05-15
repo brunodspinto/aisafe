@@ -1,4 +1,4 @@
-# Project AIControl
+# Project AISafe
 
 ## 1. Description of the Project
 
@@ -10,12 +10,10 @@ AISafe is a prototype flight control and management system developed for a start
 
 ## 3. How to Build
 
-US005 defines Unix-compatible automation scripts under `aisafe.base/libs/scripts`.
-
 Prerequisites:
 - Bash (Linux/macOS/WSL)
-- Maven (`mvn` in `PATH`)
-- GCC (`gcc` in `PATH`) for C build step
+- Maven (`mvn` in `PATH`) — Java 21
+- GCC (`gcc` in `PATH`) for the C simulation component
 
 From the repository root, run:
 
@@ -23,55 +21,75 @@ From the repository root, run:
 bash aisafe.base/libs/scripts/build.sh
 ```
 
-This script executes:
-- `aisafe.base/libs/scripts/clean.sh`
-- Java build with Maven (`mvn install -DskipTests`)
-- C build (`aisafe.base/libs/scripts/build_c.sh`)
+This script executes in order:
+1. `aisafe.base/libs/scripts/clean.sh` — removes previous build artefacts
+2. Maven build (`mvn install -DskipTests`) — compiles all Java modules
+3. `aisafe.base/libs/scripts/build_c.sh` — compiles the C simulation into `aisafe.base/bin/simulation`
+
+To build only the C component manually:
+
+```bash
+cd aisafe.base/simulation
+gcc -Wall -Wextra -o ../bin/simulation \
+    main.c flight_process.c flight_data.c aca_filter.c ipc.c config.c us102.c -lm
+```
 
 ## 4. How to Execute Tests
 
-In US005 (Sprint 1), there is no dedicated test script yet.
-
-To run Maven tests manually from the repository root:
+Run all Java unit tests from the repository root:
 
 ```bash
-mvn test
+mvn -f aisafe.base/pom.xml test
 ```
 
-Note: the US005 build script skips tests (`-DskipTests`) by design.
+Test coverage is enforced via JaCoCo (minimum 90% on controller and domain packages). Reports are generated at `aisafe.base/target/site/jacoco/`.
 
 ## 5. How to Run
 
-US005 provides a temporary run entry point only (no functional application runtime in Sprint 1):
+### Backoffice Console Application (Java)
+
+From the repository root:
 
 ```bash
-bash aisafe.base/libs/scripts/run_placeholder.sh
+mvn -f aisafe.base/pom.xml exec:java
 ```
 
-This script exits successfully and documents that real runtime scripts are deferred to later sprints.
+This launches the interactive console (`AiSafeConsoleApp`). Bootstrap data (admin user, default air control areas, airports, companies) is loaded automatically on first run.
+
+Default admin credentials: `admin` / `Password1`
+
+### Flight Simulation (C — US100/101/102/103)
+
+After building, run from the `aisafe.base/bin/` directory (the build script copies `simulation.conf` there automatically):
+
+```bash
+cd aisafe.base/bin
+
+# Normal mode: 3 flights (FLIGHT_01, FLIGHT_02, FLIGHT_03)
+./simulation
+
+# Collision test mode: adds FLIGHT_04 (~2.2 km from FLIGHT_01)
+./simulation --collision
+```
+
+Simulation parameters (ACA bounds, safety thresholds, number of flights) are read from `simulation.conf` in the same directory as the binary.
 
 ## 6. How to Install/Deploy into Another Machine (or Virtual Machine)
 
-For US005 scope, deployment is limited to setting up a Unix-compatible environment and running scripts.
-
 Minimum setup:
-- Clone the repository.
-- Install Bash, Maven, and GCC.
-- Ensure Java 11+ is available if you need PlantUML generation.
-
-Typical sequence from repository root:
+- Clone the repository
+- Install Bash, Maven (Java 21), and GCC
+- From the repository root, run the build script and then start the application
 
 ```bash
 bash aisafe.base/libs/scripts/clean.sh
 bash aisafe.base/libs/scripts/build.sh
-bash aisafe.base/libs/scripts/run_placeholder.sh
+mvn -f aisafe.base/pom.xml exec:java
 ```
 
-There is no application/database deployment script yet in Sprint 1.
+The system uses H2 (embedded) by default for development. To use PostgreSQL, configure `aisafe.base/src/main/resources/META-INF/persistence.xml` with the appropriate JDBC URL and credentials.
 
 ## 7. How to Generate PlantUML Diagrams
-
-To generate PlantUML diagrams for documentation, run:
 
 ```bash
 bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
@@ -80,5 +98,3 @@ bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
 Requirements:
 - Java 11+
 - `aisafe.base/libs/plantuml.jar` (auto-downloaded on first run if missing)
-
-

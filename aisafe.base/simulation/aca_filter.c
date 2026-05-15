@@ -1,5 +1,5 @@
 /*
- * aca_filter.c - Air Control Area boundary checks (AC5, AC6)
+ * aca_filter.c - Air Control Area boundary checks (US101)
  */
 #include "aca_filter.h"
 

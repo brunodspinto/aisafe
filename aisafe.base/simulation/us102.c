@@ -5,11 +5,7 @@
 #include <time.h>
 #include "us102.h"
 
-// Air Traffic Controller business rules (Professor Notes)
-#define SAFE_DIST_HORIZ 14816.0 // 8 Nautical Miles (8 * 1852 meters)
-#define SAFE_DIST_VERT 600.0    // Safe Vertical Distance (meters)
-#define MAX_VIOLATIONS 5        // Limit for early termination
-#define SUB_STEPS 10            // Micro-steps to check vector intersections (prevents "jumps")
+#define SUB_STEPS 10  /* micro-steps for trajectory intersection (prevents position jumps) */
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -25,36 +21,34 @@ static void calculate_cylinder_distances(const aircraft_position_t *p1, const ai
     *dist_vert = fabs(p1->altitude_meters - p2->altitude_meters);
 }
 
-// Checks whether displacement vectors intersect inside the safety cylinder during a time step
 static int check_trajectory_intersection(const aircraft_position_t *p1_prev, const aircraft_position_t *p1_curr,
-                                         const aircraft_position_t *p2_prev, const aircraft_position_t *p2_curr) {
-    // Interpolates the vector line from Previous Point -> Current Point
+                                         const aircraft_position_t *p2_prev, const aircraft_position_t *p2_curr,
+                                         double safe_dist_horiz_m, double safe_dist_vert_m) {
     for (int step = 0; step <= SUB_STEPS; step++) {
         double t = (double)step / SUB_STEPS;
 
         aircraft_position_t p1_inter, p2_inter;
-        p1_inter.latitude = p1_prev->latitude + (p1_curr->latitude - p1_prev->latitude) * t;
-        p1_inter.longitude = p1_prev->longitude + (p1_curr->longitude - p1_prev->longitude) * t;
+        p1_inter.latitude        = p1_prev->latitude        + (p1_curr->latitude        - p1_prev->latitude)        * t;
+        p1_inter.longitude       = p1_prev->longitude       + (p1_curr->longitude       - p1_prev->longitude)       * t;
         p1_inter.altitude_meters = p1_prev->altitude_meters + (p1_curr->altitude_meters - p1_prev->altitude_meters) * t;
 
-        p2_inter.latitude = p2_prev->latitude + (p2_curr->latitude - p2_prev->latitude) * t;
-        p2_inter.longitude = p2_prev->longitude + (p2_curr->longitude - p2_prev->longitude) * t;
+        p2_inter.latitude        = p2_prev->latitude        + (p2_curr->latitude        - p2_prev->latitude)        * t;
+        p2_inter.longitude       = p2_prev->longitude       + (p2_curr->longitude       - p2_prev->longitude)       * t;
         p2_inter.altitude_meters = p2_prev->altitude_meters + (p2_curr->altitude_meters - p2_prev->altitude_meters) * t;
 
         double d_horiz, d_vert;
         calculate_cylinder_distances(&p1_inter, &p2_inter, &d_horiz, &d_vert);
 
-        // Safety Cylinder evaluation
-        if (d_horiz < SAFE_DIST_HORIZ && d_vert < SAFE_DIST_VERT) {
-            return 1; // Real intersection detected during movement
-        }
+        if (d_horiz < safe_dist_horiz_m && d_vert < safe_dist_vert_m)
+            return 1;
     }
     return 0;
 }
 
 int predict_future_collisions(flight_plan_t *const *plans,
                               int flight_a, int current_seg_a,
-                              int flight_b, int current_seg_b) {
+                              int flight_b, int current_seg_b,
+                              double safe_dist_horiz_m, double safe_dist_vert_m) {
     const flight_plan_t *pa = plans[flight_a];
     const flight_plan_t *pb = plans[flight_b];
     if (!pa || !pb || pa->leg_count == 0 || pb->leg_count == 0) return 0;
@@ -80,7 +74,8 @@ int predict_future_collisions(flight_plan_t *const *plans,
             b_curr.longitude       = lb->segments[sb].to.longitude;
             b_curr.altitude_meters = lb->segments[sb].alt_to_meters;
 
-            if (check_trajectory_intersection(&a_prev, &a_curr, &b_prev, &b_curr)) {
+            if (check_trajectory_intersection(&a_prev, &a_curr, &b_prev, &b_curr,
+                                              safe_dist_horiz_m, safe_dist_vert_m)) {
                 printf("[US102 PREDICTION] Future collision risk: %s seg %d"
                        " vs %s seg %d\n",
                        pa->identifier, sa, pb->identifier, sb);
@@ -91,27 +86,32 @@ int predict_future_collisions(flight_plan_t *const *plans,
     return 0;
 }
 
-int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_positions, aircraft_position_t *current_positions, int *has_position, int *pipe_open, pid_t *pids, int n_flights, int *total_violations) {
+int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_positions,
+                               aircraft_position_t *current_positions, int *has_position,
+                               int *pipe_open, pid_t *pids, int n_flights, int *total_violations,
+                               double safe_dist_horiz_m, double safe_dist_vert_m, int max_violations) {
     int i = updated_flight_idx;
 
     for (int j = 0; j < n_flights; j++) {
-        // Ignore same flight, flights without at least 2 positions (to form a vector), or closed pipes
         if (i == j || has_position[j] < 2 || !pipe_open[j]) continue;
 
-        if (check_trajectory_intersection(&prev_positions[i], &current_positions[i], &prev_positions[j], &current_positions[j])) {
-
+        if (check_trajectory_intersection(&prev_positions[i], &current_positions[i],
+                                          &prev_positions[j], &current_positions[j],
+                                          safe_dist_horiz_m, safe_dist_vert_m)) {
             time_t now = time(NULL);
             printf("\n[US102 CYLINDER ALERT] Intersection risk detected at %s", ctime(&now));
-            printf("Flights: %s and %s crossed paths (H < 8NM and V < 600m).\n", current_positions[i].flight_id, current_positions[j].flight_id);
+            printf("Flights: %s and %s crossed paths (H < %.0fm and V < %.0fm).\n",
+                   current_positions[i].flight_id, current_positions[j].flight_id,
+                   safe_dist_horiz_m, safe_dist_vert_m);
 
-            // Send signals to processes (US102 requires asynchronous interruption for alerts)
             kill(pids[i], SIGUSR1);
             kill(pids[j], SIGUSR1);
 
             (*total_violations)++;
 
-            if (*total_violations >= MAX_VIOLATIONS) {
-                printf("\n[CRITICAL] Violation limit reached (%d). Aborting...\n", *total_violations);
+            if (*total_violations >= max_violations) {
+                printf("\n[CRITICAL] Violation limit reached (%d). Aborting...\n",
+                       *total_violations);
                 for (int k = 0; k < n_flights; k++) {
                     if (pipe_open[k]) kill(pids[k], SIGTERM);
                 }
