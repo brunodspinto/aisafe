@@ -1,5 +1,9 @@
 /*
- * flight_process.c - Flight process execution (AC7: second-by-second simulation)
+ * flight_process.c - Flight process execution (second-by-second simulation)
+ *
+ * Physics: altitude-dependent speed and vertical rate from Flight Profile tables.
+ * Synchronisation: after each position write, child blocks until parent sends
+ *   'G' (go - safe, continue) or 'S' (stop - collision detected, exit).
  */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -11,103 +15,156 @@
 #include "types.h"
 #include "flight_process.h"
 
-/*
- * Each simulation step represents STEP_SECONDS of flight time.
- * Steps are derived from real physics (distance / speed), so longer
- * segments at higher speeds produce proportionally more steps.
- * The 10 ms real-time sleep keeps the demo fast while preserving
- * the second-by-second model in simulation timestamps.
- */
-#define STEP_SECONDS   60       /* simulation seconds per step */
-#define STEP_DELAY_MS  10       /* real-time delay per step (ms) */
+#define STEP_SECONDS   1        /* simulation seconds per step (second-by-second) */
+#define DEG_TO_RAD     (M_PI / 180.0)
+#define KNOTS_TO_MPS   0.51444  /* 1 knot = 0.51444 m/s */
 
-#define DEG_TO_RAD  (M_PI / 180.0)
-#define KNOTS_TO_MPS 0.51444    /* 1 knot = 0.51444 m/s */
-
-/* Equirectangular distance approximation (sufficient for short segments). */
-static double segment_distance_m(const segment_t *seg) {
-    double lat_mid, dlat, dlon;
-    lat_mid = (seg->from.latitude + seg->to.latitude) / 2.0 * DEG_TO_RAD;
-    dlat    = (seg->to.latitude  - seg->from.latitude)  * 111320.0;
-    dlon    = (seg->to.longitude - seg->from.longitude) * 111320.0 * cos(lat_mid);
+/* Equirectangular distance between two coordinates in meters */
+static double horiz_distance_m(double lat1, double lon1, double lat2, double lon2) {
+    double lat_mid = (lat1 + lat2) / 2.0 * DEG_TO_RAD;
+    double dlat    = (lat2 - lat1) * 110574.0;
+    double dlon    = (lon2 - lon1) * 111320.0 * cos(lat_mid);
     return sqrt(dlat * dlat + dlon * dlon);
 }
 
-/* Number of simulation steps for a segment given the aircraft speed. */
-static int compute_steps(const segment_t *seg, double speed_knots) {
-    double dist_m, speed_mps;
-    int steps;
-    dist_m    = segment_distance_m(seg);
-    speed_mps = speed_knots * KNOTS_TO_MPS;
-    steps     = (int)(dist_m / (speed_mps * STEP_SECONDS));
-    return (steps < 2) ? 2 : steps;
+/*
+ * Linearly interpolate speed_knots and vertical_rate_mps from a performance
+ * table at the given altitude. Clamps to the table boundaries.
+ */
+static void lookup_perf(const perf_point_t *table, int count, double alt_m,
+                        double *speed_kt_out, double *vz_out) {
+    if (count <= 0) { *speed_kt_out = 250.0; *vz_out = 0.0; return; }
+    if (alt_m <= table[0].altitude_m || count == 1) {
+        *speed_kt_out = table[0].speed_knots;
+        *vz_out       = table[0].vertical_rate_mps;
+        return;
+    }
+    if (alt_m >= table[count - 1].altitude_m) {
+        *speed_kt_out = table[count - 1].speed_knots;
+        *vz_out       = table[count - 1].vertical_rate_mps;
+        return;
+    }
+    for (int i = 0; i < count - 1; i++) {
+        if (alt_m >= table[i].altitude_m && alt_m < table[i + 1].altitude_m) {
+            double t = (alt_m - table[i].altitude_m) /
+                       (table[i + 1].altitude_m - table[i].altitude_m);
+            *speed_kt_out = table[i].speed_knots +
+                            t * (table[i + 1].speed_knots - table[i].speed_knots);
+            *vz_out = table[i].vertical_rate_mps +
+                      t * (table[i + 1].vertical_rate_mps - table[i].vertical_rate_mps);
+            return;
+        }
+    }
+    *speed_kt_out = table[count - 1].speed_knots;
+    *vz_out       = table[count - 1].vertical_rate_mps;
 }
 
-void execute_flight_process(int pipe_fd, const flight_plan_t *plan) {
-    int leg, seg, step, steps;
-    double dlat, dlon, heading, speed, progress;
+void execute_flight_process(int pos_write_fd, int ctrl_read_fd,
+                            const flight_plan_t *plan) {
+    int leg, seg;
     time_t sim_time;
     aircraft_position_t pos;
-    const leg_t *leg_data;
-    const segment_t *segment;
-    struct timespec delay;
 
     if (!plan) {
         fprintf(stderr, "[Flight] Error: flight plan is NULL\n");
         exit(1);
     }
 
-    printf("[Flight %s] Executing %d leg(s)\n", plan->identifier, plan->leg_count);
-
-    sim_time = time(NULL); /* simulation clock starts at fork time */
+    printf("[Flight %s] Starting simulation\n", plan->identifier);
+    sim_time = time(NULL);
 
     for (leg = 0; leg < plan->leg_count; leg++) {
-        leg_data = &plan->legs[leg];
+        const leg_t *leg_data = &plan->legs[leg];
+        const flight_profile_t *prof = &leg_data->profile;
 
         for (seg = 0; seg < leg_data->segment_count; seg++) {
-            segment = &leg_data->segments[seg];
+            const segment_t *segment = &leg_data->segments[seg];
 
-            /* Heading: true bearing derived from segment vector */
-            dlat    = segment->to.latitude  - segment->from.latitude;
-            dlon    = segment->to.longitude - segment->from.longitude;
-            heading = atan2(dlon, dlat) * 180.0 / M_PI;
+            double lat = segment->from.latitude;
+            double lon = segment->from.longitude;
+            double alt = segment->alt_from_meters;
+            double alt_target = segment->alt_to_meters;
+
+            /* Horizontal direction unit vector (in degrees, normalised) */
+            double dlat  = segment->to.latitude  - segment->from.latitude;
+            double dlon  = segment->to.longitude - segment->from.longitude;
+            double dist_total_m = horiz_distance_m(segment->from.latitude,
+                                                   segment->from.longitude,
+                                                   segment->to.latitude,
+                                                   segment->to.longitude);
+            if (dist_total_m < 1.0) dist_total_m = 1.0;
+
+            /* Heading: true bearing from segment vector */
+            double heading = atan2(dlon, dlat) * 180.0 / M_PI;
             if (heading < 0.0) heading += 360.0;
 
-            /* Speed constant within each phase */
-            if      (strcmp(segment->mode, "climb")  == 0) speed = 250.0;
-            else if (strcmp(segment->mode, "cruise") == 0) speed = 460.0;
-            else                                             speed = 220.0;
+            int is_climb   = (strcmp(segment->mode, "climb")   == 0);
+            int is_cruise  = (strcmp(segment->mode, "cruise")  == 0);
+            int is_descend = (strcmp(segment->mode, "descend") == 0);
 
-            /* AC7: step count derived from real distance and speed */
-            steps = compute_steps(segment, speed);
+            double dist_covered_m = 0.0;
 
-            for (step = 0; step < steps; step++) {
-                progress = (double)step / steps;
+            while (1) {
+                /* Check segment completion */
+                if (is_climb   && alt >= alt_target) break;
+                if (is_descend && alt <= alt_target) break;
+                if (is_cruise  && dist_covered_m >= dist_total_m) break;
 
-                pos.latitude  = segment->from.latitude  +
-                                (segment->to.latitude  - segment->from.latitude)  * progress;
-                pos.longitude = segment->from.longitude +
-                                (segment->to.longitude - segment->from.longitude) * progress;
-                pos.altitude_meters = segment->alt_from_meters +
-                                      (segment->alt_to_meters - segment->alt_from_meters) * progress;
-                pos.speed_knots = speed;
-                pos.heading_deg = heading;
-                pos.timestamp   = sim_time;
+                /* Look up speed and vertical rate at current altitude */
+                double speed_kt, vz;
+                if (is_cruise) {
+                    speed_kt = prof->cruise_speed_knots;
+                    vz       = 0.0;
+                } else if (is_climb) {
+                    lookup_perf(prof->climb, prof->climb_count, alt, &speed_kt, &vz);
+                } else { /* descend */
+                    lookup_perf(prof->descend, prof->descend_count, alt, &speed_kt, &vz);
+                }
+
+                double speed_mps    = speed_kt * KNOTS_TO_MPS;
+                double horiz_step_m = speed_mps * STEP_SECONDS;
+
+                /* Advance horizontally along segment direction */
+                double lat_mid_rad  = lat * DEG_TO_RAD;
+                lat += (dlat / dist_total_m) * (horiz_step_m / 110574.0);
+                lon += (dlon / dist_total_m) * (horiz_step_m /
+                        (111320.0 * cos(lat_mid_rad)));
+                dist_covered_m += horiz_step_m;
+
+                /* Advance vertically */
+                alt += vz * STEP_SECONDS;
+
+                /* Clamp to segment altitude bounds */
+                if (is_climb   && alt > alt_target) alt = alt_target;
+                if (is_descend && alt < alt_target) alt = alt_target;
+
+                /* Build and send position to parent */
+                memset(&pos, 0, sizeof(pos));
+                pos.latitude        = lat;
+                pos.longitude       = lon;
+                pos.altitude_meters = alt;
+                pos.speed_knots     = speed_kt;
+                pos.heading_deg     = heading;
+                pos.vz_mps          = vz;
+                pos.timestamp       = sim_time;
                 strncpy(pos.flight_id, plan->identifier, sizeof(pos.flight_id) - 1);
-                pos.flight_id[sizeof(pos.flight_id) - 1] = '\0';
 
-                write(pipe_fd, &pos, sizeof(aircraft_position_t));
-
+                write(pos_write_fd, &pos, sizeof(pos));
                 sim_time += STEP_SECONDS;
 
-                delay.tv_sec  = 0;
-                delay.tv_nsec = STEP_DELAY_MS * 1000000L;
-                nanosleep(&delay, NULL);
+                /* Wait for parent's GO ('G') or STOP ('S') */
+                char token = 0;
+                if (read(ctrl_read_fd, &token, 1) <= 0 || token == 'S') {
+                    close(pos_write_fd);
+                    close(ctrl_read_fd);
+                    exit(1);
+                }
+                /* token == 'G': safe to continue */
             }
         }
     }
 
-    /* close write end and exit — parent will detect EOF on its read loop */
-    close(pipe_fd);
+    close(pos_write_fd);
+    close(ctrl_read_fd);
     exit(0);
 }

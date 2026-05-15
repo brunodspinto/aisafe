@@ -1,11 +1,12 @@
 /*
  * main.c - Flight Simulation (US101 & US102)
  *
- * Architecture: one pipe per child + select() multiplexing so the parent
- * knows which flight index sent each position (required for vector tracking).
+ * Bidirectional IPC: one position pipe (child→parent) and one control pipe
+ * (parent→child) per flight. After receiving positions from ALL active flights,
+ * the parent runs US101 + US102 checks, then sends 'G' (go) or 'S' (stop).
  *
- * US101: ACA boundary filter, entry/exit detection, position history.
- * US102: per-flight motion vectors checked against a safety cylinder.
+ * This guarantees synchronised time steps: no flight advances past step T+1
+ * until the parent has verified safety at step T across every active flight.
  */
 #define _POSIX_C_SOURCE 200809L
 #include <unistd.h>
@@ -22,12 +23,13 @@
 #include "flight_process.h"
 #include "us102.h"
 
-#define N_FLIGHTS 3
+#define N_FLIGHTS_NORMAL    3
+#define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
 
 /*
  * Lisbon FIR (western Iberian Peninsula).
- * OPO is inside; MAD and the final approach are outside, so flights
- * will enter at departure and exit during cruise — demonstrating AC6.
+ * OPO is inside; MAD and the final approach are outside — flights
+ * will enter at departure and exit during cruise, demonstrating AC6.
  */
 static const geo_boundary_t ACA = {
     .north_latitude =  43.0,
@@ -37,23 +39,32 @@ static const geo_boundary_t ACA = {
 };
 
 typedef struct {
-    int read_fd;
-    int write_fd;
-} pipe_pair_t;
+    int pos_read_fd;   /* parent reads positions from child */
+    int pos_write_fd;  /* child writes positions to parent  */
+    int ctrl_write_fd; /* parent writes 'G'/'S' to child   */
+    int ctrl_read_fd;  /* child reads  'G'/'S' from parent */
+} flight_pipes_t;
 
-int main(void) {
-    pid_t pids[N_FLIGHTS];
-    pipe_pair_t pipes[N_FLIGHTS];
-    flight_plan_t *plans[N_FLIGHTS];
+int main(int argc, char *argv[]) {
+    int n_flights = N_FLIGHTS_NORMAL;
+    for (int a = 1; a < argc; a++) {
+        if (strcmp(argv[a], "--collision") == 0)
+            n_flights = N_FLIGHTS_COLLISION;
+    }
+
+    pid_t          pids[N_FLIGHTS_COLLISION];
+    flight_pipes_t pipes[N_FLIGHTS_COLLISION];
+    flight_plan_t *plans[N_FLIGHTS_COLLISION];
     flight_history_t histories[MAX_FLIGHTS];
     int i, status;
 
     printf("=== Flight Simulation (US101 & US102) ===\n");
+    printf("Mode: %s\n", n_flights == N_FLIGHTS_COLLISION ? "COLLISION TEST" : "normal");
     printf("ACA: lat [%.1f, %.1f]  lon [%.1f, %.1f]\n\n",
            ACA.south_latitude, ACA.north_latitude,
            ACA.west_longitude, ACA.east_longitude);
 
-    for (i = 0; i < N_FLIGHTS; i++) {
+    for (i = 0; i < n_flights; i++) {
         plans[i] = create_flight_plan(i);
         if (!plans[i]) {
             fprintf(stderr, "Error: could not create flight plan %d\n", i);
@@ -61,142 +72,196 @@ int main(void) {
         }
         printf("Flight loaded: %s\n", plans[i]->identifier);
     }
-
     fflush(stdout);
 
-    /* One pipe per flight so the parent knows the sender index */
-    for (i = 0; i < N_FLIGHTS; i++) {
+    /* Two pipes per flight: one for position (child→parent), one for control (parent→child) */
+    for (i = 0; i < n_flights; i++) {
         int fd[2];
-        if (pipe(fd) == -1) { perror("pipe"); exit(1); }
-        pipes[i].read_fd  = fd[0];
-        pipes[i].write_fd = fd[1];
+        if (pipe(fd) == -1) { perror("pipe pos"); exit(1); }
+        pipes[i].pos_read_fd  = fd[0];
+        pipes[i].pos_write_fd = fd[1];
+
+        if (pipe(fd) == -1) { perror("pipe ctrl"); exit(1); }
+        pipes[i].ctrl_write_fd = fd[1];
+        pipes[i].ctrl_read_fd  = fd[0];
     }
 
-    for (i = 0; i < N_FLIGHTS; i++) {
+    for (i = 0; i < n_flights; i++) {
         pids[i] = fork();
         if (pids[i] == -1) { perror("fork"); exit(1); }
         if (pids[i] == 0) {
-            /* Child: close every read end and every write end that isn't ours */
-            for (int j = 0; j < N_FLIGHTS; j++) {
-                close(pipes[j].read_fd);
-                if (j != i) close(pipes[j].write_fd);
+            /* Child: keep only pos_write_fd[i] and ctrl_read_fd[i] */
+            for (int j = 0; j < n_flights; j++) {
+                close(pipes[j].pos_read_fd);
+                close(pipes[j].ctrl_write_fd);
+                if (j != i) {
+                    close(pipes[j].pos_write_fd);
+                    close(pipes[j].ctrl_read_fd);
+                }
             }
-            execute_flight_process(pipes[i].write_fd, plans[i]);
-            /* execute_flight_process closes write_fd and calls exit() */
+            execute_flight_process(pipes[i].pos_write_fd,
+                                   pipes[i].ctrl_read_fd,
+                                   plans[i]);
+            /* never reached */
         }
     }
 
-    /* Parent: close all write ends */
-    for (i = 0; i < N_FLIGHTS; i++)
-        close(pipes[i].write_fd);
+    /* Parent: close child-side ends */
+    for (i = 0; i < n_flights; i++) {
+        close(pipes[i].pos_write_fd);
+        close(pipes[i].ctrl_read_fd);
+    }
 
     memset(histories, 0, sizeof(histories));
 
     /* US102: per-flight motion vector state */
-    aircraft_position_t prev_positions[N_FLIGHTS];
-    aircraft_position_t current_positions[N_FLIGHTS];
-    int has_position[N_FLIGHTS];
+    aircraft_position_t prev_positions[n_flights];
+    aircraft_position_t current_positions[n_flights];
+    int has_position[n_flights];
     memset(has_position, 0, sizeof(has_position));
 
     int total_violations = 0;
-    int pipe_open[N_FLIGHTS];
-    int open_pipes = N_FLIGHTS;
-    for (i = 0; i < N_FLIGHTS; i++) pipe_open[i] = 1;
+    int active[n_flights];
+    int n_active = n_flights;
+    for (i = 0; i < n_flights; i++) active[i] = 1;
+
+    /* received[i]: has flight i sent its position for the current step? */
+    int received[n_flights];
+    memset(received, 0, sizeof(received));
 
     int max_fd = -1;
-    for (i = 0; i < N_FLIGHTS; i++)
-        if (pipes[i].read_fd > max_fd) max_fd = pipes[i].read_fd;
+    for (i = 0; i < n_flights; i++)
+        if (pipes[i].pos_read_fd > max_fd) max_fd = pipes[i].pos_read_fd;
 
     printf("\n=== Controlador Aereo Live (US101 & US102) ===\n");
 
-    while (open_pipes > 0) {
-        fd_set read_fds;
-        FD_ZERO(&read_fds);
-        for (i = 0; i < N_FLIGHTS; i++)
-            if (pipe_open[i]) FD_SET(pipes[i].read_fd, &read_fds);
+    while (n_active > 0) {
+        /* Collect positions from ALL active flights before deciding */
+        int all_received = 0;
+        while (!all_received) {
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            for (i = 0; i < n_flights; i++)
+                if (active[i] && !received[i])
+                    FD_SET(pipes[i].pos_read_fd, &read_fds);
 
-        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-            perror("select");
+            if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+                perror("select");
+                goto done;
+            }
+
+            for (i = 0; i < n_flights; i++) {
+                if (!active[i] || received[i]) continue;
+                if (!FD_ISSET(pipes[i].pos_read_fd, &read_fds)) continue;
+
+                aircraft_position_t pos;
+                ssize_t n = read(pipes[i].pos_read_fd, &pos, sizeof(pos));
+
+                if (n == (ssize_t)sizeof(pos)) {
+                    /* US101: ACA filter, entry/exit detection, history */
+                    int in_aca = is_in_aca(&pos, &ACA);
+                    int idx    = find_or_create_flight(histories, MAX_FLIGHTS,
+                                                       pos.flight_id);
+                    if (idx >= 0) {
+                        aca_state_t prev_state = histories[idx].aca_state;
+
+                        if (in_aca) {
+                            if (prev_state == ACA_BEFORE)
+                                printf("[%s] >>> ENTERING ACA\n", pos.flight_id);
+                            histories[idx].aca_state = ACA_INSIDE;
+
+                            if (histories[idx].count < MAX_POSITIONS)
+                                histories[idx].positions[histories[idx].count++] = pos;
+
+                            printf("[%s] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt"
+                                   " hdg=%.1f vz=%.1fm/s\n",
+                                   pos.flight_id, pos.latitude, pos.longitude,
+                                   pos.altitude_meters, pos.speed_knots,
+                                   pos.heading_deg, pos.vz_mps);
+                        } else {
+                            if (prev_state == ACA_INSIDE) {
+                                printf("[%s] <<< EXITING ACA\n", pos.flight_id);
+                                histories[idx].aca_state = ACA_AFTER;
+                            }
+                        }
+                    }
+
+                    /* US102: slide motion vector window */
+                    if (has_position[i] > 0)
+                        prev_positions[i] = current_positions[i];
+                    else
+                        prev_positions[i] = pos;
+
+                    current_positions[i] = pos;
+                    has_position[i]++;
+                    received[i] = 1;
+
+                } else {
+                    /* EOF: this flight has finished */
+                    close(pipes[i].pos_read_fd);
+                    close(pipes[i].ctrl_write_fd);
+                    active[i] = 0;
+                    n_active--;
+                    printf("[%s] terminou o voo.\n", plans[i]->identifier);
+                }
+            }
+
+            /* Check if all still-active flights have sent their position */
+            all_received = 1;
+            for (i = 0; i < n_flights; i++)
+                if (active[i] && !received[i]) { all_received = 0; break; }
+        }
+
+        if (n_active == 0) break;
+
+        /* All active flights reported — run US102 and decide GO/STOP */
+        int abort_sim = 0;
+        for (i = 0; i < n_flights; i++) {
+            if (!active[i] || has_position[i] < 2) continue;
+            if (monitor_safety_violations(i, prev_positions, current_positions,
+                                          has_position, active, pids,
+                                          n_flights, &total_violations)) {
+                abort_sim = 1;
+                break;
+            }
+        }
+
+        if (abort_sim) {
+            /* Send STOP to all active flights */
+            for (i = 0; i < n_flights; i++) {
+                if (active[i]) {
+                    char s = 'S';
+                    write(pipes[i].ctrl_write_fd, &s, 1);
+                    close(pipes[i].ctrl_write_fd);
+                    active[i] = 0;
+                }
+            }
+            n_active = 0;
             break;
         }
 
-        for (i = 0; i < N_FLIGHTS; i++) {
-            if (!pipe_open[i] || !FD_ISSET(pipes[i].read_fd, &read_fds)) continue;
-
-            aircraft_position_t pos;
-            ssize_t n = read(pipes[i].read_fd, &pos, sizeof(pos));
-
-            if (n == (ssize_t)sizeof(pos)) {
-                /* US101: ACA filter, entry/exit detection, history */
-                int in_aca = is_in_aca(&pos, &ACA);
-                int idx    = find_or_create_flight(histories, MAX_FLIGHTS, pos.flight_id);
-
-                if (idx >= 0) {
-                    aca_state_t prev_state = histories[idx].aca_state;
-
-                    if (in_aca) {
-                        if (prev_state == ACA_BEFORE)
-                            printf("[%s] >>> ENTERING ACA\n", pos.flight_id);
-                        histories[idx].aca_state = ACA_INSIDE;
-
-                        if (histories[idx].count < MAX_POSITIONS)
-                            histories[idx].positions[histories[idx].count++] = pos;
-
-                        printf("[%s] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt hdg=%.1f\n",
-                               pos.flight_id, pos.latitude, pos.longitude,
-                               pos.altitude_meters, pos.speed_knots, pos.heading_deg);
-                    } else {
-                        if (prev_state == ACA_INSIDE) {
-                            printf("[%s] <<< EXITING ACA\n", pos.flight_id);
-                            histories[idx].aca_state = ACA_AFTER;
-                        }
-                    }
-                } else {
-                    fprintf(stderr, "Warning: too many flights, dropping [%s]\n",
-                            pos.flight_id);
-                }
-
-                /* US102: slide the motion vector window forward */
-                if (has_position[i] > 0)
-                    prev_positions[i] = current_positions[i];
-                else
-                    prev_positions[i] = pos; /* first step: prev == current */
-
-                current_positions[i] = pos;
-                has_position[i]++;
-
-                /* Check for cylinder violations only once a real movement vector exists */
-                if (has_position[i] >= 2) {
-                    int abort_sim = monitor_safety_violations(
-                        i, prev_positions, current_positions,
-                        has_position, pipe_open, pids,
-                        N_FLIGHTS, &total_violations);
-
-                    if (abort_sim) {
-                        open_pipes = 0;
-                        break; /* exits the for-loop; while condition handles the rest */
-                    }
-                }
-
-            } else {
-                /* EOF or partial read: this flight has finished */
-                close(pipes[i].read_fd);
-                pipe_open[i] = 0;
-                open_pipes--;
-                printf("[FLIGHT_%02d] terminou o voo.\n", i + 1);
+        /* Safe: send GO to all active flights */
+        for (i = 0; i < n_flights; i++) {
+            if (active[i]) {
+                char g = 'G';
+                write(pipes[i].ctrl_write_fd, &g, 1);
             }
         }
+
+        /* Reset received flags for next step */
+        memset(received, 0, sizeof(received));
     }
 
+done:
     print_history(histories, MAX_FLIGHTS);
 
-    for (i = 0; i < N_FLIGHTS; i++) {
+    for (i = 0; i < n_flights; i++) {
         waitpid(pids[i], &status, 0);
         if (WIFEXITED(status))
             printf("[FLIGHT_%02d] ended with code %d\n", i + 1, WEXITSTATUS(status));
     }
 
-    for (i = 0; i < N_FLIGHTS; i++)
+    for (i = 0; i < n_flights; i++)
         free_flight_plan(plans[i]);
 
     return 0;

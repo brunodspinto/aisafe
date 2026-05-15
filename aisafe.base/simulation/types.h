@@ -5,6 +5,7 @@
 #define FLIGHT_SIMULATION_TYPES_H
 #define MAX_FLIGHTS 10
 #define MAX_POSITIONS 1000
+#define MAX_PERF_POINTS 20
 
 #include <time.h>
 
@@ -12,6 +13,22 @@ typedef struct {
     double latitude;
     double longitude;
 } coordinate_t;
+
+/* One row of the aircraft performance table (altitude-indexed) */
+typedef struct {
+    double altitude_m;
+    double speed_knots;
+    double vertical_rate_mps;  /* positive = climb, negative = descend */
+} perf_point_t;
+
+/* Performance tables parsed from "Flight Profile" in the JSON */
+typedef struct {
+    perf_point_t climb[MAX_PERF_POINTS];
+    int          climb_count;
+    perf_point_t descend[MAX_PERF_POINTS];
+    int          descend_count;
+    double       cruise_speed_knots;
+} flight_profile_t;
 
 typedef struct {
     char mode[16];           /* "climb", "cruise", "descend" */
@@ -30,11 +47,12 @@ typedef struct {
 } endpoint_t;
 
 typedef struct {
-    int segment_count;
-    segment_t *segments;
-    endpoint_t departure;
-    endpoint_t arrival;
-    double fuel_kg;
+    int              segment_count;
+    segment_t       *segments;
+    endpoint_t       departure;
+    endpoint_t       arrival;
+    double           fuel_kg;
+    flight_profile_t profile;   /* altitude-dependent performance tables */
 } leg_t;
 
 typedef struct {
@@ -50,8 +68,9 @@ typedef struct {
     double altitude_meters;
     double speed_knots;
     double heading_deg;
+    double vz_mps;       /* current vertical rate (m/s): + climb, - descend */
     time_t timestamp;
-    char flight_id[64];
+    char   flight_id[64];
 } aircraft_position_t;
 
 typedef struct {

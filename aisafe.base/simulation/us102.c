@@ -52,6 +52,45 @@ static int check_trajectory_intersection(const aircraft_position_t *p1_prev, con
     return 0;
 }
 
+int predict_future_collisions(flight_plan_t *const *plans,
+                              int flight_a, int current_seg_a,
+                              int flight_b, int current_seg_b) {
+    const flight_plan_t *pa = plans[flight_a];
+    const flight_plan_t *pb = plans[flight_b];
+    if (!pa || !pb || pa->leg_count == 0 || pb->leg_count == 0) return 0;
+
+    const leg_t *la = &pa->legs[0];
+    const leg_t *lb = &pb->legs[0];
+
+    for (int sa = current_seg_a; sa < la->segment_count; sa++) {
+        aircraft_position_t a_prev, a_curr;
+        a_prev.latitude        = la->segments[sa].from.latitude;
+        a_prev.longitude       = la->segments[sa].from.longitude;
+        a_prev.altitude_meters = la->segments[sa].alt_from_meters;
+        a_curr.latitude        = la->segments[sa].to.latitude;
+        a_curr.longitude       = la->segments[sa].to.longitude;
+        a_curr.altitude_meters = la->segments[sa].alt_to_meters;
+
+        for (int sb = current_seg_b; sb < lb->segment_count; sb++) {
+            aircraft_position_t b_prev, b_curr;
+            b_prev.latitude        = lb->segments[sb].from.latitude;
+            b_prev.longitude       = lb->segments[sb].from.longitude;
+            b_prev.altitude_meters = lb->segments[sb].alt_from_meters;
+            b_curr.latitude        = lb->segments[sb].to.latitude;
+            b_curr.longitude       = lb->segments[sb].to.longitude;
+            b_curr.altitude_meters = lb->segments[sb].alt_to_meters;
+
+            if (check_trajectory_intersection(&a_prev, &a_curr, &b_prev, &b_curr)) {
+                printf("[US102 PREDICTION] Future collision risk: %s seg %d"
+                       " vs %s seg %d\n",
+                       pa->identifier, sa, pb->identifier, sb);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_positions, aircraft_position_t *current_positions, int *has_position, int *pipe_open, pid_t *pids, int n_flights, int *total_violations) {
     int i = updated_flight_idx;
 
