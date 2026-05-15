@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <sys/wait.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +52,10 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[a], "--collision") == 0)
             n_flights = N_FLIGHTS_COLLISION;
     }
+
+    /* Ignore SIGPIPE: when us102 sends SIGTERM to children before main sends 'S',
+     * writing to the dead child's ctrl pipe returns EPIPE instead of killing the parent. */
+    signal(SIGPIPE, SIG_IGN);
 
     pid_t          pids[N_FLIGHTS_COLLISION];
     flight_pipes_t pipes[N_FLIGHTS_COLLISION];
@@ -124,6 +129,10 @@ int main(int argc, char *argv[]) {
     int active[n_flights];
     int n_active = n_flights;
     for (i = 0; i < n_flights; i++) active[i] = 1;
+
+    /* prediction_done[i][j]: future collision advisory already printed for pair (i,j) */
+    int prediction_done[N_FLIGHTS_COLLISION][N_FLIGHTS_COLLISION];
+    memset(prediction_done, 0, sizeof(prediction_done));
 
     /* received[i]: has flight i sent its position for the current step? */
     int received[n_flights];
@@ -216,6 +225,20 @@ int main(int argc, char *argv[]) {
         if (!all_received || n_active == 0) continue;
 
         /* All active flights reported — run US102 and decide GO/STOP */
+
+        /* AC6: future segment prediction advisory (once per pair, log only) */
+        for (i = 0; i < n_flights; i++) {
+            if (!active[i] || has_position[i] < 1) continue;
+            for (int j = i + 1; j < n_flights; j++) {
+                if (!active[j] || has_position[j] < 1) continue;
+                if (!prediction_done[i][j]) {
+                    prediction_done[i][j] = 1;
+                    predict_future_collisions(
+                        (flight_plan_t *const *)plans, i, 0, j, 0);
+                }
+            }
+        }
+
         int abort_sim = 0;
         for (i = 0; i < n_flights; i++) {
             if (!active[i] || has_position[i] < 2) continue;
