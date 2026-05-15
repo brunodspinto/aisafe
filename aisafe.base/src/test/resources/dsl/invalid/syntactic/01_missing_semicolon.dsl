@@ -1,8 +1,9 @@
-// Valid: single leg, REGULAR type, IATA codes
-// Expected: ACCEPTED by lexer, parser and semantic validator
+// Invalid (SYNTACTIC): missing semicolon at end of DEPARTURE line
+// Parser expects SEMI after dateTime, finds ARRIVAL keyword instead
+// Expected: REJECTED - syntax error at line 6, token 'ARRIVAL'
 FLIGHT TP123 TYPE REGULAR {
   LEG {
-    DEPARTURE: OPO 2026-06-01 10:00;
+    DEPARTURE: OPO 2026-06-01 10:00
     ARRIVAL: LIS 2026-06-01 10:45;
     ROUTE: OPO -> LIS;
     SEGMENT {

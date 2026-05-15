@@ -1,10 +1,10 @@
-// Valid: single leg, REGULAR type, IATA codes
-// Expected: ACCEPTED by lexer, parser and semantic validator
+// Invalid (LEXICAL): '@' is not a defined token in the language
+// Expected: REJECTED - lexer error on '@', line 7
 FLIGHT TP123 TYPE REGULAR {
   LEG {
     DEPARTURE: OPO 2026-06-01 10:00;
     ARRIVAL: LIS 2026-06-01 10:45;
-    ROUTE: OPO -> LIS;
+    ROUTE: OPO -> @LIS;
     SEGMENT {
       START: (+41.15, -8.61);
       END: (+38.72, -9.14);

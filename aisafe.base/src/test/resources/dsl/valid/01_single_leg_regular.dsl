@@ -1,5 +1,5 @@
 // Valid: single leg, REGULAR type, IATA codes
-// Expected: ACCEPTED by lexer, parser and semantic validator
+// Expected: ACCEPTED
 FLIGHT TP123 TYPE REGULAR {
   LEG {
     DEPARTURE: OPO 2026-06-01 10:00;

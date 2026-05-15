@@ -1,5 +1,6 @@
-// Valid: single leg, REGULAR type, IATA codes
-// Expected: ACCEPTED by lexer, parser and semantic validator
+// Invalid (SEMANTIC): segment start and end coordinates are identical
+// Rule: start and end coordinates of a segment must be different
+// Expected: REJECTED with message "start and end coordinates must be different"
 FLIGHT TP123 TYPE REGULAR {
   LEG {
     DEPARTURE: OPO 2026-06-01 10:00;
@@ -7,7 +8,7 @@ FLIGHT TP123 TYPE REGULAR {
     ROUTE: OPO -> LIS;
     SEGMENT {
       START: (+41.15, -8.61);
-      END: (+38.72, -9.14);
+      END: (+41.15, -8.61);
       ALTITUDE: 10000 M WIDTH: 2000 M;
       WIND: (180, 12 M/S);
     }

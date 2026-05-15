@@ -1,6 +1,7 @@
-// Valid: single leg, REGULAR type, IATA codes
-// Expected: ACCEPTED by lexer, parser and semantic validator
-FLIGHT TP123 TYPE REGULAR {
+// Invalid (SYNTACTIC): flight type 'PRIVATE' is not defined in the grammar
+// flightType rule only accepts: REGULAR | CHARTER
+// Expected: REJECTED - syntax error at line 3, unexpected token after TYPE
+FLIGHT TP123 TYPE PRIVATE {
   LEG {
     DEPARTURE: OPO 2026-06-01 10:00;
     ARRIVAL: LIS 2026-06-01 10:45;
