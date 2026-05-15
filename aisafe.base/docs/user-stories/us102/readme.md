@@ -14,21 +14,19 @@ The implementation is written in C and lives entirely under `aisafe.base/simulat
 
 ## 2. Requirements
 
-**US102:** As an Air Traffic Controller, I want the system to continuously monitor the
-safety separation between aircraft and alert me immediately when two flights violate the
-minimum safety cylinder, so that I can take corrective action before a collision occurs.
+**US102:** As a simulation system, I want to continuously monitor aircraft positions for
+overlaps so that I can identify and report safety violations.
 
 ### Acceptance Criteria
 
 | ID | Criterion | Status |
 |----|-----------|--------|
-| AC1 | Safety cylinder is defined as 8 nautical miles horizontal AND 600 m vertical | Done |
-| AC2 | Collision detection uses motion vectors interpolated with sub-steps to avoid missing fast crossings | Done |
-| AC3 | When a violation is detected the parent sends SIGUSR1 to the two affected flight processes | Done |
-| AC4 | The simulation aborts (SIGTERM to all) if the violation count reaches the maximum limit | Done |
-| AC5 | The parent controls simulation tempo: each child waits for GO/STOP before advancing to the next second | Done |
-| AC6 | Future segment-by-segment collision prediction is computed as an advisory (log only, no abort) | Done |
-| AC7 | Aircraft speed and vertical rate are derived from the Flight Profile performance table, not a fixed value per phase | Done |
+| AC1 | The system must detect when two or more aircraft may eventually violate safety rules | Done |
+| AC2 | Upon detecting a violation, the system should log the event and notify the involved aircraft via signals | Done |
+| AC3 | Each flight process must handle the received signal and notify the system user with a message | Done |
+| AC4 | When a flight process receives a SIGUSR1 (violation detected), it should block other signals while handling it | Done |
+| AC5 | The system should allow early termination if safety violations exceed a predefined threshold by sending termination signals to aircrafts | Done |
+| AC6 | Flight processes properly handle termination signals and perform any necessary cleanup | Done |
 
 ---
 
