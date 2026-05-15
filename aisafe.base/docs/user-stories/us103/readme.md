@@ -20,17 +20,16 @@ The implementation is written in C and lives entirely under `aisafe.base/simulat
 
 ## 2. Requirements
 
-**US103:** As an Air Traffic Controller, I want each flight process to advance one
-simulation second at a time under parent control, so that safety checks always compare
-aircraft positions from the same moment in time.
+**US103:** As a simulation engine, I want to synchronize aircraft movements based on
+time steps so that I can accurately simulate real-world execution.
 
 ### Acceptance Criteria
 
 | ID | Criterion | Status |
 |----|-----------|--------|
-| AC1 | Each child blocks after writing its position, waiting for a GO or STOP token from the parent | Done |
-| AC2 | The parent sends GO only after collecting positions from all active flights and verifying safety | Done |
-| AC3 | The parent sends STOP to all active flights when a violation limit is reached | Done |
+| AC1 | The simulation must progress step by step | Done |
+| AC2 | Each flight process should send position updates at defined intervals | Done |
+| AC3 | The main process must ensure all updates for a given time step are processed before advancing to the next step | Done |
 
 ---
 
