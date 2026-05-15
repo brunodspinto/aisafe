@@ -33,3 +33,33 @@ This class contains 8 unit tests covering the acceptance criteria:
 
 - The active/inactive state is owned by EAPLI `SystemUser`, not by a new AISafe entity.
 - The console UI shows the current ACTIVE/DISABLED status before the administrator performs the toggle.
+
+---
+
+### 4.2. Acceptance Tests
+
+The toggle logic (activate/deactivate) is fully covered by the automated unit tests above. Authorization (Admin role check) and the end-to-end UI flow are infrastructure concerns primarily validated by manual integration testing.
+
+**Manual test — AC032.1 / AC032.3 (disable active user):**
+
+1. Run `AiSafeBackofficeApp` and login as `admin`.
+2. Navigate to `Users > Disable/Enable User`.
+3. Expected: list of users is displayed, each showing current status (`ACTIVE` or `DISABLED`).
+4. Select an `ACTIVE` user and confirm the action.
+5. Expected: confirmation message displayed; the user's status changes to `DISABLED` in the list.
+
+**Manual test — AC032.2 / AC032.3 (re-enable disabled user):**
+
+1. From the same menu, select a `DISABLED` user.
+2. Confirm the action.
+3. Expected: confirmation message displayed; the user's status changes back to `ACTIVE` in the list.
+
+**Manual test — AC032.5 (redundant action handled gracefully):**
+
+1. Attempt to disable a user that is already `DISABLED` (if the UI allows selecting disabled users).
+2. Expected: the system either prevents the selection or displays an informative message indicating no change was made.
+
+**Manual test — AC032.4 (role enforcement):**
+
+1. Login as a non-admin user (e.g. Backoffice Operator).
+2. Expected: the Disable/Enable User option is not available in the menu.
