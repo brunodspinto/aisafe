@@ -10,10 +10,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #include <time.h>
 #include <math.h>
 #include "types.h"
 #include "flight_process.h"
+
+/* Set by SIGUSR1 handler — checked in the step loop for graceful exit.
+ * Must be volatile sig_atomic_t (POSIX requirement for signal-modified vars). */
+static volatile sig_atomic_t collision_alert = 0;
+
+/* Async-signal-safe handler: only write() is permitted inside (no printf). */
+static void handle_sigusr1(int sig) {
+    (void)sig;
+    const char msg[] = "[FLIGHT] SIGUSR1 received: collision alert, stopping.\n";
+    write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+    collision_alert = 1;
+}
 
 #define STEP_SECONDS   1        /* simulation seconds per step (second-by-second) */
 #define DEG_TO_RAD     (M_PI / 180.0)
@@ -70,7 +83,18 @@ void execute_flight_process(int pos_write_fd, int ctrl_read_fd,
         exit(1);
     }
 
+    /* Install SIGUSR1 handler (professor pattern: ex1-3.c / ex1-4.c).
+     * SA_RESTART: resume blocked syscalls after signal where possible.
+     * sigfillset: block all other signals while handler runs (ex1-4.c). */
+    struct sigaction act;
+    memset(&act, 0, sizeof(act));
+    act.sa_handler = handle_sigusr1;
+    act.sa_flags   = SA_RESTART;
+    sigfillset(&act.sa_mask);
+    sigaction(SIGUSR1, &act, NULL);
+
     printf("[Flight %s] Starting simulation\n", plan->identifier);
+    fflush(stdout);
     sim_time = time(NULL);
 
     for (leg = 0; leg < plan->leg_count; leg++) {
@@ -152,9 +176,11 @@ void execute_flight_process(int pos_write_fd, int ctrl_read_fd,
                 write(pos_write_fd, &pos, sizeof(pos));
                 sim_time += STEP_SECONDS;
 
-                /* Wait for parent's GO ('G') or STOP ('S') */
+                /* Wait for parent's GO ('G') or STOP ('S').
+                 * Also exit if SIGUSR1 set collision_alert flag. */
                 char token = 0;
-                if (read(ctrl_read_fd, &token, 1) <= 0 || token == 'S') {
+                ssize_t r = read(ctrl_read_fd, &token, 1);
+                if (collision_alert || r <= 0 || token == 'S') {
                     close(pos_write_fd);
                     close(ctrl_read_fd);
                     exit(1);

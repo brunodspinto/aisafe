@@ -135,84 +135,85 @@ int main(int argc, char *argv[]) {
 
     printf("\n=== Controlador Aereo Live (US101 & US102) ===\n");
 
+    /* Main loop — one select() call per iteration (professor's blocking-read pattern,
+     * adapted for N file descriptors). Each iteration blocks until at least one
+     * active flight writes its position. The GO/STOP decision is only taken once
+     * every active flight has sent its position for the current step. */
     while (n_active > 0) {
-        /* Collect positions from ALL active flights before deciding */
-        int all_received = 0;
-        while (!all_received) {
-            fd_set read_fds;
-            FD_ZERO(&read_fds);
-            for (i = 0; i < n_flights; i++)
-                if (active[i] && !received[i])
-                    FD_SET(pipes[i].pos_read_fd, &read_fds);
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        for (i = 0; i < n_flights; i++)
+            if (active[i] && !received[i])
+                FD_SET(pipes[i].pos_read_fd, &read_fds);
 
-            if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-                perror("select");
-                goto done;
-            }
-
-            for (i = 0; i < n_flights; i++) {
-                if (!active[i] || received[i]) continue;
-                if (!FD_ISSET(pipes[i].pos_read_fd, &read_fds)) continue;
-
-                aircraft_position_t pos;
-                ssize_t n = read(pipes[i].pos_read_fd, &pos, sizeof(pos));
-
-                if (n == (ssize_t)sizeof(pos)) {
-                    /* US101: ACA filter, entry/exit detection, history */
-                    int in_aca = is_in_aca(&pos, &ACA);
-                    int idx    = find_or_create_flight(histories, MAX_FLIGHTS,
-                                                       pos.flight_id);
-                    if (idx >= 0) {
-                        aca_state_t prev_state = histories[idx].aca_state;
-
-                        if (in_aca) {
-                            if (prev_state == ACA_BEFORE)
-                                printf("[%s] >>> ENTERING ACA\n", pos.flight_id);
-                            histories[idx].aca_state = ACA_INSIDE;
-
-                            if (histories[idx].count < MAX_POSITIONS)
-                                histories[idx].positions[histories[idx].count++] = pos;
-
-                            printf("[%s] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt"
-                                   " hdg=%.1f vz=%.1fm/s\n",
-                                   pos.flight_id, pos.latitude, pos.longitude,
-                                   pos.altitude_meters, pos.speed_knots,
-                                   pos.heading_deg, pos.vz_mps);
-                        } else {
-                            if (prev_state == ACA_INSIDE) {
-                                printf("[%s] <<< EXITING ACA\n", pos.flight_id);
-                                histories[idx].aca_state = ACA_AFTER;
-                            }
-                        }
-                    }
-
-                    /* US102: slide motion vector window */
-                    if (has_position[i] > 0)
-                        prev_positions[i] = current_positions[i];
-                    else
-                        prev_positions[i] = pos;
-
-                    current_positions[i] = pos;
-                    has_position[i]++;
-                    received[i] = 1;
-
-                } else {
-                    /* EOF: this flight has finished */
-                    close(pipes[i].pos_read_fd);
-                    close(pipes[i].ctrl_write_fd);
-                    active[i] = 0;
-                    n_active--;
-                    printf("[%s] terminou o voo.\n", plans[i]->identifier);
-                }
-            }
-
-            /* Check if all still-active flights have sent their position */
-            all_received = 1;
-            for (i = 0; i < n_flights; i++)
-                if (active[i] && !received[i]) { all_received = 0; break; }
+        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
+            perror("select");
+            goto done;
         }
 
-        if (n_active == 0) break;
+        /* Process every file descriptor that is ready */
+        for (i = 0; i < n_flights; i++) {
+            if (!active[i] || received[i]) continue;
+            if (!FD_ISSET(pipes[i].pos_read_fd, &read_fds)) continue;
+
+            aircraft_position_t pos;
+            ssize_t n = read(pipes[i].pos_read_fd, &pos, sizeof(pos));
+
+            if (n == (ssize_t)sizeof(pos)) {
+                /* US101: ACA filter, entry/exit detection, history */
+                int in_aca = is_in_aca(&pos, &ACA);
+                int idx    = find_or_create_flight(histories, MAX_FLIGHTS,
+                                                   pos.flight_id);
+                if (idx >= 0) {
+                    aca_state_t prev_state = histories[idx].aca_state;
+
+                    if (in_aca) {
+                        if (prev_state == ACA_BEFORE)
+                            printf("[%s] >>> ENTERING ACA\n", pos.flight_id);
+                        histories[idx].aca_state = ACA_INSIDE;
+
+                        if (histories[idx].count < MAX_POSITIONS)
+                            histories[idx].positions[histories[idx].count++] = pos;
+
+                        printf("[%s] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt"
+                               " hdg=%.1f vz=%.1fm/s\n",
+                               pos.flight_id, pos.latitude, pos.longitude,
+                               pos.altitude_meters, pos.speed_knots,
+                               pos.heading_deg, pos.vz_mps);
+                    } else {
+                        if (prev_state == ACA_INSIDE) {
+                            printf("[%s] <<< EXITING ACA\n", pos.flight_id);
+                            histories[idx].aca_state = ACA_AFTER;
+                        }
+                    }
+                }
+
+                /* US102: slide motion vector window */
+                if (has_position[i] > 0)
+                    prev_positions[i] = current_positions[i];
+                else
+                    prev_positions[i] = pos;
+
+                current_positions[i] = pos;
+                has_position[i]++;
+                received[i] = 1;
+
+            } else {
+                /* EOF: this flight has finished */
+                close(pipes[i].pos_read_fd);
+                close(pipes[i].ctrl_write_fd);
+                active[i] = 0;
+                n_active--;
+                printf("[%s] terminou o voo.\n", plans[i]->identifier);
+            }
+        }
+
+        /* Wait until every still-active flight has sent its position */
+        int all_received = 1;
+        for (i = 0; i < n_flights; i++)
+            if (active[i] && !received[i]) { all_received = 0; break; }
+
+        if (!all_received || n_active == 0) continue;
 
         /* All active flights reported — run US102 and decide GO/STOP */
         int abort_sim = 0;
