@@ -141,4 +141,32 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>h2-server</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <configuration>
+                            <mainClass>org.h2.tools.Server</mainClass>
+                            <classpathScope>runtime</classpathScope>
+                            <arguments>
+                                <argument>-tcp</argument>
+                                <argument>-tcpPort</argument>
+                                <argument>9093</argument>
+                                <argument>-tcpAllowOthers</argument>
+                                <argument>-ifNotExists</argument>
+                                <argument>-baseDir</argument>
+                                <argument>./db</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
