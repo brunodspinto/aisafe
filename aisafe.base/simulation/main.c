@@ -23,7 +23,7 @@
 #include "aca_filter.h"
 #include "flight_data.h"
 #include "flight_process.h"
-#include "us102.h"
+#include "safety_monitor.h"
 
 #define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
 #define CONFIG_FILE "simulation.conf"

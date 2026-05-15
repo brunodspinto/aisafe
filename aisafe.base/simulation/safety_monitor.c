@@ -3,7 +3,7 @@
 #include <signal.h>
 #include <math.h>
 #include <time.h>
-#include "us102.h"
+#include "safety_monitor.h"
 
 #define SUB_STEPS 10  /* micro-steps for trajectory intersection (prevents position jumps) */
 
@@ -76,7 +76,7 @@ int predict_future_collisions(flight_plan_t *const *plans,
 
             if (check_trajectory_intersection(&a_prev, &a_curr, &b_prev, &b_curr,
                                               safe_dist_horiz_m, safe_dist_vert_m)) {
-                printf("[US102 PREDICTION] Future collision risk: %s seg %d"
+                printf("[PREDICTION] Future collision risk: %s seg %d"
                        " vs %s seg %d\n",
                        pa->identifier, sa, pb->identifier, sb);
                 return 1;
@@ -99,7 +99,7 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
                                           &prev_positions[j], &current_positions[j],
                                           safe_dist_horiz_m, safe_dist_vert_m)) {
             time_t now = time(NULL);
-            printf("\n[US102 CYLINDER ALERT] Intersection risk detected at %s", ctime(&now));
+            printf("\n[CYLINDER ALERT] Intersection risk detected at %s", ctime(&now));
             printf("Flights: %s and %s crossed paths (H < %.0fm and V < %.0fm).\n",
                    current_positions[i].flight_id, current_positions[j].flight_id,
                    safe_dist_horiz_m, safe_dist_vert_m);

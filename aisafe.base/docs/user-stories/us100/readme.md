@@ -33,7 +33,7 @@ performance settings. All required parameters should be validated.
 
 > **Note:** ACA boundary filtering and entry/exit detection are implemented as part of
 > **US101** (`aca_filter.c`). Safety cylinder violation detection and signal handling are
-> part of **US102** (`us102.c`). Step synchronisation is part of **US103** (GO/STOP
+> part of **US102** (`safety_monitor.c`). Step synchronisation is part of **US103** (GO/STOP
 > control pipe). All are integrated into `main.c`.
 >
 > **Weather conditions:** `segment_t` carries `wind_speed` and `wind_direction` fields
@@ -213,7 +213,7 @@ error on stderr and exit code 1.
 | `aca_filter.c` | `is_in_aca()` — rectangular ACA boundary predicate (US101) |
 | `ipc.c` | `find_or_create_flight()` + `print_history()` — position history management |
 | `config.c` | `load_config()` / `validate_config()` / `print_config()` |
-| `us102.c` | `monitor_safety_violations()` + `predict_future_collisions()` (US102) |
+| `safety_monitor.c` | `monitor_safety_violations()` + `predict_future_collisions()` (US102) |
 | `types.h` | All shared data structures |
 | `simulation.conf` | Runtime parameters (ACA bounds, n_flights, safety thresholds) |
 
@@ -273,7 +273,7 @@ No `CYLINDER ALERT` lines appear. All children exit with code 0.
 === AISafe Flight Simulation ===
 Mode: COLLISION TEST
 ...
-[US102 CYLINDER ALERT] Intersection risk detected at ...
+[CYLINDER ALERT] Intersection risk detected at ...
 Flights: FLIGHT_01 and FLIGHT_04 crossed paths (H < 8NM and V < 600m).
 ...
 [FLIGHT_01] ended with code 1

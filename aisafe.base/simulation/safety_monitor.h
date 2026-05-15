@@ -1,5 +1,5 @@
-#ifndef FLIGHT_SIMULATION_US102_H
-#define FLIGHT_SIMULATION_US102_H
+#ifndef FLIGHT_SIMULATION_SAFETY_MONITOR_H
+#define FLIGHT_SIMULATION_SAFETY_MONITOR_H
 
 #include <sys/types.h>
 #include "types.h"
@@ -30,4 +30,4 @@ int predict_future_collisions(
     double safe_dist_vert_m
 );
 
-#endif /* FLIGHT_SIMULATION_US102_H */
+#endif /* FLIGHT_SIMULATION_SAFETY_MONITOR_H */

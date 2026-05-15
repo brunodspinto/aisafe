@@ -160,7 +160,7 @@ if violation:                        write('S', ctrl_write_fd[i]) for each child
   token == 'S' → exit(1)  ◄────────  kill(pid_violator, SIGUSR1)
 ```
 
-### 4.4 Safety Cylinder Check Algorithm (us102.c)
+### 4.4 Safety Cylinder Check Algorithm (safety_monitor.c)
 
 ```
 for each updated flight i:
@@ -175,7 +175,7 @@ for each updated flight i:
         → VIOLATION
 ```
 
-### 4.5 Future Collision Prediction (us102.c)
+### 4.5 Future Collision Prediction (safety_monitor.c)
 
 ```c
 int predict_future_collisions(flight_plan_t *const *plans,
@@ -248,7 +248,7 @@ STOP or SIGUSR1.
 - EOF on `pos_read_fd[i]` closes both `pos_read_fd[i]` and `ctrl_write_fd[i]` and marks
   `active[i] = 0`.
 
-### `simulation/us102.h` / `us102.c`
+### `simulation/safety_monitor.h` / `safety_monitor.c`
 
 - Added `predict_future_collisions()` (see §4.5).
 - Existing `monitor_safety_violations()` and `check_trajectory_intersection()` unchanged.
@@ -295,7 +295,7 @@ No `CYLINDER ALERT` is printed. All children exit with code 0.
 Mode: COLLISION TEST
 ...
 [FLIGHT_04] >>> ENTERING ACA
-[US102 CYLINDER ALERT] Intersection risk detected at ...
+[CYLINDER ALERT] Intersection risk detected at ...
 Flights: FLIGHT_01 and FLIGHT_04 crossed paths (H < 8NM and V < 600m).
 ...
 [FLIGHT_01] terminou o voo.

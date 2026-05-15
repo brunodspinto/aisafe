@@ -31,7 +31,7 @@ To build only the C component manually:
 ```bash
 cd aisafe.base/simulation
 gcc -Wall -Wextra -o ../bin/simulation \
-    main.c flight_process.c flight_data.c aca_filter.c ipc.c config.c us102.c -lm
+    main.c flight_process.c flight_data.c aca_filter.c ipc.c config.c safety_monitor.c -lm
 ```
 
 ## 4. How to Execute Tests
