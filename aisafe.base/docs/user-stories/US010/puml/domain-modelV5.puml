@@ -39,8 +39,18 @@ package "User Aggregate" <<Rectangle>> {
         FLIGHT_CONTROL_OPERATOR
         WEATHER_PERSON
     }
-
 }
+
+package "Collaborator Aggregate" <<Rectangle>> {
+
+    class Collaborator <<entity, aggregate root>>
+
+    Enum CollaboratorStatus {
+        ACTIVE
+        DISABLED
+    }
+}
+
 
 package "AirTransportCompany Aggregate" <<Rectangle>> {
 
@@ -48,13 +58,13 @@ package "AirTransportCompany Aggregate" <<Rectangle>> {
         name
     }
 
-     class IATACode <<value object>> {
-            code
-     }
+    class IATACode <<value object>> {
+        code
+    }
 
-     class ICAOCode <<value object>> {
-            code
-     }
+    class ICAOCode <<value object>> {
+        code
+    }
 }
 
 package "Maker Aggregate" <<Rectangle>> {
@@ -64,6 +74,7 @@ package "Maker Aggregate" <<Rectangle>> {
         country
     }
 }
+
 
 package "EngineModel Aggregate" <<Rectangle>> {
 
@@ -128,6 +139,7 @@ package "Aircraft Aggregate" <<Rectangle>> {
     }
 }
 
+
 package "AirControlArea Aggregate" <<Rectangle>> {
 
     class AirControlArea <<entity, aggregate root>> {
@@ -144,8 +156,8 @@ package "AirControlArea Aggregate" <<Rectangle>> {
     }
 }
 
-
 package "Airport Aggregate" <<Rectangle>> {
+
     class Airport <<entity, aggregate root>> {
         name
         town
@@ -180,7 +192,6 @@ package "FlightRoute Aggregate" <<Rectangle>> {
         INACTIVE
     }
 }
-
 
 package "Flight Aggregate" <<Rectangle>> {
 
@@ -243,7 +254,6 @@ package "WeatherData Aggregate" <<Rectangle>> {
     }
 }
 
-
 package "Simulation Aggregate" <<Rectangle>> {
 
     class Simulation <<entity, aggregate root>> {
@@ -278,29 +288,22 @@ package "Simulation Aggregate" <<Rectangle>> {
     }
 }
 
-package "Collaborator Aggregate" <<Rectangle>> {
-    class Collaborator <<entity, aggregate root>> {
-    }
-
-    Enum CollaboratorStatus {
-        ACTIVE
-        DISABLED
-    }
-}
-
 
 User "1" *-- "1" Email : "identified by"
 User "1" *-- "1" SecurityClearance : "holds"
 User "1" --> "1..*" RoleType : "has"
 User "0..*" --> "0..*" AircraftModel : "certified for"
-
 SecurityClearance "1" --> "1" SecurityLevel : "at level"
+
+Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
+Collaborator "0..*" --> "0..1" AirControlArea : "works for"
+Collaborator "1" --> "1" User : "is a"
+Collaborator "1" --> "1" CollaboratorStatus : "has"
 
 AirTransportCompany "1" --> "0..*" Aircraft : "owns"
 AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
 AirTransportCompany "1" --> "1" IATACode : "identified by"
 AirTransportCompany "1" --> "1" ICAOCode : "identified by"
-
 
 Maker "1" --> "0..*" AircraftModel : "manufactures"
 Maker "1" --> "0..*" EngineModel : "manufactures"
@@ -313,8 +316,12 @@ Aircraft "1" *-- "0..1" CabinConfiguration : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
 Aircraft "1" --> "1" OperationalStatus : "has"
 
-
 AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
+
+Airport "1" *-- "1" AirportIATACode : "identified by"
+Airport "1" *-- "1" AirportICAOCode : "has"
+Airport "1" *-- "1" GeoCoordinate : "located at"
+Airport "0..*" --> "1" AirControlArea : "belongs to"
 
 FlightRoute "1" --> "2" IATACode : "connects"
 FlightRoute "1" --> "1" FlightRouteStatus : "has"
@@ -341,15 +348,5 @@ Simulation "1" --> "0..*" Flight : "references"
 Simulation "1" *-- "1" SimulationReport : "produces"
 Simulation "1" --> "1" SimulationStatus : "has"
 SimulationReport "1" *-- "0..*" SafetyViolation : "records"
-
-Airport "1" *-- "1" AirportIATACode : "identified by"
-Airport "1" *-- "1" AirportICAOCode : "has"
-Airport "1" *-- "1" GeoCoordinate : "located at"
-Airport "0..*" --> "1" AirControlArea : "belongs to"
-
-Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
-Collaborator "0..*" --> "0..1" AirControlArea : "works for"
-Collaborator "1" --> "1" User : "is a"
-Collaborator "1" --> "1" CollaboratorStatus : "has"
 
 @enduml
