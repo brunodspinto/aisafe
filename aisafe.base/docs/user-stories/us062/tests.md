@@ -6,28 +6,260 @@ US062 covers listing active collaborators of a customer (Air Transport Company o
 
 ## Automated Tests
 
-The listing logic is validated through repository filtering and controller behaviour. No isolated domain unit tests exist for this US as it is a query operation with no domain invariants.
+### `CollaboratorTest`
 
-### Repository filtering
+Location: `src/test/java/aisafe/collaborator/domain/CollaboratorTest.java`
 
-The `CollaboratorRepository` implementations (`InMemoryCollaboratorRepository` and `JpaCollaboratorRepository`) filter collaborators where `systemUser.active = true`:
+> Note: tests use helper methods `validUser(String)`, `validCompany()`, and `validArea()` defined in the same class.
 
-- `findActiveByAirTransportCompany(IATACode)` — returns only active collaborators for a company
-- `findActiveByAirControlArea(AirControlAreaCode)` — returns only active collaborators for an area
+**Test:** `ensureCompanyCollaboratorCanBeCreated`
 
-## Coverage by Acceptance Criterion
+```java
+@Test
+void ensureCompanyCollaboratorCanBeCreated() {
+    final Collaborator collaborator = new Collaborator(validUser("user1"), validCompany());
+    assertTrue(collaborator.isCompanyCollaborator());
+    assertFalse(collaborator.isAreaCollaborator());
+    assertEquals("TAP Air Portugal", collaborator.customerName());
+}
+```
 
-- AC062.1: UI prompts for customer type selection (Air Transport Company or Air Control Area)
-- AC062.2: UI loads and displays available customers before asking for selection
-- AC062.3: Repository methods filter on `systemUser.active = true`
-- AC062.4: Controller returns empty result and UI displays informative message when no active collaborators exist
-- AC062.5: Controller checks `BACKOFFICE_OPERATOR` or `ADMIN` role via `AuthorizationService`
+**Test:** `ensureAreaCollaboratorCanBeCreated`
+
+```java
+@Test
+void ensureAreaCollaboratorCanBeCreated() {
+    final Collaborator collaborator = new Collaborator(validUser("user2"), validArea());
+    assertTrue(collaborator.isAreaCollaborator());
+    assertFalse(collaborator.isCompanyCollaborator());
+    assertEquals("Northern Portugal", collaborator.customerName());
+}
+```
+
+**Test:** `ensureUserCannotBeNullForCompanyCollaborator`
+
+```java
+@Test
+void ensureUserCannotBeNullForCompanyCollaborator() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Collaborator(null, validCompany()));
+}
+```
+
+**Test:** `ensureUserCannotBeNullForAreaCollaborator`
+
+```java
+@Test
+void ensureUserCannotBeNullForAreaCollaborator() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Collaborator(null, validArea()));
+}
+```
+
+**Test:** `ensureCompanyCannotBeNull`
+
+```java
+@Test
+void ensureCompanyCannotBeNull() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Collaborator(validUser("user3"), (AirTransportCompany) null));
+}
+```
+
+**Test:** `ensureAreaCannotBeNull`
+
+```java
+@Test
+void ensureAreaCannotBeNull() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Collaborator(validUser("user4"), (AirControlArea) null));
+}
+```
+
+**Test:** `ensureCompanyCollaboratorHasCorrectUser`
+
+```java
+@Test
+void ensureCompanyCollaboratorHasCorrectUser() {
+    final User user = validUser("user5");
+    final Collaborator collaborator = new Collaborator(user, validCompany());
+    assertEquals(user, collaborator.user());
+}
+```
+
+**Test:** `ensureAreaCollaboratorHasCorrectUser`
+
+```java
+@Test
+void ensureAreaCollaboratorHasCorrectUser() {
+    final User user = validUser("user6");
+    final Collaborator collaborator = new Collaborator(user, validArea());
+    assertEquals(user, collaborator.user());
+}
+```
+
+**Test:** `ensureToStringContainsCustomerName`
+
+```java
+@Test
+void ensureToStringContainsCustomerName() {
+    final Collaborator collaborator = new Collaborator(validUser("user7"), validCompany());
+    assertTrue(collaborator.toString().contains("TAP Air Portugal"));
+}
+```
+
+**Test:** `ensureEqualsReturnsTrueForSameInstance`
+
+```java
+@Test
+void ensureEqualsReturnsTrueForSameInstance() {
+    final Collaborator collaborator = new Collaborator(validUser("user8"), validCompany());
+    assertEquals(collaborator, collaborator);
+}
+```
+
+**Test:** `ensureEqualsReturnsFalseForNull`
+
+```java
+@Test
+void ensureEqualsReturnsFalseForNull() {
+    final Collaborator collaborator = new Collaborator(validUser("user9"), validCompany());
+    assertNotEquals(null, collaborator);
+}
+```
+
+**Test:** `ensureHashCodeIsConsistent`
+
+```java
+@Test
+void ensureHashCodeIsConsistent() {
+    final Collaborator collaborator = new Collaborator(validUser("user10"), validCompany());
+    assertEquals(collaborator.hashCode(), collaborator.hashCode());
+}
+```
+
+**Test:** `ensureSameAsReturnsTrueForSameInstance`
+
+```java
+@Test
+void ensureSameAsReturnsTrueForSameInstance() {
+    final Collaborator collaborator = new Collaborator(validUser("user11"), validCompany());
+    assertTrue(collaborator.sameAs(collaborator));
+}
+```
+
+**Test:** `ensureAirTransportCompanyGetterWorks`
+
+```java
+@Test
+void ensureAirTransportCompanyGetterWorks() {
+    final AirTransportCompany company = validCompany();
+    final Collaborator collaborator = new Collaborator(validUser("user12"), company);
+    assertEquals(company, collaborator.airTransportCompany());
+    assertNull(collaborator.airControlArea());
+}
+```
+
+**Test:** `ensureAirControlAreaGetterWorks`
+
+```java
+@Test
+void ensureAirControlAreaGetterWorks() {
+    final AirControlArea area = validArea();
+    final Collaborator collaborator = new Collaborator(validUser("user13"), area);
+    assertEquals(area, collaborator.airControlArea());
+    assertNull(collaborator.airTransportCompany());
+}
+```
+
+**Test:** `ensureEqualsReturnsFalseForDifferentType`
+
+```java
+@Test
+void ensureEqualsReturnsFalseForDifferentType() {
+    final Collaborator collaborator = new Collaborator(validUser("user15"), validCompany());
+    assertNotEquals("string", collaborator);
+}
+```
+
+**Test:** `ensureCustomerNameForCompanyCollaborator`
+
+```java
+@Test
+void ensureCustomerNameForCompanyCollaborator() {
+    final Collaborator collaborator = new Collaborator(validUser("user16"), validCompany());
+    assertEquals("TAP Air Portugal", collaborator.customerName());
+}
+```
+
+**Test:** `ensureCustomerNameForAreaCollaborator`
+
+```java
+@Test
+void ensureCustomerNameForAreaCollaborator() {
+    final Collaborator collaborator = new Collaborator(validUser("user17"), validArea());
+    assertEquals("Northern Portugal", collaborator.customerName());
+}
+```
+
+**Test:** `ensureTwoCollaboratorsWithSameIdAreEqual`
+
+```java
+@Test
+void ensureTwoCollaboratorsWithSameIdAreEqual() {
+    final Collaborator collaborator = new Collaborator(validUser("user20"), validCompany());
+    assertTrue(collaborator.sameAs(collaborator));
+}
+```
+
+**Test:** `ensureToStringContainsAreaName`
+
+```java
+@Test
+void ensureToStringContainsAreaName() {
+    final Collaborator collaborator = new Collaborator(validUser("user21"), validArea());
+    assertTrue(collaborator.toString().contains("Northern Portugal"));
+}
+```
+
+**Test:** `ensureCompanyCollaboratorHasNullArea`
+
+```java
+@Test
+void ensureCompanyCollaboratorHasNullArea() {
+    final Collaborator collaborator = new Collaborator(validUser("user22"), validCompany());
+    assertNull(collaborator.airControlArea());
+    assertNotNull(collaborator.airTransportCompany());
+}
+```
+
+**Test:** `ensureAreaCollaboratorHasNullCompany`
+
+```java
+@Test
+void ensureAreaCollaboratorHasNullCompany() {
+    final Collaborator collaborator = new Collaborator(validUser("user23"), validArea());
+    assertNull(collaborator.airTransportCompany());
+    assertNotNull(collaborator.airControlArea());
+}
+```
 
 ---
 
-### 4.2. Acceptance Tests
+## Coverage by Acceptance Criterion
 
-Authorization and repository-level filtering are infrastructure concerns validated by manual integration testing. No isolated domain unit tests exist for this US as it is a query-only operation.
+- AC062.1: `ensureCompanyCollaboratorCanBeCreated`, `ensureAreaCollaboratorCanBeCreated`; UI prompts for customer type selection
+- AC062.2: UI loads and displays available customers before asking for selection
+- AC062.3: Repository methods filter on `systemUser.active = true`; `ensureAirTransportCompanyGetterWorks`, `ensureAirControlAreaGetterWorks`
+- AC062.4: Controller returns empty result and UI displays informative message when no active collaborators exist
+- AC062.5: Controller checks `BACKOFFICE_OPERATOR` or `ADMIN` role via `AuthorizationService`; validated by manual test
+- Domain invariants (construction): `ensureUserCannotBeNullForCompanyCollaborator`, `ensureUserCannotBeNullForAreaCollaborator`, `ensureCompanyCannotBeNull`, `ensureAreaCannotBeNull`, `ensureCompanyCollaboratorHasCorrectUser`, `ensureAreaCollaboratorHasCorrectUser`, `ensureCustomerNameForCompanyCollaborator`, `ensureCustomerNameForAreaCollaborator`, `ensureCompanyCollaboratorHasNullArea`, `ensureAreaCollaboratorHasNullCompany`, `ensureToStringContainsCustomerName`, `ensureToStringContainsAreaName`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureEqualsReturnsFalseForDifferentType`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`, `ensureTwoCollaboratorsWithSameIdAreEqual`
+
+---
+
+## Acceptance Tests
+
+Authorization (`BACKOFFICE_OPERATOR` or `ADMIN` role) and repository-level active filtering are infrastructure concerns validated by manual integration testing. Collaborator construction and association invariants are fully covered by the automated unit tests above.
 
 **Manual test — AC062.1 / AC062.2 / AC062.3 (list company collaborators):**
 
