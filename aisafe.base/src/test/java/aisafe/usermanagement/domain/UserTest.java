@@ -406,4 +406,62 @@ class UserTest {
         final Email email = new Email("user@aisafe.com");
         assertEquals("user@aisafe.com", email.address());
     }
+
+    @Test
+    void ensureEmailRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> new Email(null));
+    }
+
+
+    @Test
+    void ensureSecurityLevelGetCodeReturnsCorrectValues() {
+        assertEquals(1, SecurityLevel.LOW.getCode());
+        assertEquals(2, SecurityLevel.GUARDED.getCode());
+        assertEquals(3, SecurityLevel.ELEVATED.getCode());
+        assertEquals(4, SecurityLevel.HIGH.getCode());
+        assertEquals(5, SecurityLevel.CRITICAL.getCode());
+    }
+
+    @Test
+    void ensureSecurityLevelFromCodeReturnsCorrectLevel() {
+        assertEquals(SecurityLevel.LOW, SecurityLevel.fromCode(1));
+        assertEquals(SecurityLevel.GUARDED, SecurityLevel.fromCode(2));
+        assertEquals(SecurityLevel.ELEVATED, SecurityLevel.fromCode(3));
+        assertEquals(SecurityLevel.HIGH, SecurityLevel.fromCode(4));
+        assertEquals(SecurityLevel.CRITICAL, SecurityLevel.fromCode(5));
+    }
+
+
+    @Test
+    void ensureSecurityClearanceNotEqualToNull() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertNotEquals(null, clearance);
+    }
+
+    @Test
+    void ensureSecurityClearanceWithSameLevelButDifferentDateIsNotEqual() {
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(2));
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    void ensureSecurityClearanceToStringContainsExpirationDate() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance clearance = new SecurityClearance(SecurityLevel.LOW, date);
+        assertTrue(clearance.toString().contains(date.toString()));
+    }
+
+
+    @Test
+    void ensureUserSkillsAssessmentDateGetterReturnsCorrectValue() {
+        final LocalDate assessmentDate = LocalDate.now().plusDays(10);
+        final User user = baseBuilder()
+                .withMecanographicNumber("SKILLS1")
+                .withSystemUser(dummySystemUser("user_skills", AiSafeRoles.PILOT))
+                .withSkillsAssessmentDate(assessmentDate)
+                .build();
+        assertEquals(assessmentDate, user.skillsAssessmentDate());
+    }
 }

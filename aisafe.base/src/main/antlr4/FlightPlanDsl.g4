@@ -1,7 +1,7 @@
 grammar FlightPlanDsl;
 
 flightPlan
-    : flight+ EOF
+    : flight EOF
     ;
 
 // ── Flight ──────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ windDirection
     ;
 
 windSpeed
-    : signedNumber unit
+    : signedNumber speedUnit
     ;
 
 
@@ -97,12 +97,12 @@ coordinate
     ;
 
 altitude
-    : signedNumber unit
+    : signedNumber distanceUnit
     ;
 
 
 distance
-    : signedNumber unit
+    : signedNumber distanceUnit
     ;
 
 airportCode
@@ -118,11 +118,14 @@ dateTime
     : DATE TIME
     ;
 
-unit
+distanceUnit
     : M
     | KM
     | FT
-    | KNOT
+    ;
+
+speedUnit
+    : KNOT
     | MPS
     ;
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,7 +170,7 @@ IATA_CODE   : UPPER UPPER UPPER ;
 // 2 uppercase letters + 1-4 digits + optional 1-letter suffix
 // e.g. AA123, TP1234, TP1234A
 
-IDENTIFIER  : UPPER UPPER DIGIT DIGIT? DIGIT? DIGIT? LETTER? ;
+IDENTIFIER  : UPPER UPPER DIGIT DIGIT? DIGIT? DIGIT? UPPER? ;
 
 
 DATE        : DIGIT DIGIT DIGIT DIGIT '-' DIGIT DIGIT '-' DIGIT DIGIT ;

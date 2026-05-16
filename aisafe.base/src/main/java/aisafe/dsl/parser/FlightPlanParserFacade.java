@@ -1,13 +1,6 @@
 package aisafe.dsl.parser;
 
-import aisafe.dsl.ast.CoordinateAst;
-import aisafe.dsl.ast.EndpointAst;
 import aisafe.dsl.ast.FlightPlanAst;
-import aisafe.dsl.ast.FlightType;
-import aisafe.dsl.ast.FuelAst;
-import aisafe.dsl.ast.LegAst;
-import aisafe.dsl.ast.RouteAst;
-import aisafe.dsl.ast.SegmentAst;
 import aisafe.dsl.generated.FlightPlanDslLexer;
 import aisafe.dsl.generated.FlightPlanDslParser;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -15,6 +8,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -48,92 +42,26 @@ public final class FlightPlanParserFacade {
 
 		final FlightPlanDslParser.FlightPlanContext root = parser.flightPlan();
 
+		// Stage 1: syntactic errors already collected
 		if (!errors.isEmpty()) {
 			return ParseResult.invalid(errors);
 		}
 
-		try {
-			final FlightPlanAst ast = toFlightPlan(root.flight().get(0));
-			final List<ParseError> semanticErrors =
-					new FlightPlanSemanticValidator().validate(ast);
-			if (!semanticErrors.isEmpty()) {
-				return ParseResult.invalid(semanticErrors);
-			}
-			return ParseResult.valid(ast);
-		} catch (final RuntimeException ex) {
-			return ParseResult.invalid(List.of(new ParseError(
-					0,
-					0,
-					"Failed to build internal representation: " + ex.getMessage(),
-					"<mapper>"
-			)));
-		}
-	}
-
-	private FlightPlanAst toFlightPlan(final FlightPlanDslParser.FlightContext ctx) {
-		final List<LegAst> legs = new ArrayList<>();
-		for (final FlightPlanDslParser.LegContext legContext : ctx.leg()) {
-			legs.add(toLeg(legContext));
+		// Stage 2: parse-tree range validation via Listener
+		ParseTreeWalker.DEFAULT.walk(new FlightPlanValidationListener(errors), root);
+		if (!errors.isEmpty()) {
+			return ParseResult.invalid(errors);
 		}
 
-		return new FlightPlanAst(
-				ctx.IDENTIFIER().getText(),
-				FlightType.valueOf(ctx.flightType().getText().toUpperCase()),
-				List.copyOf(legs)
-		);
-	}
+		// Stage 3: AST construction via Visitor
+		final FlightPlanAst ast = (FlightPlanAst) new FlightPlanAstBuilderVisitor().visit(root.flight());
 
-	private LegAst toLeg(final FlightPlanDslParser.LegContext ctx) {
-		final List<SegmentAst> segments = new ArrayList<>();
-		for (final FlightPlanDslParser.SegmentContext segmentContext : ctx.segment()) {
-			segments.add(toSegment(segmentContext));
+		// Stage 4: cross-field semantic validation on AST
+		final List<ParseError> semanticErrors = new FlightPlanSemanticValidator().validate(ast);
+		if (!semanticErrors.isEmpty()) {
+			return ParseResult.invalid(semanticErrors);
 		}
-
-		return new LegAst(
-				toEndpoint(ctx.departure().airportCode().getText(), ctx.departure().dateTime().DATE().getText(), ctx.departure().dateTime().TIME().getText()),
-				toEndpoint(ctx.arrival().airportCode().getText(), ctx.arrival().dateTime().DATE().getText(), ctx.arrival().dateTime().TIME().getText()),
-				new RouteAst(ctx.route().airportCode(0).getText(), ctx.route().airportCode(1).getText()),
-				List.copyOf(segments),
-				new FuelAst(parseSignedNumber(ctx.fuel().signedNumber()), ctx.fuel().fuelUnit().getText().toUpperCase())
-		);
-	}
-
-	private SegmentAst toSegment(final FlightPlanDslParser.SegmentContext ctx) {
-		// Get first altitude slot
-		final FlightPlanDslParser.AltitudeSlotContext altSlot = ctx.altitudeSlot(0);
-		final double altitude = parseSignedNumber(altSlot.altitude().signedNumber());
-		final double width = parseSignedNumber(altSlot.distance().signedNumber());
-		
-		// Get wind declaration
-		final FlightPlanDslParser.WindDeclContext windDecl = ctx.windDecl();
-		final double windDirection = parseSignedNumber(windDecl.windDirection().signedNumber());
-		final double windSpeed = parseSignedNumber(windDecl.windSpeed().signedNumber());
-		
-		return new SegmentAst(
-				toCoordinate(ctx.coordinate(0)),
-				toCoordinate(ctx.coordinate(1)),
-				altitude,
-				width,
-				windSpeed,
-				windDirection
-		);
-	}
-
-	private EndpointAst toEndpoint(final String airportCode, final String date, final String time) {
-		return new EndpointAst(airportCode, date, time);
-	}
-
-	private CoordinateAst toCoordinate(final FlightPlanDslParser.CoordinateContext ctx) {
-		return new CoordinateAst(parseSignedNumber(ctx.signedNumber(0)), parseSignedNumber(ctx.signedNumber(1)));
-	}
-
-	private double parseSignedNumber(final FlightPlanDslParser.SignedNumberContext ctx) {
-		final String sign = ctx.PLUS() != null ? "+" : ctx.MINUS() != null ? "-" : "";
-		return parseNumber(sign + ctx.NUMBER().getText());
-	}
-
-	private double parseNumber(final String value) {
-		return Double.parseDouble(value);
+		return ParseResult.valid(ast);
 	}
 
 	public record ParseError(int line, int column, String message, String offendingSymbol) {
@@ -169,6 +97,3 @@ public final class FlightPlanParserFacade {
 		}
 	}
 }
-
-
-

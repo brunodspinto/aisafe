@@ -1,5 +1,5 @@
-#ifndef FLIGHT_SIMULATION_US102_H
-#define FLIGHT_SIMULATION_US102_H
+#ifndef FLIGHT_SIMULATION_SAFETY_MONITOR_H
+#define FLIGHT_SIMULATION_SAFETY_MONITOR_H
 
 #include <sys/types.h>
 #include "types.h"
@@ -14,7 +14,10 @@ int monitor_safety_violations(
     int *pipe_open,
     pid_t *pids,
     int n_flights,
-    int *total_violations
+    int *total_violations,
+    double safe_dist_horiz_m,
+    double safe_dist_vert_m,
+    int max_violations
 );
 
 /* Advisory: checks all future segment pairs of two flights for cylinder violation.
@@ -22,7 +25,9 @@ int monitor_safety_violations(
 int predict_future_collisions(
     flight_plan_t *const *plans,
     int flight_a, int current_seg_a,
-    int flight_b, int current_seg_b
+    int flight_b, int current_seg_b,
+    double safe_dist_horiz_m,
+    double safe_dist_vert_m
 );
 
-#endif /* FLIGHT_SIMULATION_US102_H */
+#endif /* FLIGHT_SIMULATION_SAFETY_MONITOR_H */

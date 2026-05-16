@@ -16,20 +16,16 @@ and **ex1-2.c** (waitpid + WIFEXITED pattern).
 
 ## 2. Requirements
 
-**US101:** As an Air Traffic Controller, I want the simulation to capture and process flight
-movement updates so that the system can track aircraft positions in real time and store
-enough data to anticipate future safety violations.
+**US101:** As a simulation process, I want to receive movement commands from flight
+processes so that I can track aircraft positions over time.
 
 ### Acceptance Criteria
 
 | ID | Criterion | Status |
 |----|-----------|--------|
-| AC1 | Each flight process sends position updates to the parent via a POSIX pipe | Done |
-| AC2 | The parent process reads and displays live position updates | Done |
-| AC3 | The system stores past positions including speed and heading to enable future anticipation of safety violations | Done |
-| AC5 | Only positions inside the Air Control Area (ACA) boundary are stored and displayed | Done |
-| AC6 | Aircraft entry into and exit from the ACA are detected and logged at runtime | Done |
-| AC7 | Simulation step count is derived from real physics (distance ÷ speed), giving a second-by-second model | Done |
+| AC1 | Each flight process must send position updates to the main process via a pipe | Done |
+| AC2 | The main process should track aircraft positions | Done |
+| AC3 | The system must store past positions to anticipate and detect potential safety violations | Done |
 
 ---
 

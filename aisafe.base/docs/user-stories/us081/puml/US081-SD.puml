@@ -7,6 +7,8 @@ participant "CreateFlightPlanFromFileUI" as ui
 participant "CreateFlightPlanFromFileController" as ctrl
 participant "AuthorizationService\n(EAPLI)" as authz
 participant "FlightPlanParserFacade" as facade
+participant "FlightPlanValidationListener" as listener
+participant "FlightPlanAstBuilderVisitor" as visitor
 participant "FlightPlanSemanticValidator" as validator
 participant "FlightPlanRepository" as repo
 
@@ -18,21 +20,56 @@ activate ctrl
 
 ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
 activate authz
-authz --> ctrl : ok (or throws UnauthorizedException)
+authz --> ctrl : ok
 deactivate authz
 
-ctrl -> ctrl : dslContent = readFile(filePath)
+ctrl -> ctrl : dslContent = Files.readString(filePath)
 
 ctrl -> facade : parse(dslContent)
 activate facade
 
-facade -> facade : run ANTLR lexer + parser
-alt lexical/syntactic errors
+note over facade
+  Stage 1: ANTLR Lexer + Parser
+end note
+facade -> facade : lexer.tokenise(dslContent)
+facade -> facade : parser.flightPlan()
+
+alt lexical / syntactic errors
     facade --> ctrl : ParseResult.invalid(errors)
     ctrl --> ui : throw IllegalArgumentException(errorMessage)
-    ui -> pilot : "Validation Error: ..."
+    ui -> pilot : "Validation Error:\n  [line X, col Y] ..."
 end
 
+note over facade
+  Stage 2: Range validation (Listener)
+end note
+facade -> listener : ParseTreeWalker.walk(listener, root)
+activate listener
+listener -> listener : exitWindDecl() — direction ∈ [0, 359]
+listener -> listener : exitCoordinate() — lat ∈ [-90,90]  lon ∈ [-180,180]
+listener --> facade : accumulated errors
+deactivate listener
+
+alt range errors
+    facade --> ctrl : ParseResult.invalid(errors)
+    ctrl --> ui : throw IllegalArgumentException(errorMessage)
+    ui -> pilot : "Validation Error:\n  [line X, col Y] ..."
+end
+
+note over facade
+  Stage 3: AST construction (Visitor)
+end note
+facade -> visitor : visit(root.flight())
+activate visitor
+visitor -> visitor : visitFlight()  → FlightPlanAst
+visitor -> visitor : visitLeg()     → LegAst
+visitor -> visitor : visitSegment() → SegmentAst
+visitor --> facade : FlightPlanAst
+deactivate visitor
+
+note over facade
+  Stage 4: Semantic validation
+end note
 facade -> validator : validate(ast)
 activate validator
 validator -> validator : validateLegs()
@@ -42,15 +79,15 @@ validator --> facade : List<ParseError>
 deactivate validator
 
 alt semantic errors
-    facade --> ctrl : ParseResult.invalid(semanticErrors)
+    facade --> ctrl : ParseResult.invalid(errors)
     ctrl --> ui : throw IllegalArgumentException(errorMessage)
-    ui -> pilot : "Validation Error: ..."
+    ui -> pilot : "Validation Error:\n  Leg 1: fuel quantity must be strictly positive"
 end
 
 facade --> ctrl : ParseResult.valid(ast)
 deactivate facade
 
-ctrl -> repo : ofIdentity(ast.identifier())
+ctrl -> repo : ofIdentity(FlightPlanDesignator.valueOf(ast.identifier()))
 activate repo
 repo --> ctrl : Optional.empty()
 deactivate repo
@@ -65,7 +102,7 @@ deactivate repo
 ctrl --> ui : savedFlightPlan
 deactivate ctrl
 
-ui -> pilot : "Flight plan successfully created!\nDesignator: TP1234 | Type: REGULAR | Status: DRAFT"
+ui -> pilot : "Flight plan successfully created!\n  Designator: TP123 | Type: REGULAR | Status: DRAFT"
 deactivate ui
 
 @enduml

@@ -15,7 +15,7 @@ int find_or_create_flight(flight_history_t *histories, int n_flights,
             strncpy(histories[i].flight_id, flight_id,
                     sizeof(histories[i].flight_id) - 1);
             histories[i].flight_id[sizeof(histories[i].flight_id) - 1] = '\0';
-            histories[i].aca_state = ACA_BEFORE; /* AC6: initial state */
+            histories[i].aca_state = ACA_BEFORE;
             return i;
         }
     }

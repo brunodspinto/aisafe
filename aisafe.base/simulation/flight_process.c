@@ -16,6 +16,10 @@
 #include "types.h"
 #include "flight_process.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /* Set by SIGUSR1 handler — checked in the step loop for graceful exit.
  * Must be volatile sig_atomic_t (POSIX requirement for signal-modified vars). */
 static volatile sig_atomic_t collision_alert = 0;

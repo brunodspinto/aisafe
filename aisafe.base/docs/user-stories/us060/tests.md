@@ -10,21 +10,163 @@ US060 covers registering an Air Transport Company with a unique IATA code, ICAO 
 
 Location: `src/test/java/aisafe/airtransportcompany/domain/AirTransportCompanyTest.java`
 
-- `ensureValidIATACodeIsAccepted`
-- `ensureIATACodeRejectsOneChar`
-- `ensureIATACodeRejectsThreeChars`
-- `ensureIATACodeRejectsDigits`
-- `ensureIATACodeRejectsLowercase`
-- `ensureICAOCodeAcceptsTwoChars`
-- `ensureICAOCodeAcceptsThreeChars`
-- `ensureICAOCodeRejectsOneChar`
-- `ensureICAOCodeRejectsFourChars`
-- `ensureCompanyNameCannotBeNull`
-- `ensureCompanyNameCannotBeBlank`
-- `ensureCompanyIdentityIsIATACode`
-- `ensureCompaniesWithSameIATACodeAreEqual`
-- `ensureAircraftCanBeAddedToCompanyFleet`
-- `ensureDuplicateAircraftRegistrationCannotBeAddedToFleet`
+**Test:** `ensureIATACodeRejectsOneChar`
+
+```java
+@Test
+void ensureIATACodeRejectsOneChar() {
+    assertThrows(IllegalArgumentException.class, () -> IATACode.valueOf("T"));
+}
+```
+
+**Test:** `ensureIATACodeRejectsThreeChars`
+
+```java
+@Test
+void ensureIATACodeRejectsThreeChars() {
+    assertThrows(IllegalArgumentException.class, () -> IATACode.valueOf("TAP"));
+}
+```
+
+**Test:** `ensureIATACodeRejectsDigits`
+
+```java
+@Test
+void ensureIATACodeRejectsDigits() {
+    assertThrows(IllegalArgumentException.class, () -> IATACode.valueOf("T1"));
+}
+```
+
+**Test:** `ensureIATACodeRejectsLowercase`
+
+```java
+@Test
+void ensureIATACodeRejectsLowercase() {
+    assertThrows(IllegalArgumentException.class, () -> IATACode.valueOf("tp"));
+}
+```
+
+**Test:** `ensureValidIATACodeIsAccepted`
+
+```java
+@Test
+void ensureValidIATACodeIsAccepted() {
+    final IATACode code = IATACode.valueOf("TP");
+    assertEquals("TP", code.toString());
+}
+```
+
+**Test:** `ensureICAOCodeRejectsOneChar`
+
+```java
+@Test
+void ensureICAOCodeRejectsOneChar() {
+    assertThrows(IllegalArgumentException.class, () -> ICAOCode.valueOf("T"));
+}
+```
+
+**Test:** `ensureICAOCodeRejectsFourChars`
+
+```java
+@Test
+void ensureICAOCodeRejectsFourChars() {
+    assertThrows(IllegalArgumentException.class, () -> ICAOCode.valueOf("TAPT"));
+}
+```
+
+**Test:** `ensureICAOCodeAcceptsTwoChars`
+
+```java
+@Test
+void ensureICAOCodeAcceptsTwoChars() {
+    final ICAOCode code = ICAOCode.valueOf("TP");
+    assertEquals("TP", code.toString());
+}
+```
+
+**Test:** `ensureICAOCodeAcceptsThreeChars`
+
+```java
+@Test
+void ensureICAOCodeAcceptsThreeChars() {
+    final ICAOCode code = ICAOCode.valueOf("TAP");
+    assertEquals("TAP", code.toString());
+}
+```
+
+**Test:** `ensureCompanyNameCannotBeNull`
+
+```java
+@Test
+void ensureCompanyNameCannotBeNull() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirTransportCompany(null, IATACode.valueOf("TP"), ICAOCode.valueOf("TAP")));
+}
+```
+
+**Test:** `ensureCompanyNameCannotBeBlank`
+
+```java
+@Test
+void ensureCompanyNameCannotBeBlank() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirTransportCompany("   ", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP")));
+}
+```
+
+**Test:** `ensureCompanyIdentityIsIATACode`
+
+```java
+@Test
+void ensureCompanyIdentityIsIATACode() {
+    final AirTransportCompany company =
+            new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+    assertEquals(IATACode.valueOf("TP"), company.identity());
+}
+```
+
+**Test:** `ensureCompaniesWithSameIATACodeAreEqual`
+
+```java
+@Test
+void ensureCompaniesWithSameIATACodeAreEqual() {
+    final AirTransportCompany a =
+            new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+    final AirTransportCompany b =
+            new AirTransportCompany("TAP", IATACode.valueOf("TP"), ICAOCode.valueOf("TP"));
+    assertEquals(a, b);
+}
+```
+
+**Test:** `ensureAircraftCanBeAddedToCompanyFleet`
+
+```java
+@Test
+void ensureAircraftCanBeAddedToCompanyFleet() {
+    final AirTransportCompany company =
+            new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+    final Aircraft aircraft = validAircraft("CS-TUA");
+    company.addAircraftToFleet(aircraft);
+    assertTrue(company.fleet().contains("CS-TUA"));
+    assertEquals(1, company.fleet().size());
+}
+```
+
+**Test:** `ensureDuplicateAircraftRegistrationCannotBeAddedToFleet`
+
+```java
+@Test
+void ensureDuplicateAircraftRegistrationCannotBeAddedToFleet() {
+    final AirTransportCompany company =
+            new AirTransportCompany("TAP Air Portugal", IATACode.valueOf("TP"), ICAOCode.valueOf("TAP"));
+    final Aircraft aircraft = validAircraft("CS-TUA");
+    company.addAircraftToFleet(aircraft);
+    company.addAircraftToFleet(aircraft);
+    assertEquals(1, company.fleet().size());
+}
+```
+
+---
 
 ## Coverage by Acceptance Criterion
 
@@ -32,13 +174,14 @@ Location: `src/test/java/aisafe/airtransportcompany/domain/AirTransportCompanyTe
 - AC060.2: `ensureValidIATACodeIsAccepted`, `ensureIATACodeRejectsOneChar`, `ensureIATACodeRejectsThreeChars`, `ensureIATACodeRejectsDigits`, `ensureIATACodeRejectsLowercase`
 - AC060.3: `ensureICAOCodeAcceptsTwoChars`, `ensureICAOCodeAcceptsThreeChars`, `ensureICAOCodeRejectsOneChar`, `ensureICAOCodeRejectsFourChars`
 - AC060.4: `ensureCompanyIdentityIsIATACode`, `ensureCompaniesWithSameIATACodeAreEqual`; uniqueness enforced by `@EmbeddedId`
-- AC060.5: Uniqueness enforced by `@Column(unique = true)` on ICAO code
-- AC060.6: Controller checks `BACKOFFICE_OPERATOR` role via `AuthorizationService`
+- AC060.5: Uniqueness enforced by `@Column(unique = true)` on ICAO code; validated by manual test
+- AC060.6: Controller checks `BACKOFFICE_OPERATOR` role via `AuthorizationService`; validated by manual test
 - AC060.7: Covered by `AiSafeBootstrap` which registers TP, FR and LH idempotently
+- Fleet management (supports US070): `ensureAircraftCanBeAddedToCompanyFleet`, `ensureDuplicateAircraftRegistrationCannotBeAddedToFleet`
 
 ---
 
-### 4.2. Acceptance Tests
+## Acceptance Tests
 
 Authorization (Backoffice Operator role) and persistence-level uniqueness (IATA, ICAO, name) are infrastructure concerns primarily validated by manual integration testing. Code format validations are fully covered by the automated unit tests above.
 
