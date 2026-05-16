@@ -1,0 +1,60 @@
+@startuml sd33
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+
+actor "Administrator" as ADMIN
+participant ":ListUsersUI" as UI
+participant ":ListUsersController" as CTRL
+participant "PersistenceContext" as PC
+participant "repositories\n:Repositories" as REPOS
+participant "userRepository\n:UserRepository" as USER_REPO
+participant "AuthzRegistry" as AUTHZ_REGISTRY
+participant "authorizationService\n:AuthorizationService" as AUTHZ
+
+activate ADMIN
+
+    ADMIN -> UI : asks to list all users
+    activate UI
+        UI --> CTRL** : create()
+
+        UI -> CTRL : allUsers()
+        activate CTRL
+
+            CTRL -> AUTHZ_REGISTRY : authorizationService()
+            activate AUTHZ_REGISTRY
+                AUTHZ_REGISTRY --> CTRL : authorizationService
+            deactivate AUTHZ_REGISTRY
+
+            CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ADMIN)
+            activate AUTHZ
+                AUTHZ --> CTRL : ok
+            deactivate AUTHZ
+
+            |||
+
+            CTRL -> PC : repositories()
+            activate PC
+                PC --> CTRL : repositories
+            deactivate PC
+
+            CTRL -> REPOS : users()
+            activate REPOS
+                REPOS --> CTRL : userRepository
+            deactivate REPOS
+
+            CTRL -> USER_REPO : findAll()
+            activate USER_REPO
+                USER_REPO --> CTRL : users : Iterable<User>
+            deactivate USER_REPO
+
+            CTRL --> UI : users : Iterable<User>
+        deactivate CTRL
+
+        UI --> ADMIN : displays user table\n(username, status, name, email, position)
+    deactivate UI
+
+deactivate ADMIN
+
+@enduml

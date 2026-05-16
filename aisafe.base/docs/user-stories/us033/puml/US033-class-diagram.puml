@@ -1,0 +1,54 @@
+@startuml class-diagram-033
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class ListUsersUI {
+        +doShow() : boolean
+    }
+}
+
+package "Application Layer" {
+    class ListUsersController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -userRepo : UserRepository
+        +allUsers() : Iterable<User>
+    }
+}
+
+package "Domain Layer" {
+    class User <<entity, aggregate root>> {
+        -phoneNumber : String
+        -position : String
+        -skillsAssessmentDate : LocalDate
+        +systemUser() : SystemUser
+        +email() : Email
+        +position() : String
+        +securityClearance() : SecurityClearance
+        +identity() : MecanographicNumber
+    }
+}
+
+package "Repository Layer" {
+    interface UserRepository {
+        +findAll() : Iterable<User>
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class SystemUser {
+        +isActive() : boolean
+        +identity() : Username
+        +name() : Name
+    }
+    class AuthorizationService
+}
+
+ListUsersUI ..> ListUsersController : uses
+ListUsersController ..> AuthorizationService : checks ADMIN role
+ListUsersController ..> UserRepository : findAll
+
+User --> SystemUser : references
+UserRepository ..> User : manages
+
+@enduml
