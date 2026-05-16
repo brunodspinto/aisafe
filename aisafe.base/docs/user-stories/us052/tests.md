@@ -80,3 +80,9 @@ Authorization (Backoffice Operator role), code uniqueness constraints (IATA, ICA
 
 1. At the IATA prompt enter `li` (2 letters) or `LISS` (4 letters).
 2. Expected: the system rejects the input with a format validation error and re-prompts.
+
+**Manual test — coordinates outside the air control area rejected:**
+
+1. Navigate to `Airports > Register Airport` and select an air control area with known boundaries (e.g. `EUR` covering Europe).
+2. Provide coordinates that are clearly outside that area (e.g. latitude `35.0`, longitude `-120.0`, which falls over the Pacific Ocean).
+3. Expected: the system rejects the operation with a message indicating the airport coordinates must be inside the selected air control area.

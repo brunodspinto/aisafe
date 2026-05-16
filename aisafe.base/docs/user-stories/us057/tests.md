@@ -485,3 +485,17 @@ Authorization (`BACKOFFICE_OPERATOR` role), duplicate prevention at persistence 
 
 1. Login as a user without the `BACKOFFICE_OPERATOR` role.
 2. Expected: the Add Engine option is not available in the menu.
+
+**Manual test — remove engine (full removal flow):**
+
+1. Run `AiSafeBackofficeApp` and login as a Backoffice Operator.
+2. Navigate to `Aircraft Configuration > Remove Engine from Aircraft Model`.
+3. Select an aircraft model that has more than one certified engine (e.g. `737-800` with `CFM56` and `GE90`).
+4. Select the engine to remove (e.g. `GE90`).
+5. Expected: confirmation message displayed — `Engine 'GE90' successfully removed from aircraft model '737-800'.` The model still has at least one certified engine remaining.
+
+**Manual test — remove last engine rejected:**
+
+1. Select an aircraft model that has exactly one certified engine.
+2. Attempt to remove that engine.
+3. Expected: the system rejects the operation with a message indicating the model must retain at least one certified engine.
