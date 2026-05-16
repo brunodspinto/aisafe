@@ -56,11 +56,9 @@ Covered scenarios:
 
 ---
 
-### 4.2. Acceptance Tests
+### Manual Acceptance Tests
 
 Authentication and authorization are infrastructure concerns and are primarily validated by manual integration testing. The `AddUserController` unit-level verification of the authorization check is covered indirectly by the US031 test suite: the controller calls `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)`, which throws `UnauthorizedException` when the session lacks the required role (AC030.6).
-
-Detailed unit-test coverage is documented in [tests.md](tests.md).
 
 **Manual test — AC030.2 (max attempts):**
 

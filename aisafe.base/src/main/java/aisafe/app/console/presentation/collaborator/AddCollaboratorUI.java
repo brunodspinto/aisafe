@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Console UI for the "Add Customer's Collaborator" use case (US060).
+ * Console UI for the "Add Customer's Collaborator" use case (US061).
  * Guides the user through selecting a customer type (company or area) and entering all collaborator details.
  */
 public class AddCollaboratorUI extends AbstractUI {

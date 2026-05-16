@@ -15,7 +15,7 @@ import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import java.util.stream.StreamSupport;
 
 /**
- * Application-layer controller for the "List Customer's Active Collaborators" use case (US060).
+ * Application-layer controller for the "List Customer's Active Collaborators" use case (US062).
  * Supports listing by air transport company or air control area.
  * Requires a Back-Office Operator or Admin role.
  */

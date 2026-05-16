@@ -64,6 +64,11 @@ public class User implements AggregateRoot<MecanographicNumber> {
                 final LocalDate skillsAssessmentDate) {
         if (mecanographicNumber == null || systemUser == null)
             throw new IllegalArgumentException("SystemUser and MecanographicNumber are required");
+        if (phoneNumber == null || phoneNumber.isBlank())
+            throw new IllegalArgumentException("Phone number is required");
+        final String digits = phoneNumber.replaceAll("[+\\s]", "");
+        if (!digits.matches("\\d{9,15}"))
+            throw new IllegalArgumentException("Phone number must have 9 to 15 digits (optionally starting with '+')");
         this.systemUser = systemUser;
         this.mecanographicNumber = mecanographicNumber;
         this.phoneNumber = phoneNumber;

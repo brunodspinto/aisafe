@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Console UI for the "Edit Customer's Collaborator" use case (US060).
+ * Console UI for the "Edit Customer's Collaborator" use case (US063).
  * Allows updating the email and phone number of an active collaborator.
  */
 public class EditCollaboratorUI extends AbstractUI {

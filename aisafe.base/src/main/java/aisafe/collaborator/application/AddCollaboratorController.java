@@ -29,7 +29,7 @@ import java.time.LocalDate;
 import java.util.Set;
 
 /**
- * Application-layer controller for the "Add Customer's Collaborator" use case (US060).
+ * Application-layer controller for the "Add Customer's Collaborator" use case (US061).
  * Supports creating collaborators for both air transport companies and air control areas.
  * Requires a Back-Office Operator or Admin role.
  */

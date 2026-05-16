@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Console UI for the "Disable Customer's Collaborator" use case (US060).
+ * Console UI for the "Disable Customer's Collaborator" use case (US064).
  * Shows active collaborators filtered by company or area, and deactivates the chosen one after confirmation.
  */
 public class DisableCollaboratorUI extends AbstractUI {

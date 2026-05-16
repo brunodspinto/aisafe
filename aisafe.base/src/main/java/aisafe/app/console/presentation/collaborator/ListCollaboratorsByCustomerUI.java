@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Console UI for the "List Customer's Active Collaborators" use case (US060).
+ * Console UI for the "List Customer's Active Collaborators" use case (US062).
  * Displays a tabular list of active collaborators filtered by company or area.
  */
 public class ListCollaboratorsByCustomerUI extends AbstractUI {

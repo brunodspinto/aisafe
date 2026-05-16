@@ -7,7 +7,7 @@ import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
 /**
- * Console UI for the "Register Air Transport Company" use case (US058).
+ * Console UI for the "Register Air Transport Company" use case (US060).
  * Validates IATA/ICAO format in the UI layer before delegating to the controller.
  */
 public class RegisterAirTransportCompanyUI extends AbstractUI {

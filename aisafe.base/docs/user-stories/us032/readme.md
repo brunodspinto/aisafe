@@ -72,7 +72,7 @@ Detailed coverage is summarized in [tests.md](tests.md).
 **Manual test — AC032.1 (disable active user):**
 
 1. Run `AiSafeConsoleApp` and login as `admin` (role: ADMIN).
-2. Navigate to `Users > 1 — Manage Users > 1 — Disable/Enable User`.
+2. Navigate to `Users > 3 — Disable/Enable User`.
 3. View the list of all users showing their current status (ACTIVE or DISABLED).
 4. Enter the username of an ACTIVE user (e.g., `operator`).
 5. Confirm the action.
@@ -81,7 +81,7 @@ Detailed coverage is summarized in [tests.md](tests.md).
 **Manual test — AC032.2 (re-enable disabled user):**
 
 1. Login as `admin`.
-2. Navigate to `Users > 1 — Manage Users > 1 — Disable/Enable User`.
+2. Navigate to `Users > 3 — Disable/Enable User`.
 3. Select a DISABLED user.
 4. Confirm the action.
 5. Expected: The user status changes back to ACTIVE.
@@ -94,7 +94,7 @@ Detailed coverage is summarized in [tests.md](tests.md).
 **Manual test — AC032.4 (authorization):**
 
 1. Login as a non-admin user (e.g., `operator` with BACKOFFICE_OPERATOR role).
-2. Try to navigate to `Users > Manage Users`.
+2. Try to navigate to `Users >`.
 3. Expected: Access is denied; only ADMIN users can access user management.
 
 **Manual test — AC032.5 (idempotent toggle):**
