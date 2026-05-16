@@ -12,6 +12,8 @@ import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
+import java.util.stream.StreamSupport;
+
 /**
  * Application-layer controller for the "List Customer's Active Collaborators" use case (US060).
  * Supports listing by air transport company or air control area.
@@ -56,7 +58,9 @@ public class ListCollaboratorsByCustomerController {
      */
     public Iterable<Collaborator> listActiveByCompany(final AirTransportCompany company) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirTransportCompany(company);
+        return StreamSupport.stream(collaboratorRepo.findByAirTransportCompany(company).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
     /**
@@ -67,6 +71,8 @@ public class ListCollaboratorsByCustomerController {
      */
     public Iterable<Collaborator> listActiveByArea(final AirControlArea area) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirControlArea(area);
+        return StreamSupport.stream(collaboratorRepo.findByAirControlArea(area).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 }

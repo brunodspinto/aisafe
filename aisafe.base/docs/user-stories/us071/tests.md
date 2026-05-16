@@ -4,17 +4,30 @@
 
 US071 covers decommissioning an aircraft from an Air Transport Company's fleet. The operation is permanent and irreversible: once an aircraft is decommissioned it cannot be reactivated. Only active aircraft are eligible.
 
+## Automated Tests
+
+### `AircraftTest`
+
+Location: `src/test/java/aisafe/aircraft/domain/AircraftTest.java`
+
+- `ensureAircraftIsCreatedWithActiveOperationalStatus`
+- `ensureDecommissionChangesStatus`
+- `ensureCannotDecommissionAlreadyDecommissioned`
+- `ensureIsActiveReturnsTrueForActiveAircraft`
+- `ensureIsActiveReturnsFalseAfterDecommission`
+
 ## Coverage by Acceptance Criterion
 
-- AC071.1 / AC071.5: Manual test — decommissioned aircraft not selectable (UI only lists active)
+- AC071.1 / AC071.5: `ensureIsActiveReturnsFalseAfterDecommission`; UI only lists active aircraft (manual test)
 - AC071.2: Manual test — confirmation step required before operation completes
-- AC071.3: Manual test — status persisted as `DECOMMISSIONED` after confirmation
+- AC071.3: `ensureDecommissionChangesStatus`; status persisted as `DECOMMISSIONED` after confirmation (manual test)
 - AC071.4: Manual test — role enforcement (non-ATCC user cannot access the option)
-- AC071.5: Manual test — UI only lists active aircraft
 
 ---
 
-## Acceptance Tests
+### 4.2. Acceptance Tests
+
+Authorization and persistence are infrastructure concerns validated by manual integration testing. Decommission domain rules are covered by the automated unit tests above.
 
 **Manual test — AC071.3 / AC071.2 (full decommission flow):**
 

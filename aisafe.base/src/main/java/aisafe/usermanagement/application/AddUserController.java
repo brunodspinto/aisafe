@@ -70,23 +70,27 @@ public class AddUserController {
         final var userRepo = PersistenceContext.repositories().users(tx);
 
         if (tx != null) tx.beginTransaction();
+        try {
+            final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                   .withPassword(password)
+                   .withName(firstName, lastName)
+                   .withEmail(emailStr)
+                   .withRoles(roles);
+            final var savedSystemUser = systemUserRepo.save(builder.build());
 
-        final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
-        builder.withUsername(username)
-               .withPassword(password)
-               .withName(firstName, lastName)
-               .withEmail(emailStr)
-               .withRoles(roles);
-        final var savedSystemUser = systemUserRepo.save(builder.build());
+            final MecanographicNumber mecNumber =
+                    MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
 
-        final MecanographicNumber mecNumber =
-                MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
+            final User user = new User(savedSystemUser, mecNumber, phoneNumber, email,
+                    position, securityClearance, skillsAssessmentDate);
 
-        final User user = new User(savedSystemUser, mecNumber, phoneNumber, email,
-                position, securityClearance, skillsAssessmentDate);
-
-        final var savedUser = userRepo.save(user);
-        if (tx != null) tx.commit();
-        return savedUser;
+            final var savedUser = userRepo.save(user);
+            if (tx != null) tx.commit();
+            return savedUser;
+        } catch (final Exception e) {
+            if (tx != null) tx.rollback();
+            throw e;
+        }
     }
 }

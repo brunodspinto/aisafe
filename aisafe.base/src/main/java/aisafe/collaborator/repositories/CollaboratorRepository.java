@@ -14,20 +14,20 @@ import java.util.Optional;
 public interface CollaboratorRepository extends DomainRepository<Long, Collaborator> {
 
     /**
-     * Returns all active collaborators belonging to the given air transport company.
+     * Returns all collaborators (active and inactive) belonging to the given air transport company.
      *
      * @param company the air transport company to filter by
-     * @return active collaborators for that company
+     * @return collaborators for that company
      */
-    Iterable<Collaborator> findActiveByAirTransportCompany(AirTransportCompany company);
+    Iterable<Collaborator> findByAirTransportCompany(AirTransportCompany company);
 
     /**
-     * Returns all active collaborators belonging to the given air control area.
+     * Returns all collaborators (active and inactive) belonging to the given air control area.
      *
      * @param area the air control area to filter by
-     * @return active collaborators for that area
+     * @return collaborators for that area
      */
-    Iterable<Collaborator> findActiveByAirControlArea(AirControlArea area);
+    Iterable<Collaborator> findByAirControlArea(AirControlArea area);
 
     /**
      * Finds the collaborator associated with the given system user.

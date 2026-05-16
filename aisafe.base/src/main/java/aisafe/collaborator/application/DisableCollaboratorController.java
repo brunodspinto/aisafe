@@ -13,6 +13,8 @@ import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import eapli.framework.infrastructure.authz.application.UserManagementService;
 
+import java.util.stream.StreamSupport;
+
 /**
  * Application-layer controller for the "Disable Customer's Collaborator" use case (US064).
  * Deactivates the system user of the selected collaborator.
@@ -58,7 +60,9 @@ public class DisableCollaboratorController {
      */
     public Iterable<Collaborator> activeCollaboratorsByCompany(final AirTransportCompany company) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirTransportCompany(company);
+        return StreamSupport.stream(collaboratorRepo.findByAirTransportCompany(company).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
     /**
@@ -69,7 +73,9 @@ public class DisableCollaboratorController {
      */
     public Iterable<Collaborator> activeCollaboratorsByArea(final AirControlArea area) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirControlArea(area);
+        return StreamSupport.stream(collaboratorRepo.findByAirControlArea(area).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
     /**

@@ -10,15 +10,35 @@ US061 covers registering a collaborator (company or ATCC) associated with exactl
 
 Location: `src/test/java/aisafe/collaborator/domain/CollaboratorTest.java`
 
+**Criação e associação:**
 - `ensureCompanyCollaboratorCanBeCreated`
-- `ensureCompanyCollaboratorHasCorrectUser`
 - `ensureAreaCollaboratorCanBeCreated`
 - `ensureUserCannotBeNullForCompanyCollaborator`
 - `ensureUserCannotBeNullForAreaCollaborator`
 - `ensureCompanyCannotBeNull`
 - `ensureAreaCannotBeNull`
+
+**Getters e atributos:**
+- `ensureCompanyCollaboratorHasCorrectUser`
+- `ensureAreaCollaboratorHasCorrectUser`
 - `ensureAirTransportCompanyGetterWorks`
 - `ensureAirControlAreaGetterWorks`
+- `ensureCompanyCollaboratorHasNullArea`
+- `ensureAreaCollaboratorHasNullCompany`
+- `ensureCustomerNameForCompanyCollaborator`
+- `ensureCustomerNameForAreaCollaborator`
+
+**Identidade e igualdade:**
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureEqualsReturnsFalseForDifferentType`
+- `ensureHashCodeIsConsistent`
+- `ensureSameAsReturnsTrueForSameInstance`
+- `ensureTwoCollaboratorsWithSameIdAreEqual`
+
+**toString:**
+- `ensureToStringContainsCustomerName`
+- `ensureToStringContainsAreaName`
 
 ## Coverage by Acceptance Criterion
 

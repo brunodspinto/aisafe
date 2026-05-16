@@ -10,6 +10,7 @@ US052 covers registering an Airport with a unique IATA code, ICAO code, name, lo
 
 Location: `src/test/java/aisafe/airport/domain/AirportTest.java`
 
+**Criação e validação:**
 - `ensureValidAirportCanBeCreated`
 - `ensureIATACodeCannotBeNull`
 - `ensureICAOCodeCannotBeNull`
@@ -18,42 +19,86 @@ Location: `src/test/java/aisafe/airport/domain/AirportTest.java`
 - `ensureTownCannotBeNull`
 - `ensureCountryCannotBeNull`
 - `ensureLocationCannotBeNull`
+- `ensureAirControlAreaCannotBeNull`
+
+**Identidade e igualdade:**
+- `ensureTwoAirportsWithSameIATACodeAreEqual`
+- `ensureTwoAirportsWithDifferentIATACodesAreNotEqual`
+- `ensureIdentityReturnsIATACode`
+- `ensureHashCodeIsConsistentWithEquals`
+- `ensureSameAsReturnsTrueForEqualAirports`
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureToStringContainsIATACode`
 
 ### `AirportIATACodeTest`
 
 Location: `src/test/java/aisafe/airport/domain/AirportIATACodeTest.java`
 
+**Validação de formato:**
 - `ensureValidIATACodeIsAccepted`
 - `ensureIATACodeCannotBeNull`
 - `ensureIATACodeCannotBeBlank`
 - `ensureIATACodeMustBeExactly3Letters`
 - `ensureIATACodeMustBeUppercase`
 
+**Identidade e igualdade:**
+- `ensureTwoCodesWithSameValueAreEqual`
+- `ensureTwoCodesWithDifferentValuesAreNotEqual`
+- `ensureValueOfFactoryWorks`
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureEqualsReturnsFalseForDifferentType`
+- `ensureToStringReturnsCode`
+- `ensureCompareToWorks`
+
 ### `AirportICAOCodeTest`
 
 Location: `src/test/java/aisafe/airport/domain/AirportICAOCodeTest.java`
 
+**Validação de formato:**
 - `ensureValidICAOCodeIsAccepted`
 - `ensureICAOCodeCannotBeNull`
 - `ensureICAOCodeCannotBeBlank`
 - `ensureICAOCodeMustBeExactly4Letters`
 - `ensureICAOCodeMustBeUppercase`
 
+**Identidade e igualdade:**
+- `ensureTwoCodesWithSameValueAreEqual`
+- `ensureTwoCodesWithDifferentValuesAreNotEqual`
+- `ensureValueOfFactoryWorks`
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureEqualsReturnsFalseForDifferentType`
+- `ensureToStringReturnsCode`
+- `ensureHashCodeIsConsistentWithEquals`
+- `ensureCodeGetterReturnsValue`
+
 ### `GeoCoordinateTest`
 
 Location: `src/test/java/aisafe/airport/domain/GeoCoordinateTest.java`
 
+**Validação de limites:**
 - `ensureValidCoordinateCanBeCreated`
 - `ensureLatitudeCannotBeAbove90`
 - `ensureLatitudeCannotBeBelow90`
 - `ensureLongitudeCannotBeAbove180`
 - `ensureLongitudeCannotBeBelow180`
 
+**Identidade e igualdade:**
+- `ensureTwoCoordinatesWithSameValuesAreEqual`
+- `ensureTwoCoordinatesWithDifferentValuesAreNotEqual`
+- `ensureHashCodeIsConsistentWithEquals`
+- `ensureToStringContainsCoordinates`
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureEqualsReturnsFalseForDifferentType`
+
 ## Coverage by Acceptance Criterion
 
-- AC052.1: `ensureValidAirportCanBeCreated` (area code required parameter)
-- AC052.2: `ensureValidIATACodeIsAccepted`, `ensureIATACodeMustBeExactly3Letters`, `ensureIATACodeMustBeUppercase`; uniqueness enforced by `@UniqueConstraint`
-- AC052.3: `ensureValidICAOCodeIsAccepted`, `ensureICAOCodeMustBeExactly4Letters`, `ensureICAOCodeMustBeUppercase`; uniqueness enforced by `@UniqueConstraint`
+- AC052.1: `ensureValidAirportCanBeCreated`, `ensureAirControlAreaCannotBeNull`
+- AC052.2: `ensureValidIATACodeIsAccepted`, `ensureIATACodeMustBeExactly3Letters`, `ensureIATACodeMustBeUppercase`, `ensureIATACodeCannotBeNull`, `ensureIATACodeCannotBeBlank`, `ensureTwoAirportsWithSameIATACodeAreEqual`, `ensureTwoAirportsWithDifferentIATACodesAreNotEqual`; uniqueness enforced by `@UniqueConstraint`
+- AC052.3: `ensureValidICAOCodeIsAccepted`, `ensureICAOCodeMustBeExactly4Letters`, `ensureICAOCodeMustBeUppercase`, `ensureICAOCodeCannotBeNull`, `ensureICAOCodeCannotBeBlank`; uniqueness enforced by `@UniqueConstraint`
 - AC052.4: `ensureValidCoordinateCanBeCreated`, `ensureLatitudeCannotBeAbove90`, `ensureLatitudeCannotBeBelow90`, `ensureLongitudeCannotBeAbove180`, `ensureLongitudeCannotBeBelow180`
 - AC052.5: Covered by `AiSafeBootstrap` which registers LIS and OPO idempotently
 
