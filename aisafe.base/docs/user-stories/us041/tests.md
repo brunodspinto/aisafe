@@ -120,11 +120,112 @@ void ensureVisibilityOfZeroIsValid() {
 }
 ```
 
+### `WeatherSourceTest`
+
+Location: `src/test/java/aisafe/weatherdata/domain/WeatherSourceTest.java`
+
+**Test:** `ensureValidWeatherSourceCanBeCreated`
+
+```java
+@Test
+void ensureValidWeatherSourceCanBeCreated() {
+    final WeatherSource ws = new WeatherSource("IPMA", "JSON");
+    assertEquals("IPMA", ws.provider());
+    assertEquals("JSON", ws.format());
+}
+```
+
+**Test:** `ensureProviderCannotBeNull`
+
+```java
+@Test
+void ensureProviderCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () -> new WeatherSource(null, "JSON"));
+}
+```
+
+**Test:** `ensureProviderCannotBeBlank`
+
+```java
+@Test
+void ensureProviderCannotBeBlank() {
+    assertThrows(IllegalArgumentException.class, () -> new WeatherSource("   ", "JSON"));
+}
+```
+
+**Test:** `ensureFormatCannotBeNull`
+
+```java
+@Test
+void ensureFormatCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () -> new WeatherSource("IPMA", null));
+}
+```
+
+**Test:** `ensureFormatCannotBeBlank`
+
+```java
+@Test
+void ensureFormatCannotBeBlank() {
+    assertThrows(IllegalArgumentException.class, () -> new WeatherSource("IPMA", "   "));
+}
+```
+
+**Test:** `ensureEqualityForSameValues`
+
+```java
+@Test
+void ensureEqualityForSameValues() {
+    final WeatherSource ws1 = new WeatherSource("IPMA", "JSON");
+    final WeatherSource ws2 = new WeatherSource("IPMA", "JSON");
+    assertEquals(ws1, ws2);
+    assertEquals(ws1.hashCode(), ws2.hashCode());
+}
+```
+
+**Test:** `ensureInequalityForDifferentProvider`
+
+```java
+@Test
+void ensureInequalityForDifferentProvider() {
+    assertNotEquals(new WeatherSource("IPMA", "JSON"), new WeatherSource("METAR", "JSON"));
+}
+```
+
+**Test:** `ensureInequalityForDifferentFormat`
+
+```java
+@Test
+void ensureInequalityForDifferentFormat() {
+    assertNotEquals(new WeatherSource("IPMA", "JSON"), new WeatherSource("IPMA", "XML"));
+}
+```
+
+**Test:** `ensureProviderIsStoredTrimmed`
+
+```java
+@Test
+void ensureProviderIsStoredTrimmed() {
+    final WeatherSource ws = new WeatherSource("  IPMA  ", "JSON");
+    assertEquals("IPMA", ws.provider());
+}
+```
+
+**Test:** `ensureFormatIsStoredTrimmed`
+
+```java
+@Test
+void ensureFormatIsStoredTrimmed() {
+    final WeatherSource ws = new WeatherSource("IPMA", "  JSON  ");
+    assertEquals("JSON", ws.format());
+}
+```
+
 ---
 
 ## Coverage by Acceptance Criterion
 
-- AC041.1: `ensureValidWeatherDataCanBeCreated`, `ensureWindSpeedCannotBeNegative`, `ensureVisibilityCannotBeNegative`, `ensureWindSpeedOfZeroIsValid`, `ensureVisibilityOfZeroIsValid`, `ensureDateCannotBeNull`, `ensureSourceCannotBeNull`
+- AC041.1: `ensureValidWeatherDataCanBeCreated`, `ensureWindSpeedCannotBeNegative`, `ensureVisibilityCannotBeNegative`, `ensureWindSpeedOfZeroIsValid`, `ensureVisibilityOfZeroIsValid`, `ensureDateCannotBeNull`, `ensureSourceCannotBeNull`; `ensureValidWeatherSourceCanBeCreated`, `ensureProviderCannotBeNull`, `ensureProviderCannotBeBlank`, `ensureFormatCannotBeNull`, `ensureFormatCannotBeBlank`, `ensureEqualityForSameValues`, `ensureInequalityForDifferentProvider`, `ensureInequalityForDifferentFormat`, `ensureProviderIsStoredTrimmed`, `ensureFormatIsStoredTrimmed`
 - AC041.2: `ensureAreaCodeCannotBeNull`, `ensureAreaCodeCannotBeBlank`, `ensureAreaCodeIsNormalisedToUpperCase`; area existence validated at controller level via `AirControlAreaRepository`
 - AC041.3: Controller checks `WEATHER_PERSON` role via `AuthorizationService`; validated by manual test
 

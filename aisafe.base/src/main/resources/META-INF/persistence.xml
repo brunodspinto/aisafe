@@ -8,7 +8,7 @@
     <class>eapli.framework.infrastructure.authz.domain.model.RoleAssignment</class>
     <exclude-unlisted-classes>false</exclude-unlisted-classes>
     <properties>
-      <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:./db/aisafe"/>
+      <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:tcp://localhost:9093/./db/aisafe"/>
       <property name="jakarta.persistence.jdbc.user" value="sa"/>
       <property name="jakarta.persistence.jdbc.password" value=""/>
       <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver"/>

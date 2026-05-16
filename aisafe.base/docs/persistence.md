@@ -46,7 +46,7 @@ Each shell script writes this file before starting the JVM, so you never need to
 
 `aisafe.base/src/main/resources/META-INF/persistence.xml` configures the JPA provider (Hibernate) for H2:
 
-- **JDBC URL**: `jdbc:h2:tcp://localhost/./db/aisafe` — connects to the running H2 TCP server and places the database in `aisafe.base/db/`.
+- **JDBC URL**: `jdbc:h2:tcp://localhost:9093/./db/aisafe` — connects to the running H2 TCP server (port 9093) and places the database in `aisafe.base/db/`.
 - **`hbm2ddl.auto=update`**: Hibernate creates or updates tables automatically on startup. No SQL migration scripts are needed during development.
 
 ---
@@ -72,7 +72,7 @@ You can inspect the database while the H2 TCP server is running.
 | Setting | Value |
 |---|---|
 | Driver | H2 |
-| URL | `jdbc:h2:tcp://localhost/./db/aisafe` |
+| URL | `jdbc:h2:tcp://localhost:9093/./db/aisafe` |
 | User | `sa` |
 | Password | *(empty)* |
 
