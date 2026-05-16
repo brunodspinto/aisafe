@@ -8,6 +8,7 @@ participant ":SimulationController" as CTRL
 participant "simulation:Simulation" as SIM
 participant "report:SimulationReport" as REPORT
 participant "violation:SafetyViolation" as VIOLATION
+participant "fes:FlightExecutionStatus" as FES
 participant ":SimulationRepository" as REPO
 
 activate UI
@@ -32,6 +33,17 @@ loop for each time step
         end note
         SIM -> REPORT : recordViolation(violation)
     end
+end
+
+loop for each flight
+    SIM -> FES** : create(flightDesignator, status)
+    note right of FES
+      FlightExecutionStatus is a Value Object —
+      immutable record of a single flight outcome
+      (COMPLETED, TERMINATED or FAILED).
+      Required by US109 for individual flight reporting.
+    end note
+    SIM -> REPORT : recordFlightStatus(fes)
 end
 
 SIM -> REPORT : finalise(totalFlights, passed)

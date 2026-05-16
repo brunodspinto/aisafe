@@ -87,11 +87,11 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 ### 3.10. Aggregate: Simulation
 * **Aggregate Root:** `Simulation`
 * **Local Entities:** `SimulationReport`
-* **Value Objects:** `SafetyViolation`
+* **Value Objects:** `SafetyViolation`, `FlightExecutionStatus`
 * **Enums:** `SimulationStatus`
-* **Scenario:** Simulate flights in a given area and generate a validation report (US109/US111).
-* **Invariant (Business Rule):** A simulation must successfully produce a report that accurately records any safety violations detected between the included flights.
-* **Justification:** Acts as the root entity managing simulation execution. It ensures internal consistency by encapsulating the `SimulationReport` entity and `SafetyViolation` value objects. `SafetyViolation` is a value object — it is an immutable record of an event with no independent lifecycle. It maintains low coupling by holding external references strictly to the `Flight` aggregate and the `AirControlArea`.
+* **Scenario:** Simulate flights in a given area and generate a validation report (US100/US109).
+* **Invariant (Business Rule):** A simulation must successfully produce a report that accurately records any safety violations detected between the included flights, as well as the individual execution status of each flight.
+* **Justification:** Acts as the root entity managing simulation execution. It ensures internal consistency by encapsulating the `SimulationReport` entity, `SafetyViolation` and `FlightExecutionStatus` value objects. `SafetyViolation` is a value object — an immutable record of a safety event with no independent lifecycle. `FlightExecutionStatus` is a value object — an immutable record of the outcome of a single flight (COMPLETED, TERMINATED, FAILED), required by US109 to report individual execution statuses per flight alongside aggregate counters. It maintains low coupling by holding external references strictly to the `Flight` aggregate and the `AirControlArea`.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_10/aggregate-3_10.puml)*
 ---
@@ -99,8 +99,8 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Aggregate Root:** `FlightRoute`
 * **Enums:** `FlightRouteStatus`
 * **Scenario:** Create a flight route for a company (US073).
-* **Invariant (Business Rule):** The route must originate and end at different airports, and its name must follow the required format (e.g., TP123) and be unique. The route connects exactly two airports identified by `IATACode`.
-* **Justification:** Acts as an independent root entity defined by simple attributes. It guarantees internal consistency and ensures strict low coupling by referencing airports via `IATACode` value objects (owned by `AirTransportCompany` aggregate), entirely avoiding heavy dependencies on the `Airport` aggregate.
+* **Invariant (Business Rule):** The route must originate and end at different airports, and its name must follow the required format (2 company letters + up to 4 digits, e.g., TP123) and be unique. The route connects exactly two airports identified by `AirportIATACode` (3-letter airport code).
+* **Justification:** Acts as an independent root entity defined by simple attributes. It guarantees internal consistency by validating that the name matches the required format and that origin and destination airports are distinct. It ensures low coupling by referencing airports via `AirportIATACode` value objects (owned by the `Airport` aggregate), avoiding direct dependencies on the full `Airport` aggregate.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_11/aggregate-3_11.puml)*
 ---
@@ -111,7 +111,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Enums:** `FlightType`, `FlightPlanStatus`
 * **Scenario:** Instantiate/schedule a flight for a specific flight route and register/validate its flight plans (US080).
 * **Invariant (Business Rule):** A flight must belong to a valid flight route, be properly typed (Regular or Charter), and maintain valid operational resources (Aircraft, Pilot) and its geographical flight plan. `FlightPlan` is a local entity — it has its own lifecycle (DRAFT → VALIDATED → APPROVED/REJECTED) and can be reviewed by a `User`.
-* **Justification:** Acts as the root entity representing an operational flight. It encapsulates `FlightPlan` as a local entity, and `FlightSegment` and `Node` as value objects. It guarantees internal consistency and ensures low coupling by holding external references to `Aircraft`, `User`, and `FlightRoute`, and using `IATACode` for geographic locations.
+* **Justification:** Acts as the root entity representing an operational flight. It encapsulates `FlightPlan` as a local entity, and `FlightSegment` and `Node` as value objects. It guarantees internal consistency and ensures low coupling by holding external references to `Aircraft`, `User`, and `FlightRoute`, and using `AirportIATACode` (3-letter airport code) for geographic locations (departure, arrival and alternate airports).
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_12/aggregate-3_12.puml)*
 ---

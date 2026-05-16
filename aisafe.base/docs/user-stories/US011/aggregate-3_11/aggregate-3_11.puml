@@ -8,9 +8,15 @@ participant "route:FlightRoute" as DOMAIN
 participant ":FlightRouteRepository" as REPO
 
 activate UI
-UI -> CTRL : createFlightRoute(name, originIataCode,\ndestinationIataCode, company)
+UI -> CTRL : createFlightRoute(name, originAirportIataCode,\ndestinationAirportIataCode, company)
 activate CTRL
-CTRL -> DOMAIN** : create(name, originIataCode, destinationIataCode)
+CTRL -> DOMAIN** : create(name, originAirportIataCode, destinationAirportIataCode)
+
+alt name format invalid (not /[A-Z]{2}[0-9]{1,4}/) or origin == destination
+    DOMAIN --> CTRL : throws IllegalArgumentException
+else valid
+    DOMAIN --> CTRL : flightRoute
+end
 
 CTRL -> REPO : save(flightRoute)
 activate REPO
