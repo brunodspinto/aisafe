@@ -14,6 +14,8 @@ import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
+import java.util.stream.StreamSupport;
+
 /**
  * Application-layer controller for the "Edit Customer's Collaborator" use case (US063).
  * Allows updating a collaborator's contact information (email and phone).
@@ -60,7 +62,9 @@ public class EditCollaboratorController {
      */
     public Iterable<Collaborator> activeCollaboratorsByCompany(final AirTransportCompany company) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirTransportCompany(company);
+        return StreamSupport.stream(collaboratorRepo.findByAirTransportCompany(company).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
     /**
@@ -71,7 +75,9 @@ public class EditCollaboratorController {
      */
     public Iterable<Collaborator> activeCollaboratorsByArea(final AirControlArea area) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirControlArea(area);
+        return StreamSupport.stream(collaboratorRepo.findByAirControlArea(area).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
     /**

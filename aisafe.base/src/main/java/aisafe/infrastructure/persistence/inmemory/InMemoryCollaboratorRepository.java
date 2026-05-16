@@ -34,27 +34,21 @@ public class InMemoryCollaboratorRepository
     }
 
     @Override
-    public Iterable<Collaborator> findActiveByAirTransportCompany(final AirTransportCompany company) {
+    public Iterable<Collaborator> findByAirTransportCompany(final AirTransportCompany company) {
         final List<Collaborator> result = new ArrayList<>();
         for (final Collaborator c : findAll()) {
-            if (c.isCompanyCollaborator()
-                    && c.airTransportCompany().equals(company)
-                    && c.user().systemUser().isActive()) {
+            if (c.isCompanyCollaborator() && c.airTransportCompany().equals(company))
                 result.add(c);
-            }
         }
         return result;
     }
 
     @Override
-    public Iterable<Collaborator> findActiveByAirControlArea(final AirControlArea area) {
+    public Iterable<Collaborator> findByAirControlArea(final AirControlArea area) {
         final List<Collaborator> result = new ArrayList<>();
         for (final Collaborator c : findAll()) {
-            if (c.isAreaCollaborator()
-                    && c.airControlArea().equals(area)
-                    && c.user().systemUser().isActive()) {
+            if (c.isAreaCollaborator() && c.airControlArea().equals(area))
                 result.add(c);
-            }
         }
         return result;
     }

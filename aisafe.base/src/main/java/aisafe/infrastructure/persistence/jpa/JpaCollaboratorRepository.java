@@ -25,17 +25,17 @@ public class JpaCollaboratorRepository
     }
 
     @Override
-    public Iterable<Collaborator> findActiveByAirTransportCompany(final AirTransportCompany company) {
+    public Iterable<Collaborator> findByAirTransportCompany(final AirTransportCompany company) {
         final Map<String, Object> params = new HashMap<>();
         params.put("company", company);
-        return match("e.airTransportCompany = :company AND e.user.systemUser.active = true", params);
+        return match("e.airTransportCompany = :company", params);
     }
 
     @Override
-    public Iterable<Collaborator> findActiveByAirControlArea(final AirControlArea area) {
+    public Iterable<Collaborator> findByAirControlArea(final AirControlArea area) {
         final Map<String, Object> params = new HashMap<>();
         params.put("area", area);
-        return match("e.airControlArea = :area AND e.user.systemUser.active = true", params);
+        return match("e.airControlArea = :area", params);
     }
 
     @Override

@@ -90,6 +90,9 @@ public class Collaborator implements AggregateRoot<Long> {
     /** @return {@code true} if this collaborator belongs to an air control area */
     public boolean isAreaCollaborator() { return airControlArea != null; }
 
+    /** @return {@code true} if the associated system user account is active */
+    public boolean isActive() { return user.systemUser().isActive(); }
+
     /**
      * @return the name of the customer (company or area) this collaborator belongs to,
      *         or {@code "Unknown"} if neither is set
