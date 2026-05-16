@@ -15,7 +15,7 @@ import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
 /**
- * Application-layer controller for the "Edit Customer's Collaborator" use case (US060).
+ * Application-layer controller for the "Edit Customer's Collaborator" use case (US063).
  * Allows updating a collaborator's contact information (email and phone).
  * Requires a Back-Office Operator or Admin role.
  */

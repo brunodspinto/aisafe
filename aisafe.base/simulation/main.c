@@ -1,9 +1,10 @@
 /*
- * main.c - Flight Simulation (US101 & US102)
+ * main.c - Flight Simulation entry point (US100)
  *
- * Bidirectional IPC: one position pipe (child→parent) and one control pipe
- * (parent→child) per flight. After receiving positions from ALL active flights,
- * the parent runs US101 + US102 checks, then sends 'G' (go) or 'S' (stop).
+ * Bidirectional IPC: one position pipe (child->parent) and one control pipe
+ * (parent->child) per flight. The parent reads from each active flight in
+ * sequence (blocking read, TP5 pattern), then runs US101 + US102 checks
+ * and sends 'G' (go) or 'S' (stop) to every active flight.
  *
  * This guarantees synchronised time steps: no flight advances past step T+1
  * until the parent has verified safety at step T across every active flight.
@@ -11,33 +12,21 @@
 #define _POSIX_C_SOURCE 200809L
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/select.h>
 #include <sys/wait.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "types.h"
+#include "config.h"
 #include "ipc.h"
 #include "aca_filter.h"
 #include "flight_data.h"
 #include "flight_process.h"
-#include "us102.h"
+#include "safety_monitor.h"
 
-#define N_FLIGHTS_NORMAL    3
 #define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
-
-/*
- * Lisbon FIR (western Iberian Peninsula).
- * OPO is inside; MAD and the final approach are outside — flights
- * will enter at departure and exit during cruise, demonstrating AC6.
- */
-static const geo_boundary_t ACA = {
-    .north_latitude =  43.0,
-    .south_latitude =  36.0,
-    .west_longitude = -10.0,
-    .east_longitude =  -6.0
-};
+#define CONFIG_FILE "simulation.conf"
 
 typedef struct {
     int pos_read_fd;   /* parent reads positions from child */
@@ -47,27 +36,44 @@ typedef struct {
 } flight_pipes_t;
 
 int main(int argc, char *argv[]) {
-    int n_flights = N_FLIGHTS_NORMAL;
+    /* Load and validate simulation parameters from config file */
+    simulation_params_t params;
+    int cfg_result = load_config(CONFIG_FILE, &params);
+    if (cfg_result == -1) {
+        fprintf(stderr, "Error: cannot open config file '%s'\n", CONFIG_FILE);
+        return 1;
+    }
+    if (cfg_result > 0) {
+        fprintf(stderr, "Error: parse error in '%s' at line %d\n", CONFIG_FILE, cfg_result);
+        return 1;
+    }
+    if (validate_config(&params) != 0)
+        return 1;
+
+    int n_flights = params.n_flights;
     for (int a = 1; a < argc; a++) {
         if (strcmp(argv[a], "--collision") == 0)
             n_flights = N_FLIGHTS_COLLISION;
     }
 
-    /* Ignore SIGPIPE: when us102 sends SIGTERM to children before main sends 'S',
-     * writing to the dead child's ctrl pipe returns EPIPE instead of killing the parent. */
     signal(SIGPIPE, SIG_IGN);
 
-    pid_t          pids[N_FLIGHTS_COLLISION];
-    flight_pipes_t pipes[N_FLIGHTS_COLLISION];
-    flight_plan_t *plans[N_FLIGHTS_COLLISION];
+    pid_t          pids[MAX_FLIGHTS];
+    flight_pipes_t pipes[MAX_FLIGHTS];
+    flight_plan_t *plans[MAX_FLIGHTS];
     flight_history_t histories[MAX_FLIGHTS];
     int i, status;
 
-    printf("=== Flight Simulation (US101 & US102) ===\n");
+    geo_boundary_t ACA = {
+        .north_latitude = params.aca_north_lat,
+        .south_latitude = params.aca_south_lat,
+        .west_longitude = params.aca_west_lon,
+        .east_longitude = params.aca_east_lon
+    };
+
+    printf("=== AISafe Flight Simulation ===\n");
     printf("Mode: %s\n", n_flights == N_FLIGHTS_COLLISION ? "COLLISION TEST" : "normal");
-    printf("ACA: lat [%.1f, %.1f]  lon [%.1f, %.1f]\n\n",
-           ACA.south_latitude, ACA.north_latitude,
-           ACA.west_longitude, ACA.east_longitude);
+    print_config(&params);
 
     for (i = 0; i < n_flights; i++) {
         plans[i] = create_flight_plan(i);
@@ -131,39 +137,17 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < n_flights; i++) active[i] = 1;
 
     /* prediction_done[i][j]: future collision advisory already printed for pair (i,j) */
-    int prediction_done[N_FLIGHTS_COLLISION][N_FLIGHTS_COLLISION];
+    int prediction_done[MAX_FLIGHTS][MAX_FLIGHTS];
     memset(prediction_done, 0, sizeof(prediction_done));
 
-    /* received[i]: has flight i sent its position for the current step? */
-    int received[n_flights];
-    memset(received, 0, sizeof(received));
+    printf("\n=== Air Traffic Control Live Feed ===\n");
 
-    int max_fd = -1;
-    for (i = 0; i < n_flights; i++)
-        if (pipes[i].pos_read_fd > max_fd) max_fd = pipes[i].pos_read_fd;
-
-    printf("\n=== Controlador Aereo Live (US101 & US102) ===\n");
-
-    /* Main loop — one select() call per iteration (professor's blocking-read pattern,
-     * adapted for N file descriptors). Each iteration blocks until at least one
-     * active flight writes its position. The GO/STOP decision is only taken once
-     * every active flight has sent its position for the current step. */
+    /* Each iteration reads one position from every active flight in order,
+     * then runs safety checks and sends 'G' or 'S' to all active flights. */
     while (n_active > 0) {
-        fd_set read_fds;
-        FD_ZERO(&read_fds);
-        for (i = 0; i < n_flights; i++)
-            if (active[i] && !received[i])
-                FD_SET(pipes[i].pos_read_fd, &read_fds);
-
-        if (select(max_fd + 1, &read_fds, NULL, NULL, NULL) < 0) {
-            perror("select");
-            goto done;
-        }
-
-        /* Process every file descriptor that is ready */
+        /* Read one position from each active flight (blocks until data arrives) */
         for (i = 0; i < n_flights; i++) {
-            if (!active[i] || received[i]) continue;
-            if (!FD_ISSET(pipes[i].pos_read_fd, &read_fds)) continue;
+            if (!active[i]) continue;
 
             aircraft_position_t pos;
             ssize_t n = read(pipes[i].pos_read_fd, &pos, sizeof(pos));
@@ -205,7 +189,6 @@ int main(int argc, char *argv[]) {
 
                 current_positions[i] = pos;
                 has_position[i]++;
-                received[i] = 1;
 
             } else {
                 /* EOF: this flight has finished */
@@ -213,20 +196,15 @@ int main(int argc, char *argv[]) {
                 close(pipes[i].ctrl_write_fd);
                 active[i] = 0;
                 n_active--;
-                printf("[%s] terminou o voo.\n", plans[i]->identifier);
+                printf("[%s] flight completed.\n", plans[i]->identifier);
             }
         }
 
-        /* Wait until every still-active flight has sent its position */
-        int all_received = 1;
-        for (i = 0; i < n_flights; i++)
-            if (active[i] && !received[i]) { all_received = 0; break; }
-
-        if (!all_received || n_active == 0) continue;
+        if (n_active == 0) break;
 
         /* All active flights reported — run US102 and decide GO/STOP */
 
-        /* AC6: future segment prediction advisory (once per pair, log only) */
+        /* Future segment prediction advisory (once per pair, log only) */
         for (i = 0; i < n_flights; i++) {
             if (!active[i] || has_position[i] < 1) continue;
             for (int j = i + 1; j < n_flights; j++) {
@@ -234,7 +212,8 @@ int main(int argc, char *argv[]) {
                 if (!prediction_done[i][j]) {
                     prediction_done[i][j] = 1;
                     predict_future_collisions(
-                        (flight_plan_t *const *)plans, i, 0, j, 0);
+                        (flight_plan_t *const *)plans, i, 0, j, 0,
+                        params.safe_dist_horiz_m, params.safe_dist_vert_m);
                 }
             }
         }
@@ -244,7 +223,10 @@ int main(int argc, char *argv[]) {
             if (!active[i] || has_position[i] < 2) continue;
             if (monitor_safety_violations(i, prev_positions, current_positions,
                                           has_position, active, pids,
-                                          n_flights, &total_violations)) {
+                                          n_flights, &total_violations,
+                                          params.safe_dist_horiz_m,
+                                          params.safe_dist_vert_m,
+                                          params.max_violations)) {
                 abort_sim = 1;
                 break;
             }
@@ -271,12 +253,8 @@ int main(int argc, char *argv[]) {
                 write(pipes[i].ctrl_write_fd, &g, 1);
             }
         }
-
-        /* Reset received flags for next step */
-        memset(received, 0, sizeof(received));
     }
 
-done:
     print_history(histories, MAX_FLIGHTS);
 
     for (i = 0; i < n_flights; i++) {

@@ -72,7 +72,13 @@ The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US062-class-diagram.svg)
 
-### 4.2. Repository Implementation
+### 4.2. Acceptance Tests
+
+All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
+
+---
+
+### 4.3. Repository Implementation
 
 **In-memory:** iterates `findAll()` and filters by customer reference and active flag.
 

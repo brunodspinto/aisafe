@@ -21,4 +21,10 @@ fi
 mkdir -p "$PROJECT_ROOT/bin"
 gcc -Wall -Wextra -g "${C_SOURCES[@]}" -I"$C_DIR" \
     -o "$PROJECT_ROOT/bin/simulation" -lm
+
+# Copy config file next to the binary so it can be run from bin/
+if [ -f "$C_DIR/simulation.conf" ]; then
+  cp "$C_DIR/simulation.conf" "$PROJECT_ROOT/bin/simulation.conf"
+fi
+
 echo "[SUCCESS] C components built in $PROJECT_ROOT/bin/"

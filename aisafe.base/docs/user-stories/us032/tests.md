@@ -2,32 +2,31 @@
 
 ## Scope
 
-US032 covers disabling and re-enabling backoffice users from the administrator console flow. The implementation reuses the existing `User` aggregate and the EAPLI `SystemUser` active flag.
+US032 covers disabling and re-enabling backoffice users from the administrator console flow. The implementation reuses the existing `User` aggregate and the EAPLI `SystemUser` active flag — there is no AISafe-owned state for activation, so domain-level unit tests for the toggle behaviour are not required.
 
 ## Automated Tests
 
-### `DisableEnableUserTest`
+### `UserTest`
 
-Location: `src/test/java/aisafe/usermanagement/domain/DisableEnableUserTest.java`
+Location: `src/test/java/aisafe/usermanagement/domain/UserTest.java`
 
-This class contains 8 unit tests covering the acceptance criteria:
+The AISafe-side coverage of US032 is the `User` aggregate's identity, equality and contract (used by `DisableEnableUserController.findByUsername`):
 
-- `ensureNewUserIsActiveByDefault`
-- `ensureActiveUserCanBeDeactivated`
-- `ensureInactiveUserCanBeReactivated`
-- `ensureReactivatedUserIsFullyActive`
-- `ensureDeactivatingAlreadyInactiveUserThrows`
-- `ensureActivatingAlreadyActiveUserIsIdempotent`
-- `ensureUserAggregateReflectsDeactivatedState`
-- `ensureUserAggregateReflectsReactivatedState`
+- `ensureUsersWithSameMecanographicNumberAreEqual`
+- `ensureUserConstructorRejectsNullSystemUser`
+- `ensureIdentityReturnsMecanographicNumber`
+
+### EAPLI framework
+
+The actual activate/deactivate toggle logic is owned by `eapli.framework.infrastructure.authz.application.UserManagementService` (`activateUser` / `deactivateUser`) and is tested by the framework itself.
 
 ## Coverage by Acceptance Criterion
 
-- AC032.1: `ensureActiveUserCanBeDeactivated`
-- AC032.2: `ensureInactiveUserCanBeReactivated` and `ensureReactivatedUserIsFullyActive`
-- AC032.3: `ensureUserAggregateReflectsDeactivatedState` and `ensureUserAggregateReflectsReactivatedState`
-- AC032.4: The controller checks `AuthzRegistry.authorizationService().ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)` before listing or toggling users.
-- AC032.5: `ensureDeactivatingAlreadyInactiveUserThrows` and `ensureActivatingAlreadyActiveUserIsIdempotent`
+- AC032.1 (deactivate active user): `DisableEnableUserController.toggleUser` reads `systemUser.isActive()` and calls `userSvc.deactivateUser(systemUser)`; framework guarantees the active flag is flipped.
+- AC032.2 (reactivate inactive user): Same path; calls `userSvc.activateUser(systemUser)` when `isActive()` is false.
+- AC032.3 (UI shows current state): `DisableEnableUserUI.allUsers()` lists users and displays their current active flag before the operator chooses.
+- AC032.4 (role enforcement): Controller calls `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)` on every public method; throws `UnauthorizedException` otherwise — validated by manual test below.
+- AC032.5 (idempotent / no-op handling): Framework's `activateUser`/`deactivateUser` are idempotent on the already-target state; not exercised because the UI only offers the opposite of the current state.
 
 ## Notes
 
@@ -38,7 +37,7 @@ This class contains 8 unit tests covering the acceptance criteria:
 
 ### 4.2. Acceptance Tests
 
-The toggle logic (activate/deactivate) is fully covered by the automated unit tests above. Authorization (Admin role check) and the end-to-end UI flow are infrastructure concerns primarily validated by manual integration testing.
+Authorization (Admin role check), the EAPLI toggle, and the end-to-end UI flow are infrastructure concerns primarily validated by manual integration testing.
 
 **Manual test — AC032.1 / AC032.3 (disable active user):**
 
@@ -54,12 +53,13 @@ The toggle logic (activate/deactivate) is fully covered by the automated unit te
 2. Confirm the action.
 3. Expected: confirmation message displayed; the user's status changes back to `ACTIVE` in the list.
 
-**Manual test — AC032.5 (redundant action handled gracefully):**
-
-1. Attempt to disable a user that is already `DISABLED` (if the UI allows selecting disabled users).
-2. Expected: the system either prevents the selection or displays an informative message indicating no change was made.
-
 **Manual test — AC032.4 (role enforcement):**
 
 1. Login as a non-admin user (e.g. Backoffice Operator).
 2. Expected: the Disable/Enable User option is not available in the menu.
+
+**Manual test — AC032.5 (toggle round-trip):**
+
+1. Disable an active user.
+2. Re-enable the same user immediately.
+3. Expected: both operations succeed and the user ends up `ACTIVE` again.

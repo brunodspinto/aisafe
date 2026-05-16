@@ -10,31 +10,128 @@ US050 covers registering an Air Control Area with a unique area code, name, mini
 
 Location: `src/test/java/aisafe/aircontrolarea/domain/AirControlAreaTest.java`
 
-- `ensureValidAirControlAreaCanBeCreated`
-- `ensureAreaCodeCannotBeNullOrBlank`
-- `ensureNameCannotBeNullOrBlank`
-- `ensureMinimumFuelCannotBeNegative`
-- `ensureBoundariesCannotBeNull`
+**Test:** `ensureValidAirControlAreaCanBeCreated`
+
+```java
+@Test
+void ensureValidAirControlAreaCanBeCreated() {
+    final AirControlArea area = new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0, validBoundary());
+
+    assertEquals("PT-N", area.areaCode());
+    assertEquals("Northern Portugal", area.name());
+    assertEquals(1200.0, area.minimumFuelRequired());
+    assertEquals(validBoundary(), area.boundaries());
+}
+```
+
+**Test:** `ensureAreaCodeCannotBeNullOrBlank`
+
+```java
+@Test
+void ensureAreaCodeCannotBeNullOrBlank() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea((AirControlAreaCode) null, "Area", 1200.0, validBoundary()));
+
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea(AirControlAreaCode.valueOf("   "), "Area", 1200.0, validBoundary()));
+}
+```
+
+**Test:** `ensureNameCannotBeNullOrBlank`
+
+```java
+@Test
+void ensureNameCannotBeNullOrBlank() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), null, 1200.0, validBoundary()));
+
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "   ", 1200.0, validBoundary()));
+}
+```
+
+**Test:** `ensureMinimumFuelCannotBeNegative`
+
+```java
+@Test
+void ensureMinimumFuelCannotBeNegative() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Area", -1.0, validBoundary()));
+}
+```
+
+**Test:** `ensureBoundariesCannotBeNull`
+
+```java
+@Test
+void ensureBoundariesCannotBeNull() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Area", 1200.0, null));
+}
+```
+
+---
 
 ### `GeoBoundaryTest`
 
 Location: `src/test/java/aisafe/aircontrolarea/domain/GeoBoundaryTest.java`
 
-- `ensureValidCoordinatesCreateBoundary`
-- `ensureNorthLatitudeMustBeGreaterThanSouthLatitude`
-- `ensureCoordinatesMustBeWithinLatitudeLimits`
-- `ensureCoordinatesMustBeWithinLongitudeLimits`
+**Test:** `ensureValidCoordinatesCreateBoundary`
+
+```java
+@Test
+void ensureValidCoordinatesCreateBoundary() {
+    final GeoBoundary boundary = new GeoBoundary(42.15, 36.95, -6.18, -9.50);
+
+    assertEquals(42.15, boundary.northLatitude());
+    assertEquals(36.95, boundary.southLatitude());
+    assertEquals(-6.18, boundary.eastLongitude());
+    assertEquals(-9.50, boundary.westLongitude());
+}
+```
+
+**Test:** `ensureNorthLatitudeMustBeGreaterThanSouthLatitude`
+
+```java
+@Test
+void ensureNorthLatitudeMustBeGreaterThanSouthLatitude() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new GeoBoundary(30.0, 40.0, -10.0, 10.0));
+}
+```
+
+**Test:** `ensureCoordinatesMustBeWithinLatitudeLimits`
+
+```java
+@Test
+void ensureCoordinatesMustBeWithinLatitudeLimits() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new GeoBoundary(95.0, 20.0, -10.0, 10.0));
+}
+```
+
+**Test:** `ensureCoordinatesMustBeWithinLongitudeLimits`
+
+```java
+@Test
+void ensureCoordinatesMustBeWithinLongitudeLimits() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new GeoBoundary(40.0, 30.0, 200.0, 10.0));
+}
+```
+
+---
 
 ## Coverage by Acceptance Criterion
 
 - AC050.1: `ensureValidAirControlAreaCanBeCreated`, `ensureAreaCodeCannotBeNullOrBlank`, `ensureNameCannotBeNullOrBlank`, `ensureMinimumFuelCannotBeNegative`, `ensureBoundariesCannotBeNull`
-- AC050.2: Enforced by `@EmbeddedId` on `AirControlAreaCode` and `@UniqueConstraint` at persistence level
-- AC050.3: `ensureNorthLatitudeMustBeGreaterThanSouthLatitude`, `ensureCoordinatesMustBeWithinLatitudeLimits`, `ensureCoordinatesMustBeWithinLongitudeLimits`
+- AC050.2: Enforced by `@EmbeddedId` on `AirControlAreaCode` and `@UniqueConstraint` at persistence level; validated by manual test
+- AC050.3: `ensureValidCoordinatesCreateBoundary`, `ensureNorthLatitudeMustBeGreaterThanSouthLatitude`, `ensureCoordinatesMustBeWithinLatitudeLimits`, `ensureCoordinatesMustBeWithinLongitudeLimits`
 - AC050.4: Covered by `AiSafeBootstrap` which registers the default area idempotently
 
 ---
 
-### 4.2. Acceptance Tests
+## Acceptance Tests
 
 Authorization (Backoffice Operator role) and persistence-level uniqueness are infrastructure concerns primarily validated by manual integration testing. The geographic boundary validations are fully covered by the automated unit tests above.
 

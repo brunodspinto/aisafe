@@ -69,7 +69,7 @@ public class AddUserController {
         final var systemUserRepo = PersistenceContext.repositories().systemUsers(tx);
         final var userRepo = PersistenceContext.repositories().users(tx);
 
-        tx.beginTransaction();
+        if (tx != null) tx.beginTransaction();
 
         final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
         builder.withUsername(username)
@@ -80,13 +80,13 @@ public class AddUserController {
         final var savedSystemUser = systemUserRepo.save(builder.build());
 
         final MecanographicNumber mecNumber =
-                MecanographicNumber.valueOf(String.valueOf(System.currentTimeMillis()));
+                MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
 
         final User user = new User(savedSystemUser, mecNumber, phoneNumber, email,
                 position, securityClearance, skillsAssessmentDate);
 
         final var savedUser = userRepo.save(user);
-        tx.commit();
+        if (tx != null) tx.commit();
         return savedUser;
     }
 }

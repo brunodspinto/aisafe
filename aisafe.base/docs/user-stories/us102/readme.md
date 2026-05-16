@@ -14,21 +14,19 @@ The implementation is written in C and lives entirely under `aisafe.base/simulat
 
 ## 2. Requirements
 
-**US102:** As an Air Traffic Controller, I want the system to continuously monitor the
-safety separation between aircraft and alert me immediately when two flights violate the
-minimum safety cylinder, so that I can take corrective action before a collision occurs.
+**US102:** As a simulation system, I want to continuously monitor aircraft positions for
+overlaps so that I can identify and report safety violations.
 
 ### Acceptance Criteria
 
 | ID | Criterion | Status |
 |----|-----------|--------|
-| AC1 | Safety cylinder is defined as 8 nautical miles horizontal AND 600 m vertical | Done |
-| AC2 | Collision detection uses motion vectors interpolated with sub-steps to avoid missing fast crossings | Done |
-| AC3 | When a violation is detected the parent sends SIGUSR1 to the two affected flight processes | Done |
-| AC4 | The simulation aborts (SIGTERM to all) if the violation count reaches the maximum limit | Done |
-| AC5 | The parent controls simulation tempo: each child waits for GO/STOP before advancing to the next second | Done |
-| AC6 | Future segment-by-segment collision prediction is computed as an advisory (log only, no abort) | Done |
-| AC7 | Aircraft speed and vertical rate are derived from the Flight Profile performance table, not a fixed value per phase | Done |
+| AC1 | The system must detect when two or more aircraft may eventually violate safety rules | Done |
+| AC2 | Upon detecting a violation, the system should log the event and notify the involved aircraft via signals | Done |
+| AC3 | Each flight process must handle the received signal and notify the system user with a message | Done |
+| AC4 | When a flight process receives a SIGUSR1 (violation detected), it should block other signals while handling it | Done |
+| AC5 | The system should allow early termination if safety violations exceed a predefined threshold by sending termination signals to aircrafts | Done |
+| AC6 | Flight processes properly handle termination signals and perform any necessary cleanup | Done |
 
 ---
 
@@ -162,7 +160,7 @@ if violation:                        write('S', ctrl_write_fd[i]) for each child
   token == 'S' → exit(1)  ◄────────  kill(pid_violator, SIGUSR1)
 ```
 
-### 4.4 Safety Cylinder Check Algorithm (us102.c)
+### 4.4 Safety Cylinder Check Algorithm (safety_monitor.c)
 
 ```
 for each updated flight i:
@@ -177,7 +175,7 @@ for each updated flight i:
         → VIOLATION
 ```
 
-### 4.5 Future Collision Prediction (us102.c)
+### 4.5 Future Collision Prediction (safety_monitor.c)
 
 ```c
 int predict_future_collisions(flight_plan_t *const *plans,
@@ -250,7 +248,7 @@ STOP or SIGUSR1.
 - EOF on `pos_read_fd[i]` closes both `pos_read_fd[i]` and `ctrl_write_fd[i]` and marks
   `active[i] = 0`.
 
-### `simulation/us102.h` / `us102.c`
+### `simulation/safety_monitor.h` / `safety_monitor.c`
 
 - Added `predict_future_collisions()` (see §4.5).
 - Existing `monitor_safety_violations()` and `check_trajectory_intersection()` unchanged.
@@ -297,7 +295,7 @@ No `CYLINDER ALERT` is printed. All children exit with code 0.
 Mode: COLLISION TEST
 ...
 [FLIGHT_04] >>> ENTERING ACA
-[US102 CYLINDER ALERT] Intersection risk detected at ...
+[CYLINDER ALERT] Intersection risk detected at ...
 Flights: FLIGHT_01 and FLIGHT_04 crossed paths (H < 8NM and V < 600m).
 ...
 [FLIGHT_01] terminou o voo.
