@@ -231,12 +231,12 @@ STOP or SIGUSR1.
 
 ### `simulation/main.c`
 
-- Two `#define` constants replace the old single `N_FLIGHTS`:
+- Flight count is read from `simulation.conf` (`params.n_flights`) for normal mode; a single
+  `#define N_FLIGHTS_COLLISION 4` in `main.c` covers the collision-test scenario:
   ```c
-  #define N_FLIGHTS_NORMAL    3
-  #define N_FLIGHTS_COLLISION 4
+  #define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
   ```
-- `argc`/`argv` parsed: `--collision` flag sets `n_flights = N_FLIGHTS_COLLISION`.
+- `argc`/`argv` parsed: `--collision` flag overrides the config value with `N_FLIGHTS_COLLISION`.
 - `flight_pipes_t` struct extended with `ctrl_write_fd` / `ctrl_read_fd`.
 - Fork setup: each child closes all file descriptors except its own `pos_write_fd[i]`
   and `ctrl_read_fd[i]`.

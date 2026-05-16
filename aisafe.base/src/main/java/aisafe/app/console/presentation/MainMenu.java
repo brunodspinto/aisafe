@@ -36,15 +36,6 @@ import eapli.framework.presentation.console.menu.VerticalMenuRenderer;
 public class MainMenu extends AbstractUI {
 
     private static final int EXIT_OPTION = 0;
-    private static final int MY_ACCOUNT_OPTION = 1;
-    private static final int USERS_OPTION = 2;
-    private static final int COMPANIES_OPTION = 3;
-    private static final int AIR_CONTROL_OPTION = 4;
-    private static final int WEATHER_OPTION = 5;
-    private static final int FLIGHT_PLAN_OPTION = 6;
-    private static final int AIRCRAFT_OPTION = 7;
-    private static final int COLLABORATOR_OPTION = 8;
-    private static final int FLEET_OPTION = 9;
     private static final String SEPARATOR = "--------------";
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
@@ -70,40 +61,41 @@ public class MainMenu extends AbstractUI {
 
     private Menu buildMainMenu() {
         final var menu = new Menu();
+        int option = 1;
 
-        menu.addSubMenu(MY_ACCOUNT_OPTION, buildMyAccountMenu());
+        menu.addSubMenu(option++, buildMyAccountMenu());
         menu.addItem(MenuItem.separator(SEPARATOR));
 
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ADMIN)) {
-            menu.addSubMenu(USERS_OPTION, buildUsersMenu());
+            menu.addSubMenu(option++, buildUsersMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.BACKOFFICE_OPERATOR)) {
-            menu.addSubMenu(COMPANIES_OPTION, buildCompaniesMenu());
+            menu.addSubMenu(option++, buildCompaniesMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
 
-            menu.addSubMenu(AIR_CONTROL_OPTION, buildAirControlMenu());
+            menu.addSubMenu(option++, buildAirControlMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
 
-            menu.addSubMenu(AIRCRAFT_OPTION, buildAircraftMenu());
+            menu.addSubMenu(option++, buildAircraftMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
 
-            menu.addSubMenu(COLLABORATOR_OPTION, buildCollaboratorMenu());
+            menu.addSubMenu(option++, buildCollaboratorMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ATCC)) {
-            menu.addSubMenu(FLEET_OPTION, buildFleetMenu());
+            menu.addSubMenu(option++, buildFleetMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.PILOT)) {
-            menu.addSubMenu(FLIGHT_PLAN_OPTION, buildFlightPlanMenu());
+            menu.addSubMenu(option++, buildFlightPlanMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.WEATHER_PERSON)) {
-            menu.addSubMenu(WEATHER_OPTION, buildWeatherMenu());
+            menu.addSubMenu(option++, buildWeatherMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
