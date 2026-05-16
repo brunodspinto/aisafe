@@ -111,8 +111,11 @@ Each flight has **two** unnamed POSIX pipes:
 | `pos_pipe` | child → parent | sends `aircraft_position_t` each second |
 | `ctrl_pipe` | parent → child | sends `'G'` (go) or `'S'` (stop) |
 
-The parent uses `select()` to wait for positions from all active flights without blocking
-on any single one.
+The parent reads positions from active flights sequentially (blocking read per flight,
+TP5 pattern). Since all children block on `ctrl_read_fd` until they receive a token,
+no child can advance past step T until the parent has read from every active flight and
+sent the GO/STOP decision — this guarantees synchronised time steps without requiring
+`select()`.
 
 ### 4.2 Data Structures (types.h)
 
@@ -313,7 +316,7 @@ FLIGHT_01 and FLIGHT_04 receive SIGUSR1 and terminate. FLIGHT_02 and FLIGHT_03 c
 |----------|--------|
 | Bidirectional pipes (pos + ctrl per flight) | Required so parent controls simulation tempo — children must not advance before the parent verifies safety |
 | Collect-all-then-decide | Ensures positions compared are contemporaneous (same simulation second); reacting per-flight would compare flight A at step T+5 with flight B at step T |
-| `select()` in inner loop | Prevents deadlock: if a child is blocked on ctrl_read, the parent must not do a blocking `read()` on another child's pos_pipe |
+| Sequential blocking read per flight (TP5 pattern) | Children cannot advance until they receive a ctrl token — the pipe back-pressure provides natural synchronisation; `select()` is not needed and would add complexity |
 | `STEP_SECONDS = 1` | "Second-by-second" as specified; the climb table entry at 0 m gives vz=12 m/s → altitude increases 12 m per step, matching the JSON table |
 | lat_offset applied to all waypoints | Keeps the 3 normal flights on truly parallel routes; applying it only to the departure caused them to converge to the same cruise waypoint and trigger false alerts |
 | Performance table (lookup_perf) | Speed and vertical rate vary with altitude, matching the Flight Profile JSON; removes the unrealistic constant-speed-per-phase approximation |

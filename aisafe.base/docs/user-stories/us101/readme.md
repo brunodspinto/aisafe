@@ -38,18 +38,19 @@ segments (climb, cruise, descend). At each interpolation step within a segment t
 process must report its current position, altitude, speed and heading to a central process
 that aggregates the data.
 
-The key design question is **how the child processes communicate with the parent**. Two
+The key design question is **how the child processes communicate with the parent**. Three
 approaches were considered:
 
 | Approach | Description | Decision |
 |----------|-------------|----------|
 | One pipe per flight + `select()` | Each child writes to its own pipe; parent uses `select()` to multiplex | Rejected — more complex, not aligned with professor's style |
-| One shared pipe, N children | All children write to the same pipe; parent reads in a single loop | **Chosen** — matches ex1-6.c exactly |
+| One shared pipe, N children | All children write to the same pipe; parent reads in a single loop | Initial US101 prototype (ex1-6.c), replaced in US102 |
+| Two pipes per flight (TP5 pattern) | Each child has its own `pos_pipe` (child→parent) and `ctrl_pipe` (parent→child); parent reads sequentially with blocking reads | **Chosen** — required by US102 GO/STOP synchronisation protocol |
 
-The one-shared-pipe approach is safe because each `write()` of `sizeof(aircraft_position_t)`
-(≈ 128 bytes) is below PIPE_BUF (minimum 512 bytes on POSIX). Writes of this size are
-**atomic** — the kernel guarantees they are never interleaved between processes, so no
-framing or locking is needed.
+The two-pipe approach guarantees that positions compared in the safety check are always
+contemporaneous (same simulation second). Each `write()` of `sizeof(aircraft_position_t)`
+(≈ 128 bytes) is below PIPE_BUF (minimum 512 bytes on POSIX), so writes remain **atomic**
+— no message framing is needed.
 
 ### 3.2 Flight model
 
@@ -87,6 +88,7 @@ typedef struct {
     double altitude_meters;
     double speed_knots;     /* needed to anticipate future position */
     double heading_deg;     /* needed to anticipate future position */
+    double vz_mps;          /* vertical rate m/s (added in US102 for cylinder check) */
     time_t timestamp;
     char flight_id[64];
 } aircraft_position_t;
@@ -94,7 +96,8 @@ typedef struct {
 
 `speed_knots` and `heading_deg` were added for AC3 — they allow the parent to project
 a future position from the last known position, which is the foundation of safety-violation
-anticipation.
+anticipation. `vz_mps` was added in US102 and is populated by `lookup_perf()` in the
+child process.
 
 #### `segment_t`
 
@@ -133,83 +136,82 @@ Up to `MAX_POSITIONS` (1 000) records are kept per flight across all `MAX_FLIGHT
 
 ### 4.2 Process Architecture
 
-The architecture mirrors professor's **ex1-6.c** exactly:
+The architecture uses **two unnamed POSIX pipes per flight** (updated in US102 to support
+bidirectional synchronisation):
 
 ```
-main process
-│
-├── pipe(fd)          ← one shared pipe
-│
-├── fork() ──► FLIGHT_01 child
-│               close(fd[0])
-│               write(fd[1], &pos, sizeof(pos))  ×15
-│               close(fd[1])
-│               exit(0)
-│
-├── fork() ──► FLIGHT_02 child
-│               (same pattern)
-│
-├── fork() ──► FLIGHT_03 child
-│               (same pattern)
-│
-close(fd[1])          ← parent closes write end
-│
-while(read(fd[0], …) > 0)
-│   store_position()
-│   printf(…)
-│
-close(fd[0])
-print_history()
-│
-for each child: waitpid() + WIFEXITED check
+                        ┌──────────────┐
+                        │    PARENT    │
+                        │  (main.c)   │
+                        └──────┬───────┘
+          ┌───────────────────┼────────────────────┐
+    pos_pipe[0]         pos_pipe[1]          pos_pipe[2]
+    ctrl_pipe[0]        ctrl_pipe[1]         ctrl_pipe[2]
+          │                   │                    │
+    ┌─────▼──────┐      ┌─────▼──────┐      ┌─────▼──────┐
+    │  FLIGHT_01 │      │  FLIGHT_02 │      │  FLIGHT_03 │
+    │(child proc)│      │(child proc)│      │(child proc)│
+    └────────────┘      └────────────┘      └────────────┘
 ```
 
-The `read()` loop in the parent exits naturally when all three children have closed their
-end of the pipe (after `close(pipe_fd)` and `exit()` in each child), producing EOF.
+| Pipe | Direction | Purpose |
+|------|-----------|---------|
+| `pos_pipe` | child → parent | sends `aircraft_position_t` each second |
+| `ctrl_pipe` | parent → child | sends `'G'` (go) or `'S'` (stop) |
+
+The parent reads positions from active flights sequentially (blocking read per flight,
+TP5 pattern). Since all children block on `ctrl_read_fd` until they receive a token,
+no child can advance past step T until the parent has read from every active flight and
+sent the GO/STOP decision — this guarantees synchronised time steps.
+
+When a child finishes, EOF on `pos_read_fd[i]` signals the parent, which then closes
+`ctrl_write_fd[i]` and marks the flight inactive.
 
 ### 4.3 Flight Process (`flight_process.c`)
 
-`execute_flight_process(int pipe_fd, const flight_plan_t *plan)` is called from the
-child after `close(fd[0])`. It:
+`execute_flight_process(int pos_write_fd, int ctrl_read_fd, const flight_plan_t *plan)`
+is called from the child. It:
 
-1. Iterates over each leg and segment.
-2. For each of `STEP_COUNT` (5) steps per segment, computes:
+1. Installs a `SIGUSR1` handler (US102) with `sigfillset` + `SA_RESTART`.
+2. Iterates over each leg and segment using a physics-driven `while(1)` loop (no fixed
+   `STEP_COUNT`) — the loop exits when the segment's target altitude (climb/descend)
+   or distance (cruise) is reached.
+3. For each step computes:
 
-   **Position** — linear interpolation along the segment:
+   **Speed and vertical rate** — altitude-interpolated from the performance table:
    ```c
-   pos.latitude  = seg->from.latitude  + (seg->to.latitude  - seg->from.latitude)  * progress;
-   pos.longitude = seg->from.longitude + (seg->to.longitude - seg->from.longitude) * progress;
+   lookup_perf(prof->climb, prof->climb_count, alt, &speed_kt, &vz);
    ```
 
-   **Altitude** — linear interpolation between segment end-points:
+   **Position** — advances horizontally at `speed_mps * STEP_SECONDS` along the
+   segment direction vector:
    ```c
-   pos.altitude_meters = seg->alt_from_meters
-                       + (seg->alt_to_meters - seg->alt_from_meters) * progress;
+   lat += (dlat / dist_total_m) * (horiz_step_m / 110574.0);
+   lon += (dlon / dist_total_m) * (horiz_step_m / (111320.0 * cos(lat_mid_rad)));
    ```
 
-   **Speed** — constant by flight phase:
-   ```c
-   if      (strcmp(seg->mode, "climb")  == 0) pos.speed_knots = 250.0;
-   else if (strcmp(seg->mode, "cruise") == 0) pos.speed_knots = 460.0;
-   else                                        pos.speed_knots = 220.0;
-   ```
+   **Altitude** — advances vertically by `vz * STEP_SECONDS`.
 
-   **Heading** — true bearing derived from the segment vector:
+   **Heading** — true bearing from the segment vector:
    ```c
-   double dlat = seg->to.latitude  - seg->from.latitude;
-   double dlon = seg->to.longitude - seg->from.longitude;
    pos.heading_deg = atan2(dlon, dlat) * 180.0 / M_PI;
    if (pos.heading_deg < 0) pos.heading_deg += 360.0;
    ```
 
-3. Writes the struct directly to the pipe:
+4. Writes the struct to the position pipe:
    ```c
-   write(pipe_fd, &pos, sizeof(aircraft_position_t));
+   write(pos_write_fd, &pos, sizeof(pos));
    ```
 
-4. Sleeps 50 ms between steps (simulated propagation delay).
+5. Blocks waiting for the parent's GO/STOP token:
+   ```c
+   char token = 0;
+   read(ctrl_read_fd, &token, 1);
+   if (collision_alert || token == 'S') { close(…); exit(1); }
+   ```
+   No `nanosleep()` — the pipe round-trip provides natural per-second pacing.
 
-5. On completion: `close(pipe_fd); exit(EXIT_SUCCESS);`
+6. On completion: `close(pos_write_fd); close(ctrl_read_fd); exit(0);`
 
 ### 4.4 IPC Layer (`ipc.c` / `ipc.h`)
 
@@ -219,26 +221,38 @@ uses direct `write()` / `read()` calls without wrappers. Only two functions rema
 
 | Function | Signature | Purpose |
 |----------|-----------|---------|
-| `store_position` | `(flight_history_t *histories, int n, const aircraft_position_t *pos)` | Appends a position to the correct flight history slot |
+| `find_or_create_flight` | `(flight_history_t *histories, int n, const char *flight_id)` | Returns the index of the history slot for this flight (creates one if new) |
 | `print_history` | `(const flight_history_t *histories, int n)` | Prints the full recorded history after the simulation ends |
 
 ### 4.5 Main Loop (`main.c`)
 
-The parent's receive loop follows ex1-6.c precisely:
+The parent's main loop uses sequential blocking reads per flight (TP5 pattern):
 
 ```c
-/* parent: close write end */
-close(fd[1]);
-
-while (read(fd[0], &pos, sizeof(aircraft_position_t)) > 0) {
-    printf("[%s] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt hdg=%.1f\n", …);
-    store_position(histories, MAX_FLIGHTS, &pos);
+while (n_active > 0) {
+    /* Read one position from each active flight (blocks until data arrives) */
+    for (i = 0; i < n_flights; i++) {
+        if (!active[i]) continue;
+        ssize_t n = read(pipes[i].pos_read_fd, &pos, sizeof(pos));
+        if (n == sizeof(pos)) {
+            /* US101: ACA filter + history update */
+            int idx = find_or_create_flight(histories, MAX_FLIGHTS, pos.flight_id);
+            /* store position, detect ENTERING/EXITING ACA … */
+        } else {
+            /* EOF: flight finished */
+            close(pipes[i].pos_read_fd);
+            close(pipes[i].ctrl_write_fd);
+            active[i] = 0;  n_active--;
+        }
+    }
+    /* US102: safety cylinder check → send 'G' or 'S' to all active flights */
+    for (i = 0; i < n_flights; i++)
+        if (active[i]) write(pipes[i].ctrl_write_fd, &token, 1);
 }
-close(fd[0]);
 
 print_history(histories, MAX_FLIGHTS);
 
-for (i = 0; i < N_FLIGHTS; i++) {
+for (i = 0; i < n_flights; i++) {
     waitpid(pids[i], &status, 0);
     if (WIFEXITED(status))
         printf("[FLIGHT_%02d] ended with code %d\n", i+1, WEXITSTATUS(status));
@@ -247,14 +261,18 @@ for (i = 0; i < N_FLIGHTS; i++) {
 
 ### 4.6 Alignment with Professor's Examples
 
-| Pattern | ex1-6.c (reference) | US101 implementation |
-|---------|--------------------|-----------------------|
-| Pipe creation | `int fd[2]; pipe(fd);` | Identical |
-| Child closes read end | `close(fd[0]);` | `close(fd[0]);` before `execute_flight_process` |
-| Child writes data | `write(fd[1], &data, sizeof)` | `write(pipe_fd, &pos, sizeof(pos))` |
-| Child closes + exits | `close(fd[1]); exit(0);` | `close(pipe_fd); exit(EXIT_SUCCESS);` |
-| Parent closes write | `close(fd[1]);` | Identical |
-| Parent read loop | `while(read(fd[0], &d, sizeof) > 0)` | Identical |
+The initial US101 implementation followed **ex1-6.c** (one shared pipe, N children).
+US102 replaced it with the **TP5 bidirectional-pipe pattern** to support the GO/STOP
+synchronisation protocol required for second-by-second safety monitoring.
+
+| Pattern | TP5 (reference) | Current implementation |
+|---------|----------------|------------------------|
+| Two pipes per flight | `pipe(pos_fd); pipe(ctrl_fd);` | Identical |
+| Child closes unused ends | `close(pos_fd[0]); close(ctrl_fd[1]);` | Identical |
+| Child writes position | `write(pos_write_fd, &pos, sizeof(pos))` | Identical |
+| Child reads token | `read(ctrl_read_fd, &token, 1)` | Identical |
+| Parent sequential read | `read(pos_read_fd[i], …)` per active flight | Identical |
+| Parent sends token | `write(ctrl_write_fd[i], &g, 1)` | Identical |
 | Parent waits | `waitpid(pids[i], &status, 0)` + `WIFEXITED` | Identical |
 
 ---
@@ -268,10 +286,10 @@ for (i = 0; i < N_FLIGHTS; i++) {
 | `simulation/types.h` | Added `speed_knots`, `heading_deg` to `aircraft_position_t`; replaced `altitude_meters` in `segment_t` with `mode[16]`, `alt_from_meters`, `alt_to_meters`; **added `geo_boundary_t`, `aca_state_t`; expanded `flight_history_t` with `aca_state`** |
 | `simulation/flight_data.h` | Changed declaration from `create_sample_flight_plan(void)` to `create_flight_plan(int index)` |
 | `simulation/flight_data.c` | Implemented 3 distinct OPO→MAD flight plans from `Flight_Plan_v0c.json`; fixed OPO→LIS destination bug |
-| `simulation/flight_process.c` | Added altitude interpolation, speed-by-phase, heading calculation; replaced `send_position()` with direct `write()`; added `close(pipe_fd)` before `exit()`; **AC7: step count derived from distance/speed physics** |
-| `simulation/ipc.c` | Removed `send_position`, `recv_position`, `create_pipe`, `close_pipe`, `pipe_t`; **replaced `store_position` with `find_or_create_flight`; updated `print_history` to show ACA state and "never entered ACA"** |
-| `simulation/ipc.h` | **Replaced `store_position` with `find_or_create_flight`** |
-| `simulation/main.c` | Full rewrite — one shared pipe, no `select()`, `waitpid` + `WIFEXITED`; **AC5/AC6: ACA boundary filter + ENTERING/EXITING detection** |
+| `simulation/flight_process.c` | Signature changed to `(pos_write_fd, ctrl_read_fd, plan)`; physics-driven `while(1)` loop replaces fixed `STEP_COUNT`; `lookup_perf()` replaces constant speed-by-phase; `nanosleep()` removed; reads ctrl token after each write; SIGUSR1 handler added (US102) |
+| `simulation/ipc.c` | Removed `send_position`, `recv_position`, `create_pipe`, `close_pipe`, `pipe_t`; **`store_position` replaced by `find_or_create_flight`**; `print_history` updated to show ACA state |
+| `simulation/ipc.h` | **`store_position` replaced by `find_or_create_flight`** |
+| `simulation/main.c` | Full rewrite — two pipes per flight (pos + ctrl), sequential blocking reads (TP5 pattern), `waitpid` + `WIFEXITED`; ACA boundary filter + ENTERING/EXITING detection; GO/STOP control protocol (US102) |
 | `simulation/aca_filter.c` | **New — `is_in_aca()` rectangular boundary check** |
 | `simulation/aca_filter.h` | **New — public interface for ACA filter** |
 | `libs/scripts/build_c.sh` | Added `-Wall -Wextra -g -lm` flags |
@@ -323,7 +341,8 @@ Zero compiler warnings (enforced by `-Wall -Wextra`).
 ### Expected output
 
 ```
-=== Flight Simulation (US101) ===
+=== Flight Simulation (US101 & US102) ===
+Mode: normal
 ACA: lat [36.0, 43.0]  lon [-10.0, -6.0]
 
 Flight loaded: FLIGHT_01
@@ -332,11 +351,11 @@ Flight loaded: FLIGHT_03
 
 === Live Position Updates (ACA only) ===
 [FLIGHT_01] >>> ENTERING ACA
-[FLIGHT_01] lat=41.2629 lon=-8.6852 alt=69m spd=250kt hdg=42.5
+[FLIGHT_01] lat=41.2629 lon=-8.6852 alt=81m spd=210kt hdg=42.5 vz=12.0m/s
 [FLIGHT_02] >>> ENTERING ACA
-[FLIGHT_02] lat=41.5629 lon=-8.6852 alt=69m spd=250kt hdg=57.1
+[FLIGHT_02] lat=41.5629 lon=-8.6852 alt=81m spd=210kt hdg=42.5 vz=12.0m/s
 [FLIGHT_03] >>> ENTERING ACA
-[FLIGHT_03] lat=40.9629 lon=-8.6852 alt=69m spd=250kt hdg=33.1
+[FLIGHT_03] lat=40.9629 lon=-8.6852 alt=81m spd=210kt hdg=42.5 vz=12.0m/s
 ...
 [FLIGHT_02] <<< EXITING ACA
 ...
@@ -346,7 +365,7 @@ Flight loaded: FLIGHT_03
 
 === Position History (ACA only) ===
 Flight FLIGHT_01: 25 positions inside ACA [exited ACA]
-  [0] lat=41.2629 lon=-8.6852 alt=69m spd=250kt hdg=42.5
+  [0] lat=41.2629 lon=-8.6852 alt=81m spd=210kt hdg=42.5 vz=12.0m/s
   ...
 Flight FLIGHT_02: 22 positions inside ACA [exited ACA]
   ...
@@ -357,11 +376,11 @@ Flight FLIGHT_03: 29 positions inside ACA [exited ACA]
 [FLIGHT_03] ended with code 0
 ```
 
-Step counts per flight differ (22–29) because they are derived from real distance and
-speed (AC7): climb ~12 steps, cruise steps end when the aircraft crosses lon = −6.0°
-(the ACA's eastern boundary). Positions from the descent segment (approaching MAD at
-−3.56°E) are outside the ACA and never stored (AC5). All three flights show ENTERING
-and EXITING events (AC6).
+Step counts per flight differ because they are derived from real distance and altitude-
+interpolated speed (AC3): climb starts at 210 kt (table entry at 0 m), increasing as
+altitude rises; cruise steps end when the aircraft crosses lon = −6.0° (the ACA's eastern
+boundary). Positions from the descent segment (approaching MAD at −3.56°E) are outside
+the ACA and never stored. All three flights show ENTERING and EXITING events.
 
 ---
 
@@ -384,25 +403,26 @@ processes varies between runs depending on OS scheduler decisions. This is expec
 correct — the pipe's atomic-write guarantee ensures no struct is ever partially written
 or corrupted, but it does not impose ordering between independent writers.
 
-**`select()` removed** — The previous implementation used `select()` over three separate
-pipes. While functionally correct, it diverges from the professor's teaching material.
-The single-pipe model eliminates the multiplexing complexity while remaining correct
-because of POSIX atomic-write semantics.
+**ACA filtering (AC2/AC3)** — The parent calls `is_in_aca()` (in `aca_filter.c`) for
+every position received from the pipe. Only positions whose latitude/longitude fall within
+the configured `geo_boundary_t` rectangle are stored in the history or printed. Positions
+outside the ACA are processed only to update the flight's ACA state.
 
-**AC5 — ACA filtering** — The parent calls `is_in_aca()` (in `aca_filter.c`) for every
-position received from the pipe. Only positions whose latitude/longitude fall within the
-configured `geo_boundary_t` rectangle are stored in the history or printed. Positions
-outside the ACA are processed only to update the flight's ACA state (AC6).
+**Entry/exit detection** — Each flight history slot carries an `aca_state_t` field
+(`ACA_BEFORE`, `ACA_INSIDE`, `ACA_AFTER`). The parent transitions the state on the first
+in-boundary position ("ENTERING") and on the first out-of-boundary position after having
+been inside ("EXITING"). If a flight is never seen inside the ACA, `print_history`
+reports "never entered ACA".
 
-**AC6 — Entry/exit detection** — Each flight history slot carries an `aca_state_t`
-field (`ACA_BEFORE`, `ACA_INSIDE`, `ACA_AFTER`). The parent transitions the state on
-the first in-boundary position ("ENTERING") and on the first out-of-boundary position
-after having been inside ("EXITING"). If a flight is never seen inside the ACA,
-`print_history` reports "never entered ACA".
+**Physics-derived step count (AC3)** — `flight_process.c` no longer uses a fixed
+`STEP_COUNT`. For each segment it runs a `while(1)` loop using `lookup_perf()` to
+interpolate speed and vertical rate from the altitude-indexed performance table.
+`STEP_SECONDS = 1` (one second per step). This ensures that a longer cruise segment
+generates proportionally more position reports than a short climb segment — matching
+a second-by-second model. The `timestamp` in every `aircraft_position_t` advances by
+`STEP_SECONDS` per step.
 
-**AC7 — Physics-derived step count** — `flight_process.c` no longer uses a fixed
-`STEP_COUNT`. For each segment it computes the equirectangular distance in metres,
-converts speed from knots to m/s, and divides by `STEP_SECONDS` (60 s) to get the
-number of steps. This ensures that a longer cruise segment generates proportionally
-more position reports than a short climb segment — matching a second-by-second model.
-The `timestamp` in every `aircraft_position_t` advances by `STEP_SECONDS` per step.
+**TP5 pattern replaces ex1-6.c** — The initial US101 implementation used a single shared
+pipe (ex1-6.c pattern). US102 replaced it with two pipes per flight (TP5 pattern) so
+the parent can send GO/STOP tokens back to each child, ensuring all positions compared in
+the safety check are from the same simulation second.
