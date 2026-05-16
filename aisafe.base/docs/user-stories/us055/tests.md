@@ -10,6 +10,7 @@ US055 covers registering an Aircraft Model with a name, manufacturer (Maker), ty
 
 Location: `src/test/java/aisafe/aircraftmodel/domain/AircraftModelTest.java`
 
+**Construction validation:**
 - `ensureValidAircraftModelCanBeCreated`
 - `ensureModelNameCannotBeNull`
 - `ensureMakerCannotBeNull`
@@ -17,7 +18,38 @@ Location: `src/test/java/aisafe/aircraftmodel/domain/AircraftModelTest.java`
 - `ensureFirstEngineCannotBeNull`
 - `ensureEmptyWeightMustBePositive`
 - `ensureMTOWMustBeGreaterThanEmptyWeight`
+- `ensureMZFWMustBePositive`
+- `ensureMZFWCannotExceedMTOW`
+- `ensureMaxFuelCapacityMustBePositive`
+- `ensureServiceCeilingMustBePositive`
+- `ensureCruiseSpeedMustBePositive`
+- `ensureWingSpanMustBePositive`
+- `ensureWingAreaMustBePositive`
+- `ensureDragCoefficientMustBePositive`
+- `ensureLiftCoefficientMustBePositive`
+- `ensureMaxRangeMustBePositive`
+
+**Engine management:**
 - `ensureCannotAddNullEngineModel`
+- `ensureCannotAddIncompatibleEngineType`
+- `ensureCanAddCompatibleEngineType`
+- `ensureCannotAddDuplicateEngineModel`
+- `ensureCanRemoveEngineWhenMoreThanOneExists`
+- `ensureCannotRemoveLastEngine`
+- `ensureCannotRemoveNullEngine`
+- `ensureCannotRemoveEngineThatIsNotCertified`
+- `ensureCertifiedEnginesIsUnmodifiable`
+
+**Equality, identity and accessors:**
+- `ensureTwoModelsWithSameNameAndMakerAreEqual`
+- `ensureTwoModelsWithDifferentNamesAreNotEqual`
+- `ensureEqualsReturnsTrueForSameInstance`
+- `ensureEqualsReturnsFalseForNull`
+- `ensureHashCodeIsConsistentWithEquals`
+- `ensureSameAsReturnsTrueForEqualModels`
+- `ensureGettersReturnCorrectValues`
+- `ensureMaxRangeGetterWorks`
+- `ensureToStringContainsModelName`
 
 ### `MakerTest`
 
@@ -34,9 +66,9 @@ Location: `src/test/java/aisafe/maker/domain/MakerTest.java`
 ## Coverage by Acceptance Criterion
 
 - AC055.1: `ensureModelNameCannotBeNull`, `ensureMakerCannotBeNull`; name+maker uniqueness enforced by `@UniqueConstraint`
-- AC055.2: `ensureFirstEngineCannotBeNull`, `ensureCannotAddNullEngineModel`
+- AC055.2: `ensureFirstEngineCannotBeNull`, `ensureCannotAddNullEngineModel`, `ensureCannotAddIncompatibleEngineType`, `ensureCannotAddDuplicateEngineModel`
 - AC055.3: `ensureAircraftTypeCannotBeNull`
-- AC055.4: `ensureEmptyWeightMustBePositive`, `ensureMTOWMustBeGreaterThanEmptyWeight`
+- AC055.4: `ensureEmptyWeightMustBePositive`, `ensureMTOWMustBeGreaterThanEmptyWeight`, `ensureMZFWMustBePositive`, `ensureMZFWCannotExceedMTOW`, `ensureMaxFuelCapacityMustBePositive`, `ensureServiceCeilingMustBePositive`, `ensureCruiseSpeedMustBePositive`, `ensureWingSpanMustBePositive`, `ensureWingAreaMustBePositive`, `ensureDragCoefficientMustBePositive`, `ensureLiftCoefficientMustBePositive`, `ensureMaxRangeMustBePositive`
 - AC055.5: Covered by `AiSafeBootstrap` which registers the 737-800 model idempotently
 
 ---

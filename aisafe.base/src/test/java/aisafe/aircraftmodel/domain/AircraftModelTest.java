@@ -186,6 +186,15 @@ class AircraftModelTest {
     }
 
     @Test
+    void ensureMZFWCannotExceedMTOW() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                        41140, 79016, 80000, 20894,
+                        12500, 230, 34.3, 125.0,
+                        0.026, 1.5, 5765.0, validEngine()));
+    }
+
+    @Test
     void ensureMaxFuelCapacityMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
                 new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,

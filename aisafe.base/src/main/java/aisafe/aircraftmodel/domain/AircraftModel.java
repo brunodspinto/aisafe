@@ -19,7 +19,6 @@ import jakarta.persistence.Version;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing an aircraft model.
@@ -117,6 +116,8 @@ public class AircraftModel implements AggregateRoot<Long> {
             throw new IllegalArgumentException("MTOW must be greater than or equal to empty weight.");
         if (mzfw <= 0)
             throw new IllegalArgumentException("MZFW must be positive.");
+        if (mzfw > mtow)
+            throw new IllegalArgumentException("MZFW cannot exceed MTOW.");
         if (maxFuelCapacity <= 0)
             throw new IllegalArgumentException("Max fuel capacity must be positive.");
         if (serviceCeiling <= 0)
@@ -265,15 +266,11 @@ public class AircraftModel implements AggregateRoot<Long> {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final AircraftModel that = (AircraftModel) o;
-        return Objects.equals(modelName, that.modelName)
-                && Objects.equals(maker, that.maker);
+        return DomainEntities.areEqual(this, o);
     }
 
     @Override
-    public int hashCode() { return Objects.hash(modelName, maker); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {
