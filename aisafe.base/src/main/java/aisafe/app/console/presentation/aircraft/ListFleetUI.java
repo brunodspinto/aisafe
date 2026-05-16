@@ -73,12 +73,15 @@ public class ListFleetUI extends AbstractUI {
                 "REGISTRATION", "COUNTRY", "MODEL", "MAKER", "SEATS", "YEAR");
         System.out.println("-".repeat(75));
         for (final Aircraft a : fleet) {
-            System.out.printf("%-12s %-12s %-20s %-15s %6d %5d%n",
+            final String seats = a.cabinConfiguration() == null
+                    ? "CARGO"
+                    : String.valueOf(a.cabinConfiguration().totalSeats());
+            System.out.printf("%-12s %-12s %-20s %-15s %6s %5d%n",
                     a.registrationNumber(),
                     a.registeredCountry(),
                     a.aircraftModel().modelName(),
                     a.aircraftModel().maker().name(),
-                    a.cabinConfiguration().totalSeats(),
+                    seats,
                     a.yearOfManufacture());
         }
         System.out.printf("%nTotal: %d aircraft%n", fleet.size());

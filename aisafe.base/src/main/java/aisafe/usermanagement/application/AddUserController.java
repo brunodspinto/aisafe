@@ -1,7 +1,6 @@
 package aisafe.usermanagement.application;
 
 import aisafe.infrastructure.persistence.PersistenceContext;
-import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.usermanagement.domain.Email;
 import aisafe.usermanagement.domain.MecanographicNumber;
@@ -10,21 +9,25 @@ import aisafe.usermanagement.domain.User;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
-import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
+import eapli.framework.infrastructure.authz.application.UserManagementService;
 import eapli.framework.infrastructure.authz.domain.model.Role;
-import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
+import eapli.framework.infrastructure.authz.domain.model.SystemUser;
+import eapli.framework.time.util.CurrentTimeCalendars;
+
 import java.time.LocalDate;
 import java.util.Set;
 
 /**
  * Application-layer controller for the "Add User" use case (US031).
- * Creates a new AISafe system user backed by the EAPLI user-management service.
+ * Delegates SystemUser creation to EAPLI's {@link UserManagementService} and persists
+ * the AISafe {@link User} aggregate in the same transaction.
  * Requires the authenticated user to have the {@code ADMIN} role.
  */
 @UseCaseController
 public class AddUserController {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
+    private final UserManagementService userSvc = AuthzRegistry.userService();
 
     /**
      * Returns the set of assignable roles that can be selected during user creation.
@@ -36,7 +39,8 @@ public class AddUserController {
     }
 
     /**
-     * Registers a new system user and persists the associated {@link User} aggregate.
+     * Registers a new system user via EAPLI's {@link UserManagementService} and persists
+     * the associated {@link User} aggregate.
      *
      * @param username             login username
      * @param password             plaintext password (must satisfy the password policy)
@@ -66,23 +70,18 @@ public class AddUserController {
             throw new IllegalArgumentException("At least one role must be assigned");
 
         final var tx = PersistenceContext.repositories().newTransactionalContext();
-        final var systemUserRepo = PersistenceContext.repositories().systemUsers(tx);
         final var userRepo = PersistenceContext.repositories().users(tx);
 
         if (tx != null) tx.beginTransaction();
         try {
-            final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
-            builder.withUsername(username)
-                   .withPassword(password)
-                   .withName(firstName, lastName)
-                   .withEmail(emailStr)
-                   .withRoles(roles);
-            final var savedSystemUser = systemUserRepo.save(builder.build());
+            final SystemUser systemUser = userSvc.registerNewUser(
+                    username, password, firstName, lastName, emailStr, roles,
+                    CurrentTimeCalendars.now());
 
             final MecanographicNumber mecNumber =
                     MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
 
-            final User user = new User(savedSystemUser, mecNumber, phoneNumber, email,
+            final User user = new User(systemUser, mecNumber, phoneNumber, email,
                     position, securityClearance, skillsAssessmentDate);
 
             final var savedUser = userRepo.save(user);

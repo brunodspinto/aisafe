@@ -5,6 +5,7 @@ import aisafe.aircraft.domain.CabinConfiguration;
 import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.aircraftmodel.domain.AircraftModel;
+import aisafe.aircraftmodel.domain.AircraftType;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
@@ -76,7 +77,9 @@ public class AddAircraftController {
                 })
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for authenticated user."));
 
-        final CabinConfiguration cabin = new CabinConfiguration(firstClassSeats, businessClassSeats, economyClassSeats);
+        final CabinConfiguration cabin = model.aircraftType() == AircraftType.CARGO
+                ? null
+                : new CabinConfiguration(firstClassSeats, businessClassSeats, economyClassSeats);
         final Aircraft aircraft = new Aircraft(RegistrationNumber.valueOf(registrationNumber), registeredCountry, numberOfCrewElements, yearOfManufacture, cabin, model);
         aircraftRepo.save(aircraft);
 
