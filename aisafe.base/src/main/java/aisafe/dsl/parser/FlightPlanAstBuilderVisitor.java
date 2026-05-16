@@ -48,11 +48,23 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
         );
     }
 
+    private static double convertToMeters(final double value, final String unit) {
+        return switch (unit.toUpperCase()) {
+            case "FT" -> value * 0.3048;
+            case "KM" -> value * 1000.0;
+            default   -> value; // M — no conversion
+        };
+    }
+
     @Override
     public SegmentAst visitSegment(final FlightPlanDslParser.SegmentContext ctx) {
         final FlightPlanDslParser.AltitudeSlotContext altSlot = ctx.altitudeSlot(0);
-        final double altitude = parseSignedNumber(altSlot.altitude().signedNumber());
-        final double width = parseSignedNumber(altSlot.distance().signedNumber());
+        final double altitude = convertToMeters(
+                parseSignedNumber(altSlot.altitude().signedNumber()),
+                altSlot.altitude().distanceUnit().getText());
+        final double width = convertToMeters(
+                parseSignedNumber(altSlot.distance().signedNumber()),
+                altSlot.distance().distanceUnit().getText());
         final FlightPlanDslParser.WindDeclContext windDecl = ctx.windDecl();
         final double windDirection = parseSignedNumber(windDecl.windDirection().signedNumber());
         final double windSpeed = parseSignedNumber(windDecl.windSpeed().signedNumber());
