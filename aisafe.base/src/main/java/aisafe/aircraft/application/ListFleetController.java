@@ -113,7 +113,7 @@ public class ListFleetController {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
         for (final Aircraft a : loadFleet(resolveCompany())) {
-            if (a.cabinConfiguration().totalSeats() >= minSeats)
+            if (a.cabinConfiguration() != null && a.cabinConfiguration().totalSeats() >= minSeats)
                 result.add(a);
         }
         return result;
