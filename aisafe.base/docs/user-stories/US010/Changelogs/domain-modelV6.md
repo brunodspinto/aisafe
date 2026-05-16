@@ -75,6 +75,29 @@ US109 requires the simulation report to include "individual execution statuses" 
 
 ---
 
+### 5. `CollaboratorStatus` enum removed from `Collaborator Aggregate`
+
+**Before:**
+```
+Enum CollaboratorStatus {
+    ACTIVE
+    DISABLED
+}
+
+Collaborator "1" --> "1" CollaboratorStatus : "has"
+```
+
+**After:**
+```
+class Collaborator <<entity, aggregate root>>
+```
+(no `CollaboratorStatus` enum, no relation)
+
+**Reason:**
+`CollaboratorStatus` does not exist in the implementation. A collaborator's active/inactive state is derived from the associated `SystemUser` (`user.systemUser().isActive()`), which is managed by the EAPLI framework's user management. Representing it as a separate enum and relation in the domain model was incorrect and inconsistent with the codebase.
+
+---
+
 ## Summary of changes
 
 | Change | Type |
@@ -84,3 +107,4 @@ US109 requires the simulation report to include "individual execution statuses" 
 | `FlightPlan "1" --> "1" IATACode : "alternate airport"` corrected to `AirportIATACode` | Correction |
 | `FlightExecutionStatus <<value object>>` added to `Simulation Aggregate` | Enhancement |
 | `SimulationReport "1" *-- "0..*" FlightExecutionStatus : "details"` added | Enhancement |
+| `CollaboratorStatus` enum and relation removed from `Collaborator Aggregate` | Correction |
