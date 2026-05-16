@@ -14,6 +14,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 
 import java.util.ArrayList;
@@ -27,6 +29,7 @@ import java.util.Objects;
  * Must have at least one certified engine model.
  */
 @Entity
+@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"modelName", "maker_name"}))
 public class AircraftModel implements AggregateRoot<Long> {
 
     @Id

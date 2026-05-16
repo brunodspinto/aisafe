@@ -1,8 +1,10 @@
 package aisafe.aircraft.application;
 
 import aisafe.aircraft.domain.Aircraft;
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
+import aisafe.airtransportcompany.domain.IATACode;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -44,11 +46,13 @@ public class DecommissionAircraftController {
      */
     public Iterable<Aircraft> activeAircraftByCompany(final String companyIataCode) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
+        final AirTransportCompany company = companyRepo.ofIdentity(IATACode.valueOf(companyIataCode))
+                .orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyIataCode));
         final List<Aircraft> result = new ArrayList<>();
-        for (final Aircraft a : aircraftRepo.findAll()) {
-            if (a.isActive()) {
-                result.add(a);
-            }
+        for (final String reg : company.fleet()) {
+            aircraftRepo.ofIdentity(RegistrationNumber.valueOf(reg))
+                    .filter(Aircraft::isActive)
+                    .ifPresent(result::add);
         }
         return result;
     }
