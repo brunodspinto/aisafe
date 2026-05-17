@@ -39,10 +39,10 @@ package "AirControlArea Aggregate" <<Rectangle>> {
     }
 }
 
-Airport *-- AirportIATACode : "identified by"
-Airport *-- AirportICAOCode : "has"
-Airport *-- GeoCoordinate : "located at"
+Airport "1" *-- "1" AirportIATACode : "identified by"
+Airport "1" *-- "1" AirportICAOCode : "has"
+Airport "1" *-- "1" GeoCoordinate : "located at"
 Airport "0..*" --> "1" AirControlArea : "belongs to"
-AirControlArea *-- GeoBoundary : "bounded by"
+AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
 
 @enduml
