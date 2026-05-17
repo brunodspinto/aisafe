@@ -15,6 +15,7 @@ package "AircraftModel Aggregate" <<Rectangle>> {
         wingArea
         dragCoefficient
         liftCoefficient
+        maxRange
     }
 
     Enum AircraftType {
@@ -34,8 +35,8 @@ package "Maker Aggregate" <<Rectangle>> {
 package "EngineModel Aggregate" <<Rectangle>> {
     class EngineModel <<entity, aggregate root>> {
         name
-        makerName
-        thrust
+        thrustAtStandstill
+        thrustAtCruiseSpeed
         TSFC
     }
 
@@ -49,9 +50,9 @@ package "EngineModel Aggregate" <<Rectangle>> {
 }
 
 AircraftModel "1" --> "1" AircraftType : "classified as"
-AircraftModel "1" --> "1" Maker : "manufactured by"
 AircraftModel "1" --> "1..*" EngineModel : "certified with"
 EngineModel "1" --> "1" EngineType : "classified as"
 Maker "1" --> "0..*" AircraftModel : "manufactures"
+Maker "1" --> "0..*" EngineModel : "manufactures"
 
 @enduml
