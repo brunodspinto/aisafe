@@ -6,6 +6,8 @@ import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -28,7 +30,8 @@ public class User implements AggregateRoot<MecanographicNumber> {
     @EmbeddedId
     private MecanographicNumber mecanographicNumber;
 
-    @OneToOne()
+    @OneToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "system_user_id")
     private SystemUser systemUser;
 
     private String phoneNumber;
@@ -120,6 +123,9 @@ public class User implements AggregateRoot<MecanographicNumber> {
             throw new IllegalArgumentException("Email cannot be null.");
         if (phoneNumber == null || phoneNumber.isBlank())
             throw new IllegalArgumentException("Phone number cannot be null or empty.");
+        final String digits = phoneNumber.replaceAll("[+\\s]", "");
+        if (!digits.matches("\\d{9,15}"))
+            throw new IllegalArgumentException("Phone number must have 9 to 15 digits (optionally starting with '+')");
         this.email = email;
         this.phoneNumber = phoneNumber;
     }

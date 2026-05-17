@@ -6,11 +6,14 @@ import aisafe.usermanagement.domain.User;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.util.Objects;
@@ -21,6 +24,7 @@ import java.util.Objects;
  * or an AirControlArea, but not both.
  */
 @Entity
+@Table(name = "T_COLLABORATOR")
 public class Collaborator implements AggregateRoot<Long> {
 
     @Id
@@ -30,13 +34,16 @@ public class Collaborator implements AggregateRoot<Long> {
     @Version
     private Long version;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "user_mecanographic_number")
     private User user;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "air_transport_company_iata_code")
     private AirTransportCompany airTransportCompany;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "air_control_area_code")
     private AirControlArea airControlArea;
 
     protected Collaborator() {}

@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.util.Objects;
@@ -19,6 +20,7 @@ import java.util.Objects;
  * a multi-step validation process (US080, US081, US085).
  */
 @Entity
+@Table(name = "T_FLIGHT_PLAN")
 public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
 
     @EmbeddedId
@@ -27,9 +29,11 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
     @Version
     private Long version;
 
+    @Column(nullable = false)
     private String flightType;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private FlightPlanStatus status;
 
     @Lob

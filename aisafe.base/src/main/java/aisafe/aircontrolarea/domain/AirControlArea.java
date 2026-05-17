@@ -1,8 +1,10 @@
 package aisafe.aircontrolarea.domain;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import java.util.Objects;
 import eapli.framework.domain.model.AggregateRoot;
@@ -14,6 +16,7 @@ import eapli.framework.domain.model.DomainEntities;
  * Entity and Aggregate Root representing an Air Control Area.
  */
 @Entity
+@Table(name = "T_AIR_CONTROL_AREA")
 public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
 
     @EmbeddedId
@@ -22,8 +25,10 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
     @Version
     private Long version;
 
+    @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
     private double minimumFuelRequired;
 
     // GeoBoundary is our embedded Value Object
@@ -59,6 +64,9 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
         }
         if (boundaries == null) {
             throw new IllegalArgumentException("Geographical boundaries cannot be null.");
+        }
+        if (boundaries.northLatitude() <= boundaries.southLatitude()) {
+            throw new IllegalArgumentException("North latitude must be greater than south latitude.");
         }
 
         this.areaCode = areaCode;
@@ -108,6 +116,11 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
     @Override
     public AirControlAreaCode identity() {
         return this.areaCode;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("AirControlArea{code='%s', name='%s'}", areaCode, name);
     }
 
 }

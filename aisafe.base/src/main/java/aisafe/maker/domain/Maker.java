@@ -2,8 +2,10 @@ package aisafe.maker.domain;
 
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.util.Objects;
@@ -12,6 +14,7 @@ import java.util.Objects;
  * Entity and Aggregate Root representing an aircraft or engine manufacturer.
  */
 @Entity
+@Table(name = "T_MAKER")
 public class Maker implements AggregateRoot<MakerName> {
 
     @EmbeddedId
@@ -20,6 +23,7 @@ public class Maker implements AggregateRoot<MakerName> {
     @Version
     private Long version;
 
+    @Column(nullable = false)
     private String country;
 
     protected Maker() {}

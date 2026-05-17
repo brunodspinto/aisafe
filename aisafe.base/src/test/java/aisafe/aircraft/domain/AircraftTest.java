@@ -104,6 +104,12 @@ class AircraftTest {
     }
 
     @Test
+    void ensureNegativeCrewElementsThrows() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new Aircraft(RegistrationNumber.valueOf("CS-TUA"), "Portugal", -1, 2018, validCabin(), validModel()));
+    }
+
+    @Test
     void ensurePassengerAircraftWithNullCabinThrows() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Aircraft(RegistrationNumber.valueOf("CS-TUA"), "Portugal", 6, 2018, null, validModel()));

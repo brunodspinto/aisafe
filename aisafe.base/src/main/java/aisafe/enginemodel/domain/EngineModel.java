@@ -22,7 +22,7 @@ import jakarta.persistence.Version;
 @Entity
 @Table(name = "T_ENGINE_MODEL",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"name", "makerName"})
+                @UniqueConstraint(columnNames = {"name", "maker_name"})
         })
 public class EngineModel implements AggregateRoot<Long> {
 
@@ -38,7 +38,7 @@ public class EngineModel implements AggregateRoot<Long> {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "maker_name", nullable = false)
     private String makerName;
 
     @Enumerated(EnumType.STRING)

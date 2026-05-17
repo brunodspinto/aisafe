@@ -9,9 +9,12 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -29,7 +32,8 @@ import java.util.Objects;
  * Must have at least one certified engine model.
  */
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"modelName", "maker_name"}))
+@Table(name = "T_AIRCRAFT_MODEL",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"model_name", "maker_name"}))
 public class AircraftModel implements AggregateRoot<Long> {
 
     @Id
@@ -39,10 +43,11 @@ public class AircraftModel implements AggregateRoot<Long> {
     @Version
     private Long version;
 
-    @Column(nullable = false)
+    @Column(name = "model_name", nullable = false)
     private String modelName;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "maker_name", nullable = false)
     private Maker maker;
 
     @Enumerated(EnumType.STRING)
@@ -61,7 +66,12 @@ public class AircraftModel implements AggregateRoot<Long> {
     private double liftCoefficient;
     private double maxRange;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {})
+    @JoinTable(
+        name = "T_AIRCRAFT_MODEL_ENGINES",
+        joinColumns = @JoinColumn(name = "aircraft_model_id"),
+        inverseJoinColumns = @JoinColumn(name = "engine_model_id")
+    )
     private List<EngineModel> certifiedEngines = new ArrayList<>();
 
     private int maxCapacity;
