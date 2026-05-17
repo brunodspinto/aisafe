@@ -103,11 +103,11 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 1. Login with Weather Person credentials (username: `weather_person`, password: `Password1`).
 2. Select **Weather > Register Weather Data** from the main menu.
-3. Select an existing Air Control Area from the presented list (e.g., `LPPT`).
-4. Enter the date and time of the observation (e.g., `2025-05-14 10:00`).
-5. Enter the weather fields: temperature, wind speed, wind direction, pressure, and visibility.
-6. Enter the data source name and format (e.g., `IPMA` / `METAR`).
-7. The system confirms: `Weather data registered successfully for area 'LPPT'.`
+3. Select an existing Air Control Area from the presented list (e.g., `PT-N`).
+4. Enter the data source provider and format (e.g., `IPMA` / `JSON`).
+5. Enter the date and time of the observation (e.g., `2025-05-14 10:00`).
+6. Enter the weather fields: temperature, wind speed, wind direction, pressure, and visibility.
+7. The system confirms: `Weather data successfully registered!`
 
 ---
 
