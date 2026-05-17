@@ -29,23 +29,18 @@ note right of ICAOCode
   uppercase letters (e.g. "TAP")
 end note
 
-package "User Aggregate" <<Rectangle>> {
-    class User <<entity, aggregate root>>
-}
-
 package "Aircraft Aggregate" <<Rectangle>> {
     class Aircraft <<entity, aggregate root>>
-}
-
-package "FlightRoute Aggregate" <<Rectangle>> {
-    class FlightRoute <<entity, aggregate root>>
 }
 
 AirTransportCompany "1" --> "1" IATACode : "identified by"
 AirTransportCompany "1" --> "1" ICAOCode : "identified by"
 
-AirTransportCompany "1" --> "0..*" User : "employs"
-AirTransportCompany "1" --> "0..*" Aircraft : "owns"
-AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
+AirTransportCompany "1" ..> "0..*" Aircraft : "fleet\n(by registrationNumber: String)"
+
+note bottom of AirTransportCompany
+  Fleet stored as Set<String>
+  (registration numbers)
+end note
 
 @enduml
