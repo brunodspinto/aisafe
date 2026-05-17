@@ -6,22 +6,30 @@ title US057 - Sub-Domain Model
 
 package "AircraftModel Aggregate" <<Rectangle>> {
     class AircraftModel <<entity, aggregate root>> {
-        - modelName
-        - aircraftType
-        - version : Long <<@Version>>
-        + addEngine(engine: EngineModel)
+        modelName
+        aircraftType
     }
 }
 
 package "EngineModel Aggregate" <<Rectangle>> {
     class EngineModel <<entity, aggregate root>> {
-        - name
-        - makerName
-        - engineType
+        name
+        thrustAtStandstill
+        thrustAtCruiseSpeed
+        TSFC
+    }
+
+    Enum EngineType {
+        TURBOPROP
+        TURBOFAN
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
     }
 }
 
 
 AircraftModel "1" --> "1..*" EngineModel : "certified with"
+EngineModel "1" --> "1" EngineType : "classified as"
 
 @enduml
