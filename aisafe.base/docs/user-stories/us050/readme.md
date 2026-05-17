@@ -104,13 +104,13 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 **To register an Air Control Area:**
 
-1. Login with Backoffice Operator credentials.
-2. Select **Air Control Management > Register Air Control Area** from the main menu.
-3. Enter the area code (e.g., `PT-N`).
-4. Enter the area name (e.g., `North Portugal`).
-5. Enter the minimum fuel required (e.g., `500.0`).
-6. Enter the geographic boundaries: north latitude, south latitude, east longitude, west longitude.
-7. The system confirms: `Air Control Area 'PT-N' registered successfully.`
+1. Login with Backoffice Operator .
+2. Select **Air Control > Register Air Control Area** from the main menu.
+3. Enter the area code (e.g., `PT-S`).
+4. Enter the area name (e.g., `South Portugal`).
+5. Enter the minimum fuel required (e.g., `50`).
+6. Enter the geographic boundaries: north latitude (e.g., `40`), south latitude (e.g., `30`), east longitude (e.g., `-6`), west longitude (e.g., `-9`).
+7. The system confirms: `Air Control Area successfully registered!`
 
 **Bootstrap verification:**
 
