@@ -98,7 +98,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 **Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap must have been executed first so that at least one Aircraft Model and Engine Models exist in the database.
 
-1. Login with Backoffice Operator credentials (e.g., username: `US050`, password: `Password1`).
+1. Login with Backoffice Operator credentials (e.g., username: `backoffice`, password: `Password1`).
 2. Select **4 — Aircraft >** from the main menu.
 3. Select **4 — Add Engine to Aircraft Model**.
 4. The system lists available aircraft models, e.g.:
