@@ -8,27 +8,29 @@ skinparam classAttributeIconSize 0
 
 title US071 Domain Model — Decommission Aircraft
 
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+}
+
 package "Aircraft Aggregate" <<Rectangle>> {
 
     class Aircraft <<entity, aggregate root>> {
-        - registeredCountry : String
-        - numberOfCrewElements : int
-        - yearOfManufacture : int
-        + decommission()
-        + isActive() : boolean
-    }
-
-    class RegistrationNumber <<identity>> {
-        - number : String
+        registrationNumber
+        registeredCountry
+        numberOfCrewElements
+        yearOfManufacture
     }
 
     class CabinConfiguration <<value object>> {
-        - firstClassSeats : int
-        - businessClassSeats : int
-        - economyClassSeats : int
+        firstClassSeats
+        businessClassSeats
+        economyClassSeats
     }
 
-    enum OperationalStatus {
+    Enum OperationalStatus {
         ACTIVE
         DECOMMISSIONED
     }
@@ -36,11 +38,11 @@ package "Aircraft Aggregate" <<Rectangle>> {
 
 package "AircraftModel Aggregate" <<Rectangle>> {
     class AircraftModel <<entity, aggregate root>> {
-        - modelName : String
+        modelName
     }
 }
 
-Aircraft "1" *-- "1" RegistrationNumber : "identified by"
+AirTransportCompany "1" --> "0..*" Aircraft : "owns"
 Aircraft "1" *-- "0..1" CabinConfiguration : "has"
 Aircraft "1" --> "1" OperationalStatus : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
