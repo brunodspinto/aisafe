@@ -96,26 +96,30 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 ## 6. Integration/Demonstration
 
-**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21.
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap must have been executed first so that at least one Aircraft Model and Engine Models exist in the database.
 
-**Scenario A: Happy Path & Duplication Prevention**
-
-1. Login with Backoffice Operator credentials.
-2. Select **Aircraft Configuration > Add Engine to Aircraft Model** from the main menu.
-3. Select an existing Aircraft Model (e.g., `Boeing 737`).
-4. Select a compatible Engine Model (e.g., `CFM56`).
-5. The system confirms: `Engine 'CFM56' successfully added to aircraft model 'Boeing 737'.`
-6. Repeat steps 2–4 with the **same** Aircraft and Engine models.
-7. The system rejects the operation with a business rule violation message.
-
-**Scenario B: Concurrency Control (Optimistic Locking)**
-
-1. Open **two separate terminal windows** and run the Backoffice Application in both.
-2. Login as `backoffice_operator` in both terminals.
-3. In **Terminal 1**, navigate to `Add Engine to Aircraft Model` and select an Aircraft Model, but do **not** confirm yet.
-4. In **Terminal 2**, select the **same** Aircraft Model, select an engine, and confirm the addition. (Operation succeeds.)
-5. Return to **Terminal 1**, select an engine, and confirm.
-6. The system detects the version mismatch and aborts the operation, displaying a user-friendly concurrency error.
+1. Login with Backoffice Operator credentials (e.g., username: `US050`, password: `Password1`).
+2. Select **4 — Aircraft >** from the main menu.
+3. Select **4 — Add Engine to Aircraft Model**.
+4. The system lists available aircraft models, e.g.:
+   ```
+   [1] 737-800 (Boeing) - PASSENGER - 1 engine(s)
+   ```
+   Enter the number of the desired model (e.g., `1`).
+5. The system lists available engine models, e.g.:
+   ```
+   [1] CFM56 (CFM International) - TURBOFAN
+   [2] PW4000 (Pratt & Whitney) - TURBOFAN
+   [3] PT6A-65B (Pratt & Whitney Canada) - TURBOPROP
+   ```
+   Select a compatible engine by number (e.g., `2` for PW4000 — same type TURBOFAN as the existing engine).
+6. The system confirms:
+   ```
+    Engine successfully added!
+     Model   : 737-800
+     Maker   : Boeing
+     Engines : 2 certified engine(s)
+   ```
 
 ---
 
@@ -125,4 +129,3 @@ The implementation is distributed across the following packages in `aisafe.base`
 - The `@Version` field on `AircraftModel` is the sole mechanism for optimistic locking; no pessimistic locking strategy is used.
 - Engine type compatibility is enforced exclusively in the domain layer (`AircraftModel.addEngine()`), keeping the controller free of business rules. Compatibility is determined by comparing the new engine's type against the first engine already certified in the list.
 - The UI must filter available engine models by engine type to reduce operator error, even though the domain enforces the rule independently.
-- **Domain model note:** The domain model V5 lists `maxRange` as a field of `AircraftModel`. This field is not yet present in the current Java implementation and should be added in a future sprint to maintain alignment with the domain model.
