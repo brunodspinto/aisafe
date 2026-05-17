@@ -1,0 +1,48 @@
+@startuml
+'skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype polyline
+'skinparam linetype orto
+skinparam classAttributeIconSize 0
+
+title US071 Domain Model — Decommission Aircraft
+
+package "Aircraft Aggregate" <<Rectangle>> {
+
+    class Aircraft <<entity, aggregate root>> {
+        - registeredCountry : String
+        - numberOfCrewElements : int
+        - yearOfManufacture : int
+        + decommission()
+        + isActive() : boolean
+    }
+
+    class RegistrationNumber <<identity>> {
+        - number : String
+    }
+
+    class CabinConfiguration <<value object>> {
+        - firstClassSeats : int
+        - businessClassSeats : int
+        - economyClassSeats : int
+    }
+
+    enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        - modelName : String
+    }
+}
+
+Aircraft "1" *-- "1" RegistrationNumber : "identified by"
+Aircraft "1" *-- "0..1" CabinConfiguration : "has"
+Aircraft "1" --> "1" OperationalStatus : "has"
+Aircraft "1" --> "1" AircraftModel : "defined by"
+
+@enduml
