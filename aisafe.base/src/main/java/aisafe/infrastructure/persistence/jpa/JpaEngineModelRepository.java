@@ -2,6 +2,7 @@ package aisafe.infrastructure.persistence.jpa;
 
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.repositories.EngineModelRepository;
+import aisafe.maker.domain.MakerName;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 import java.util.HashMap;
@@ -24,7 +25,7 @@ public class JpaEngineModelRepository
     public Optional<EngineModel> findByNameAndMaker(final String name, final String makerName) {
         final Map<String, Object> params = new HashMap<>();
         params.put("name", name);
-        params.put("makerName", makerName);
+        params.put("makerName", MakerName.valueOf(makerName));
         return matchOne("e.name = :name AND e.makerName = :makerName", params);
     }
 }
