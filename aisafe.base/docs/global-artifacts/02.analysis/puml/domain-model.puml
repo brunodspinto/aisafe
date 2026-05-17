@@ -44,11 +44,6 @@ package "User Aggregate" <<Rectangle>> {
 package "Collaborator Aggregate" <<Rectangle>> {
 
     class Collaborator <<entity, aggregate root>>
-
-    Enum CollaboratorStatus {
-        ACTIVE
-        DISABLED
-    }
 }
 
 package "AirTransportCompany Aggregate" <<Rectangle>> {
@@ -302,7 +297,6 @@ SecurityClearance "1" --> "1" SecurityLevel : "at level"
 Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
 Collaborator "0..*" --> "0..1" AirControlArea : "works for"
 Collaborator "1" --> "1" User : "is a"
-Collaborator "1" --> "1" CollaboratorStatus : "has"
 
 AirTransportCompany "1" --> "0..*" Aircraft : "owns"
 AirTransportCompany "1" --> "0..*" FlightRoute : "operates"

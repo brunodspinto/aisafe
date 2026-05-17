@@ -34,13 +34,17 @@ The justification of each aggregate boundary lives in [US011](../../user-stories
 - **`Airport`** — both IATA and ICAO codes are globally unique; an airport is associated with exactly one `AirControlArea`.
 - **`SecurityClearance`** — level + expiration date; expiration must be today or in the future.
 
-## 4. Concepts from the specification not yet modelled in Sprint 2
+## 4. Concepts added in Sprint 2 / deferred to later sprints
 
-Sprint 2 deliberately leaves the following concepts out, even though they appear in section 3.2 of the spec. They are scheduled for later sprints:
+The following concepts were introduced in Sprint 2 based on the Flight DSL (US081, US083) and simulation (US100–US103):
 
-- **Flight, Leg, Segment, Node/Junction** — appear in the Flight DSL (US081, US083) but the flight-plan domain has no aggregates yet.
-- **Aircraft physics** (lift/drag, thrust, fuel) — used only by the C simulation, no Java domain representation is needed.
-- **Route, Pilot roster** — modelled at file/seed level only; full aggregates land with US073–US077.
+- **Flight Aggregate** — `Flight`, `FlightPlan`, `FlightSegment`, `Node` — modelled and present in the domain model V6. `FlightPlan` is an entity with a lifecycle (DRAFT → VALIDATED → APPROVED / REJECTED); a flight may have multiple plans but only one approved. `FlightSegment` and `Node` are value objects.
+- **Simulation Aggregate** — `Simulation`, `SimulationReport`, `SafetyViolation`, `FlightExecutionStatus` — modelled in V6 to capture simulation state and per-flight outcomes (US109).
+
+The following concepts remain out of scope for Java modelling:
+
+- **Aircraft physics** (lift/drag, thrust, fuel) — used only by the C simulation engine; no Java aggregate is needed.
+- **Route, Pilot roster** — `FlightRoute` aggregate is modelled; full pilot roster aggregates (US075–US077) are in progress.
 
 ## 5. Cross-cutting concerns
 

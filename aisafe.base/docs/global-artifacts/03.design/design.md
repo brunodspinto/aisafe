@@ -25,7 +25,7 @@ NFR08 requires that persistence be selectable at runtime. The team implemented t
 - `PersistenceContext.repositories()` returns the active `RepositoryFactory`.
 - The factory is chosen from `application.properties` (`persistence.repositoryFactory=...`).
 - Two implementations exist: `InMemoryRepositoryFactory` (no IO) and `JpaRepositoryFactory` (Hibernate + H2 in TCP server mode).
-- Switching modes is scripted: `start-h2.bat` boots the H2 TCP server, `run-jpa.bat` / `run-inmemory.bat` set the property and launch the JVM.
+- Switching modes is scripted: `start-h2.sh` / `start-h2.bat` boots the H2 TCP server; `run-jpa.sh` / `run-jpa.bat` and `run-inmemory.sh` / `run-inmemory.bat` set the property and launch the JVM.
 
 JPA configuration is in `src/main/resources/META-INF/persistence.xml`. `hbm2ddl.auto=update` creates/upgrades schema on the fly; no migration scripts exist yet. See [persistence.md](../persistence.md).
 
@@ -44,7 +44,7 @@ The main menu (`MainMenu`) gates branches by role so that operators do not see o
 
 Every console screen extends EAPLI's `AbstractUI`. The team's conventions are:
 
-- `doShow()` must return `false` to keep the menu loop alive (see [feedback_eapli_menu_loop](../../../../memory/feedback_eapli_menu_loop.md)). Returning `true` exits the loop.
+- `doShow()` must return `false` to keep the menu loop alive. Returning `true` exits the loop and closes the current menu.
 - Numeric and date inputs are read inside `do { ... } while(invalid)` retry loops; the user cannot escape an invalid value by pressing Enter.
 - Validation errors from the domain are caught at the UI boundary and reported as `Validation Error: ...`; framework or persistence errors surface as `Error: ...`.
 
