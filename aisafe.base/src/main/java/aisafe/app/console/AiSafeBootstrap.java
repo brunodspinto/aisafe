@@ -400,10 +400,18 @@ public final class AiSafeBootstrap {
         bootstrapAdmin();
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
-        bootstrapEngineModels();
+        if (!Boolean.getBoolean("skip.bootstrap.engineModels")) {
+            bootstrapEngineModels();
+        } else {
+            System.out.println("Skipping engine models bootstrap (skip.bootstrap.engineModels=true)");
+        }
         bootstrapAirports();
         bootstrapMakers();
-        bootstrapAircraftModels();
+        if (!Boolean.getBoolean("skip.bootstrap.aircraftModels")) {
+            bootstrapAircraftModels();
+        } else {
+            System.out.println("Skipping aircraft models bootstrap (skip.bootstrap.aircraftModels=true)");
+        }
         bootstrapAirTransportCompanies();
         bootstrapCollaborators();
         bootstrapAtccUser();

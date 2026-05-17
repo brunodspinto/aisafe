@@ -11,34 +11,35 @@ int validate_simulation_params(const simulation_params_t *params) {
         fprintf(stderr, "Error: simulation parameters are NULL\n");
         return 0;
     }
-
-    if (params->start_time >= params->end_time) {
-        fprintf(stderr, "Error: start_time must be before end_time\n");
+    /* Validate ACA bounding coordinates */
+    if (params->aca_south_lat >= params->aca_north_lat) {
+        fprintf(stderr, "Error: ACA south latitude must be less than north latitude\n");
         return 0;
     }
 
-    if (params->min_latitude >= params->max_latitude) {
-        fprintf(stderr, "Error: min_latitude must be less than max_latitude\n");
+    if (params->aca_west_lon >= params->aca_east_lon) {
+        fprintf(stderr, "Error: ACA west longitude must be less than east longitude\n");
         return 0;
     }
 
-    if (params->min_longitude >= params->max_longitude) {
-        fprintf(stderr, "Error: min_longitude must be less than max_longitude\n");
+    /* number of flights must be positive and not exceed MAX_FLIGHTS */
+    if (params->n_flights <= 0 || params->n_flights > MAX_FLIGHTS) {
+        fprintf(stderr, "Error: n_flights must be between 1 and %d\n", MAX_FLIGHTS);
         return 0;
     }
 
-    if (params->max_flights <= 0) {
-        fprintf(stderr, "Error: max_flights must be positive\n");
+    if (params->safe_dist_horiz_m < 0.0) {
+        fprintf(stderr, "Error: safe_dist_horiz_m must be non-negative\n");
         return 0;
     }
 
-    if (params->safety_threshold < 0.0 || params->safety_threshold > 100.0) {
-        fprintf(stderr, "Error: safety_threshold must be between 0 and 100\n");
+    if (params->safe_dist_vert_m < 0.0) {
+        fprintf(stderr, "Error: safe_dist_vert_m must be non-negative\n");
         return 0;
     }
 
-    if (params->performance_threshold < 0.0 || params->performance_threshold > 100.0) {
-        fprintf(stderr, "Error: performance_threshold must be between 0 and 100\n");
+    if (params->max_violations <= 0) {
+        fprintf(stderr, "Error: max_violations must be positive\n");
         return 0;
     }
 

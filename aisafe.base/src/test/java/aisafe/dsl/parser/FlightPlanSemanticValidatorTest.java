@@ -61,7 +61,7 @@ class FlightPlanSemanticValidatorTest {
         assertFalse(errors.isEmpty());
         assertTrue(errors.stream().anyMatch(e -> e.message().contains("fuel")));
     }
-
+        
     @Test
     void ensureSegmentWithSameStartAndEndProducesError() {
         final SegmentAst badSegment = new SegmentAst(

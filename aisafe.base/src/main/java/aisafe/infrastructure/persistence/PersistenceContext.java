@@ -20,5 +20,9 @@ public final class PersistenceContext {
         return theFactory;
     }
 
+    public static void reset() {
+        theFactory = null;
+    }
+
     private PersistenceContext() {}
 }

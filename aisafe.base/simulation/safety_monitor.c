@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <math.h>
 #include <time.h>
 #include "safety_monitor.h"
+
+
+int kill(pid_t pid, int sig);
 
 #define SUB_STEPS 10  /* micro-steps for trajectory intersection (prevents position jumps) */
 

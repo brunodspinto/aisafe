@@ -38,10 +38,12 @@ class ListUsersControllerTest {
 
     @BeforeAll
     static void configureAuthz() {
+        // ensure a fresh in-memory repository for this test class
+        PersistenceContext.reset();
         AuthzRegistry.configure(
-                PersistenceContext.repositories().systemUsers(),
-                new AiSafePasswordPolicy(),
-                new PlainTextEncoder());
+            PersistenceContext.repositories().systemUsers(),
+            new AiSafePasswordPolicy(),
+            new PlainTextEncoder());
     }
 
     @AfterEach

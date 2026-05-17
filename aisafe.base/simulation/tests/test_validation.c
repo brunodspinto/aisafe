@@ -61,31 +61,28 @@ static void destroy_plan(flight_plan_t *plan) {
 
 static void test_validate_simulation_params(void) {
     simulation_params_t params = {
-        .start_time = 100,
-        .end_time = 200,
-        .min_latitude = 10.0,
-        .max_latitude = 20.0,
-        .min_longitude = -5.0,
-        .max_longitude = 5.0,
-        .max_flights = 3,
-        .safety_threshold = 25.0,
-        .performance_threshold = 75.0,
+        .aca_north_lat = 20.0,
+        .aca_south_lat = 10.0,
+        .aca_east_lon = 5.0,
+        .aca_west_lon = -5.0,
+        .n_flights = 3,
+        .safe_dist_horiz_m = 25.0,
+        .safe_dist_vert_m = 100.0,
+        .max_violations = 5,
     };
 
     ASSERT_TRUE(validate_simulation_params(&params) == 1, "valid simulation parameters should pass");
 
-    params.end_time = 50;
-    ASSERT_TRUE(validate_simulation_params(&params) == 0, "end_time before start_time should fail");
+    params.aca_north_lat = 5.0; /* north less than south */
+    ASSERT_TRUE(validate_simulation_params(&params) == 0, "invalid ACA latitude bounds should fail");
 
-    params.end_time = 200;
-    params.min_latitude = 30.0;
-    params.max_latitude = 20.0;
-    ASSERT_TRUE(validate_simulation_params(&params) == 0, "invalid latitude bounds should fail");
+    params.aca_north_lat = 20.0;
+    params.aca_west_lon = 10.0; /* west greater than east */
+    ASSERT_TRUE(validate_simulation_params(&params) == 0, "invalid ACA longitude bounds should fail");
 
-    params.min_latitude = 10.0;
-    params.max_latitude = 20.0;
-    params.max_flights = 0;
-    ASSERT_TRUE(validate_simulation_params(&params) == 0, "non-positive max_flights should fail");
+    params.aca_west_lon = -5.0;
+    params.n_flights = 0;
+    ASSERT_TRUE(validate_simulation_params(&params) == 0, "non-positive n_flights should fail");
 }
 
 static void test_validate_coordinate(void) {
