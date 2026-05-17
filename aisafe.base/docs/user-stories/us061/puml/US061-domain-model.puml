@@ -12,12 +12,21 @@ package "User Aggregate" <<Rectangle>> {
         name
         phoneNumber
         position
+        status
         skillsAssessmentDate
     }
+
+    class Email <<value object>> {
+        address
+    }
+
     Enum RoleType {
+        ADMIN
+        BACKOFFICE_OPERATOR
         ATCC
         PILOT
         FLIGHT_CONTROL_OPERATOR
+        WEATHER_PERSON
     }
 }
 
@@ -35,9 +44,10 @@ package "AirControlArea Aggregate" <<Rectangle>> {
     }
 }
 
-Collaborator "1" --> "1" User : "is"
+Collaborator "1" --> "1" User : "is a"
 Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
 Collaborator "0..*" --> "0..1" AirControlArea : "works for"
+User "1" *-- "1" Email : "identified by"
 User "1" --> "1..*" RoleType : "has"
 
 @enduml
