@@ -92,8 +92,8 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
                                double safe_dist_horiz_m, double safe_dist_vert_m, int max_violations) {
     int i = updated_flight_idx;
 
-    for (int j = 0; j < n_flights; j++) {
-        if (i == j || has_position[j] < 2 || !pipe_open[j]) continue;
+    for (int j = i + 1; j < n_flights; j++) {
+        if (has_position[j] < 2 || !pipe_open[j]) continue;
 
         if (check_trajectory_intersection(&prev_positions[i], &current_positions[i],
                                           &prev_positions[j], &current_positions[j],
