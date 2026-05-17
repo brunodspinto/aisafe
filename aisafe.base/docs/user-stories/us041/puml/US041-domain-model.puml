@@ -28,6 +28,6 @@ package "WeatherData Aggregate" <<Rectangle>> {
 }
 
 WeatherData "1" *-- "1" WeatherSource : "imported from"
-WeatherData "1" --> "1" AirControlArea : "recorded for"
+WeatherData "1" ..> "1" AirControlArea : "recorded for\n(by areaCode: String)"
 
 @enduml

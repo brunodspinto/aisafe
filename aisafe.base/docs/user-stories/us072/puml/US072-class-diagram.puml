@@ -1,0 +1,101 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US072 - Class Diagram (List Company Fleet)
+
+package "Presentation" {
+    class ListFleetUI {
+        # doShow() : boolean
+        - printFleet(fleet: List<Aircraft>) : void
+    }
+}
+
+package "Application" {
+    class ListFleetController {
+        - resolveCompany() : AirTransportCompany
+        - loadFleet(company: AirTransportCompany) : List<Aircraft>
+        + companyFleet() : List<Aircraft>
+        + fleetByModel(modelName: String) : List<Aircraft>
+        + fleetByMaker(makerName: String) : List<Aircraft>
+        + fleetByMinCapacity(minSeats: int) : List<Aircraft>
+        + fleetByManufactureYearFrom(fromYear: int) : List<Aircraft>
+    }
+}
+
+package "Domain" {
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - name : String
+        - fleet : Set<String>
+        + fleet() : Set<String>
+    }
+
+    class Aircraft <<entity>> <<aggregate root>> {
+        - registrationNumber : String
+        - registeredCountry : String
+        - yearOfManufacture : int
+        - operationalStatus : OperationalStatus
+        + registrationNumber() : String
+        + yearOfManufacture() : int
+    }
+
+    class CabinConfiguration <<value object>> <<@Embeddable>> {
+        - firstClassSeats : int
+        - businessClassSeats : int
+        - economyClassSeats : int
+        + totalSeats() : int
+    }
+
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        + modelName() : String
+        + maker() : Maker
+    }
+
+    class Maker <<value object>> {
+        - name : String
+        + name() : String
+    }
+
+    class Collaborator <<entity>> <<aggregate root>> {
+        + isCompanyCollaborator() : boolean
+        + airTransportCompany() : AirTransportCompany
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+        + session() : UserSession
+    }
+    class SystemUser { }
+}
+
+package "Persistence" {
+    interface AircraftRepository <<repository>> {
+        + ofIdentity(reg: String) : Optional<Aircraft>
+    }
+    interface CollaboratorRepository <<repository>> {
+        + findBySystemUser(user: SystemUser) : Optional<Collaborator>
+    }
+    class JpaAircraftRepository { }
+    class JpaCollaboratorRepository { }
+}
+
+ListFleetUI .down.> ListFleetController
+ListFleetController .down.> AirTransportCompany
+ListFleetController .down.> Aircraft
+ListFleetController .down.> AircraftRepository
+ListFleetController .down.> CollaboratorRepository
+ListFleetController .down.> AuthorizationService
+
+Collaborator "1" --> "0..1" AirTransportCompany : "belongs to >"
+Aircraft "1" *-- "1" CabinConfiguration : "has (Embedded) >"
+Aircraft "1" --> "1" AircraftModel : "references >"
+AircraftModel "1" --> "1" Maker : "made by >"
+
+JpaAircraftRepository .up.|> AircraftRepository
+JpaCollaboratorRepository .up.|> CollaboratorRepository
+
+@enduml

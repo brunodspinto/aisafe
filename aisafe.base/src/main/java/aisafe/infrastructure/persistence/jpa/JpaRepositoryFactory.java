@@ -34,7 +34,7 @@ public class JpaRepositoryFactory implements RepositoryFactory {
 
     @Override
     public UserRepository users(final TransactionalContext tx) {
-        return new JpaUserRepository(PERSISTENCE_UNIT);
+        return new JpaUserRepository(tx);
     }
 
     @Override
@@ -43,8 +43,18 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public AirTransportCompanyRepository airTransportCompanies(final TransactionalContext tx) {
+        return new JpaAirTransportCompanyRepository(tx);
+    }
+
+    @Override
     public AirTransportCompanyRepository airTransportCompanies() {
         return new JpaAirTransportCompanyRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AirControlAreaRepository airControlAreas(final TransactionalContext tx) {
+        return new JpaAirControlAreaRepository(tx);
     }
 
     @Override
@@ -53,8 +63,18 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public FlightPlanRepository flightPlans(final TransactionalContext tx) {
+        return new JpaFlightPlanRepository(tx);
+    }
+
+    @Override
     public FlightPlanRepository flightPlans() {
         return new JpaFlightPlanRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public WeatherDataRepository weatherData(final TransactionalContext tx) {
+        return new JpaWeatherDataRepository(tx);
     }
 
     @Override
@@ -68,8 +88,18 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public AirportRepository airports(final TransactionalContext tx) {
+        return new JpaAirportRepository(tx);
+    }
+
+    @Override
     public AirportRepository airports() {
         return new JpaAirportRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public EngineModelRepository engineModels(final TransactionalContext tx) {
+        return new JpaEngineModelRepository(tx);
     }
 
     @Override
@@ -78,8 +108,18 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public MakerRepository makers(final TransactionalContext tx) {
+        return new JpaMakerRepository(tx);
+    }
+
+    @Override
     public MakerRepository makers() {
         return new JpaMakerRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AircraftModelRepository aircraftModels(final TransactionalContext tx) {
+        return new JpaAircraftModelRepository(tx);
     }
 
     @Override
@@ -88,8 +128,18 @@ public class JpaRepositoryFactory implements RepositoryFactory {
     }
 
     @Override
+    public CollaboratorRepository collaborators(final TransactionalContext tx) {
+        return new JpaCollaboratorRepository(tx);
+    }
+
+    @Override
     public CollaboratorRepository collaborators() {
         return new JpaCollaboratorRepository(PERSISTENCE_UNIT);
+    }
+
+    @Override
+    public AircraftRepository aircraft(final TransactionalContext tx) {
+        return new JpaAircraftRepository(tx);
     }
 
     @Override

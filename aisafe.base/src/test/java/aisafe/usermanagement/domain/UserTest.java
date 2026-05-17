@@ -14,6 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit tests for the {@link User} aggregate root.
+ * Verifies construction, security clearance assignment, and identity.
+ */
 class UserTest {
 
     private static final SecurityClearance DUMMY_CLEARANCE =
@@ -35,7 +39,7 @@ class UserTest {
                 .withSkillsAssessmentDate(LocalDate.now());
     }
 
-    // --- User identity ---
+
 
     @Test
     void ensureUsersWithSameMecanographicNumberAreEqual() {
@@ -101,7 +105,6 @@ class UserTest {
                         DUMMY_CLEARANCE, LocalDate.now()));
     }
 
-    // --- Email (AC031.2) ---
 
     @Test
     void ensureEmailAcceptsValidFormat() {
@@ -135,7 +138,6 @@ class UserTest {
         assertEquals("user@aisafe.com", email.address());
     }
 
-    // --- SecurityClearance ---
 
     @Test
     void ensureSecurityClearanceIsActiveWhenDateIsInFuture() {
@@ -211,7 +213,6 @@ class UserTest {
         assertTrue(clearance.isActive());
     }
 
-    // --- Email ---
 
     @Test
     void ensureEmailEqualityBasedOnAddress() {
@@ -228,7 +229,6 @@ class UserTest {
         assertNotEquals(a, b);
     }
 
-    // --- MecanographicNumber ---
 
     @Test
     void ensureMecanographicNumberRejectsNull() {
@@ -292,7 +292,7 @@ class UserTest {
                 () -> user.updateContact(new Email("new@aisafe.com"), "   "));
     }
 
-    // --- Getters ---
+
     @Test
     void ensureGettersReturnCorrectValues() {
         final User user = baseBuilder().withMecanographicNumber("GETTERS")
@@ -304,17 +304,164 @@ class UserTest {
     }
 
     @Test
-    void ensureSystemUserGetterWorks() {
-        final var systemUser = dummySystemUser("user_sys", AiSafeRoles.ATCC);
-        final User user = baseBuilder().withMecanographicNumber("SYS")
-                .withSystemUser(systemUser).build();
-        assertEquals(systemUser, user.systemUser());
-    }
-
-    @Test
     void ensureIdentityReturnsMecanographicNumber() {
         final User user = baseBuilder().withMecanographicNumber("IDENTITY")
                 .withSystemUser(dummySystemUser("user_id", AiSafeRoles.ATCC)).build();
         assertEquals(MecanographicNumber.valueOf("IDENTITY"), user.identity());
+    }
+
+    @Test
+    void ensureSecurityClearanceLevelGetterWorks() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertEquals(SecurityLevel.HIGH, clearance.level());
+    }
+
+    @Test
+    void ensureSecurityClearanceExpirationDateGetterWorks() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance clearance = new SecurityClearance(SecurityLevel.LOW, date);
+        assertEquals(date, clearance.expirationDate());
+    }
+
+    @Test
+    void ensureSecurityClearanceToStringContainsLevel() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertTrue(clearance.toString().contains("HIGH"));
+    }
+
+    @Test
+    void ensureSecurityClearanceHashCodeIsConsistent() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, date);
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.HIGH, date);
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureMecanographicNumberToStringReturnsValue() {
+        final MecanographicNumber number = MecanographicNumber.valueOf("12345");
+        assertEquals("12345", number.toString());
+    }
+
+    @Test
+    void ensureMecanographicNumberHashCodeIsConsistent() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        final MecanographicNumber b = MecanographicNumber.valueOf("12345");
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsTrueForSameInstance() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertEquals(a, a);
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsFalseForNull() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertNotEquals(null, a);
+    }
+
+    @Test
+    void ensureMecanographicNumberEqualsReturnsFalseForDifferentType() {
+        final MecanographicNumber a = MecanographicNumber.valueOf("12345");
+        assertNotEquals("12345", a);
+    }
+
+    @Test
+    void ensureEmailToStringReturnsAddress() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals("user@aisafe.com", email.toString());
+    }
+
+    @Test
+    void ensureEmailHashCodeIsConsistent() {
+        final Email a = new Email("user@aisafe.com");
+        final Email b = new Email("user@aisafe.com");
+        assertEquals(a.hashCode(), b.hashCode());
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsTrueForSameInstance() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals(email, email);
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsFalseForNull() {
+        final Email email = new Email("user@aisafe.com");
+        assertNotEquals(null, email);
+    }
+
+    @Test
+    void ensureEmailEqualsReturnsFalseForDifferentType() {
+        final Email email = new Email("user@aisafe.com");
+        assertNotEquals("user@aisafe.com", email);
+    }
+
+    @Test
+    void ensureEmailAddressGetterWorks() {
+        final Email email = new Email("user@aisafe.com");
+        assertEquals("user@aisafe.com", email.address());
+    }
+
+    @Test
+    void ensureEmailRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> new Email(null));
+    }
+
+
+    @Test
+    void ensureSecurityLevelGetCodeReturnsCorrectValues() {
+        assertEquals(1, SecurityLevel.LOW.getCode());
+        assertEquals(2, SecurityLevel.GUARDED.getCode());
+        assertEquals(3, SecurityLevel.ELEVATED.getCode());
+        assertEquals(4, SecurityLevel.HIGH.getCode());
+        assertEquals(5, SecurityLevel.CRITICAL.getCode());
+    }
+
+    @Test
+    void ensureSecurityLevelFromCodeReturnsCorrectLevel() {
+        assertEquals(SecurityLevel.LOW, SecurityLevel.fromCode(1));
+        assertEquals(SecurityLevel.GUARDED, SecurityLevel.fromCode(2));
+        assertEquals(SecurityLevel.ELEVATED, SecurityLevel.fromCode(3));
+        assertEquals(SecurityLevel.HIGH, SecurityLevel.fromCode(4));
+        assertEquals(SecurityLevel.CRITICAL, SecurityLevel.fromCode(5));
+    }
+
+
+    @Test
+    void ensureSecurityClearanceNotEqualToNull() {
+        final SecurityClearance clearance =
+                new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        assertNotEquals(null, clearance);
+    }
+
+    @Test
+    void ensureSecurityClearanceWithSameLevelButDifferentDateIsNotEqual() {
+        final SecurityClearance a = new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
+        final SecurityClearance b = new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(2));
+        assertNotEquals(a, b);
+    }
+
+    @Test
+    void ensureSecurityClearanceToStringContainsExpirationDate() {
+        final LocalDate date = LocalDate.now().plusYears(1);
+        final SecurityClearance clearance = new SecurityClearance(SecurityLevel.LOW, date);
+        assertTrue(clearance.toString().contains(date.toString()));
+    }
+
+
+    @Test
+    void ensureUserSkillsAssessmentDateGetterReturnsCorrectValue() {
+        final LocalDate assessmentDate = LocalDate.now().plusDays(10);
+        final User user = baseBuilder()
+                .withMecanographicNumber("SKILLS1")
+                .withSystemUser(dummySystemUser("user_skills", AiSafeRoles.PILOT))
+                .withSkillsAssessmentDate(assessmentDate)
+                .build();
+        assertEquals(assessmentDate, user.skillsAssessmentDate());
     }
 }

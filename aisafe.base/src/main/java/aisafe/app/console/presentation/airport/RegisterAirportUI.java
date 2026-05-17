@@ -6,6 +6,10 @@ import aisafe.airport.domain.Airport;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Airport" use case (US052).
+ * Collects airport details including IATA/ICAO codes, location, altitude, and air control area.
+ */
 public class RegisterAirportUI extends AbstractUI {
 
     private final RegisterAirportController controller = new RegisterAirportController();

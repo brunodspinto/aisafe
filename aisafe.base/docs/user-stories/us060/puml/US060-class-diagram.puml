@@ -28,9 +28,12 @@ package "aisafe.airtransportcompany.domain" {
     class AirTransportCompany <<entity, aggregate root>> {
         -name : String
         -icaoCode : ICAOCode
+        -fleet : Set<String>
         +identity() : IATACode
         +name() : String
         +icaoCode() : ICAOCode
+        +addAircraftToFleet(aircraft : Aircraft) : void
+        +fleet() : Set<String>
     }
 
     class IATACode <<value object, identity>> {

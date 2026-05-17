@@ -18,7 +18,7 @@ BOP -> UI : asks to add an engine to an aircraft model
 activate UI
 
 UI -> CTRL** : create()
-UI -> CTRL : activeAircraftModels()
+UI -> CTRL : allAircraftModels()
 activate CTRL
 
 CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.BACKOFFICE_OPERATOR)
@@ -40,7 +40,7 @@ deactivate UI
 BOP -> UI : selects an Aircraft Model
 activate UI
 
-UI -> CTRL : availableEngineModels()
+UI -> CTRL : allEngineModels()
 activate CTRL
 
 CTRL -> EMREPO : findAll()
@@ -57,17 +57,17 @@ deactivate UI
 BOP -> UI : selects an Engine Model
 activate UI
 
-UI -> CTRL : addEngineToAircraftModel(selectedAircraftModel, selectedEngineModel)
+UI -> CTRL : addEngine(selectedAircraftModel, selectedEngineModel)
 activate CTRL
 
 
-CTRL -> AM : addCertifiedEngine(selectedEngineModel)
+CTRL -> AM : addEngine(selectedEngineModel)
 activate AM
 
-note right of AM: Validates compatibility (US057.1)\nand duplication (US057.2).
+note right of AM: Validates compatibility (AC057.1)\nand duplication (AC057.2).
 
-AM -> AM : certifiedEngineModels.add(selectedEngineModel.identity())
-note right of AM: Stores only the Engine Name (String)\nto maintain Low Coupling\nbetween Aggregate Roots.
+AM -> AM : certifiedEngines.add(selectedEngineModel)
+note right of AM: Stores EngineModel entity\nvia @ManyToMany association.
 
 AM --> CTRL : (success)
 deactivate AM

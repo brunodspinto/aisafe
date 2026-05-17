@@ -14,24 +14,38 @@ package "Application Layer" {
         -authz : AuthorizationService
         -repository : FlightPlanRepository
         -parser : FlightPlanParserFacade
-        +createFromFile(filePath) : FlightPlan
-        -readFile(filePath) : String
-        -buildErrorMessage(errors) : String
+        +createFromFile(filePath : String) : FlightPlan
+        -readFile(filePath : String) : String
+        -buildErrorMessage(errors : List<ParseError>) : String
     }
 }
 
 package "DSL Layer" {
     class FlightPlanParserFacade {
-        +parse(inputDsl) : ParseResult
-        -toFlightPlan(ctx) : FlightPlanAst
-        -toLeg(ctx) : LegAst
-        -toSegment(ctx) : SegmentAst
+        +parse(inputDsl : String) : ParseResult
+    }
+
+    class FlightPlanValidationListener <<listener>> {
+        -errors : List<ParseError>
+        +FlightPlanValidationListener(errors)
+        +exitWindDecl(ctx) : void
+        +exitCoordinate(ctx) : void
+    }
+
+    class FlightPlanAstBuilderVisitor <<visitor>> {
+        +visitFlight(ctx) : FlightPlanAst
+        +visitLeg(ctx) : LegAst
+        +visitSegment(ctx) : SegmentAst
+        +visitDeparture(ctx) : EndpointAst
+        +visitArrival(ctx) : EndpointAst
+        +visitRoute(ctx) : RouteAst
+        +visitFuel(ctx) : FuelAst
+        +visitCoordinate(ctx) : CoordinateAst
     }
 
     class FlightPlanSemanticValidator <<domain service>> {
-        +validate(plan) : List<ParseError>
+        +validate(plan : FlightPlanAst) : List<ParseError>
         -validateLegs(plan, errors)
-        -validateSegment(seg, legN, segN, errors)
         -validateRouteCoherence(plan, errors)
         -validateNoAirportVisitedTwice(plan, errors)
         -validateDateTime(date, time, ctx, errors)
@@ -48,35 +62,35 @@ package "DSL Layer" {
     }
 
     class ParseError <<record>> {
-        -line : int
-        -column : int
-        -message : String
-        -offendingSymbol : String
+        +line : int
+        +column : int
+        +message : String
+        +offendingSymbol : String
     }
 }
 
 package "DSL AST" {
     class FlightPlanAst <<record>> {
-        -identifier : String
-        -flightType : FlightType
-        -legs : List<LegAst>
+        +identifier : String
+        +flightType : FlightType
+        +legs : List<LegAst>
     }
 
     class LegAst <<record>> {
-        -departure : EndpointAst
-        -arrival : EndpointAst
-        -route : RouteAst
-        -segments : List<SegmentAst>
-        -fuel : FuelAst
+        +departure : EndpointAst
+        +arrival : EndpointAst
+        +route : RouteAst
+        +segments : List<SegmentAst>
+        +fuel : FuelAst
     }
 
     class SegmentAst <<record>> {
-        -from : CoordinateAst
-        -to : CoordinateAst
-        -altitudeMeters : double
-        -widthMeters : double
-        -windSpeed : double
-        -windDirection : double
+        +from : CoordinateAst
+        +to : CoordinateAst
+        +altitudeMeters : double
+        +widthMeters : double
+        +windSpeed : double
+        +windDirection : double
     }
 
     enum FlightType {
@@ -87,7 +101,7 @@ package "DSL AST" {
 
 package "Domain Layer" {
     class FlightPlan <<entity, aggregate root>> {
-        -designator : String
+        -designator : FlightPlanDesignator
         -flightType : String
         -status : FlightPlanStatus
         -dslContent : String
@@ -96,8 +110,14 @@ package "Domain Layer" {
         +flightType() : String
         +status() : FlightPlanStatus
         +dslContent() : String
-        +identity() : String
+        +identity() : FlightPlanDesignator
         +sameAs(other) : boolean
+    }
+
+    class FlightPlanDesignator <<value object, EmbeddedId>> {
+        -value : String
+        +{static} valueOf(code : String) : FlightPlanDesignator
+        +toString() : String
     }
 
     enum FlightPlanStatus {
@@ -110,13 +130,8 @@ package "Domain Layer" {
 package "Repository Layer" {
     interface FlightPlanRepository {
     }
-
-    class InMemoryFlightPlanRepository {
-    }
-
-    class JpaFlightPlanRepository {
-        +JpaFlightPlanRepository(puName)
-    }
+    class InMemoryFlightPlanRepository
+    class JpaFlightPlanRepository
 }
 
 package "EAPLI Framework" <<frame>> {
@@ -125,13 +140,14 @@ package "EAPLI Framework" <<frame>> {
 
 CreateFlightPlanFromFileUI ..> CreateFlightPlanFromFileController : uses
 CreateFlightPlanFromFileController ..> AuthorizationService : checks PILOT role
-CreateFlightPlanFromFileController ..> FlightPlanParserFacade : parses DSL
-CreateFlightPlanFromFileController ..> FlightPlanRepository : saves FlightPlan
-CreateFlightPlanFromFileController ..> FlightPlan : creates
+CreateFlightPlanFromFileController ..> FlightPlanParserFacade : parse(dslContent)
+CreateFlightPlanFromFileController ..> FlightPlanRepository : save(flightPlan)
+CreateFlightPlanFromFileController ..> FlightPlan : fromDsl(ast, dslContent)
 
-FlightPlanParserFacade ..> FlightPlanSemanticValidator : validates AST
+FlightPlanParserFacade ..> FlightPlanValidationListener : walk(listener, root)
+FlightPlanParserFacade ..> FlightPlanAstBuilderVisitor : visit(root.flight())
+FlightPlanParserFacade ..> FlightPlanSemanticValidator : validate(ast)
 FlightPlanParserFacade ..> ParseResult : returns
-FlightPlanParserFacade ..> FlightPlanAst : builds
 
 ParseResult *-- FlightPlanAst
 ParseResult *-- ParseError
@@ -140,7 +156,8 @@ FlightPlanAst *-- LegAst
 FlightPlanAst --> FlightType
 LegAst *-- SegmentAst
 
-FlightPlan --> FlightPlanStatus : has
+FlightPlan --> FlightPlanStatus
+FlightPlan --> FlightPlanDesignator
 
 FlightPlanRepository <|.. InMemoryFlightPlanRepository
 FlightPlanRepository <|.. JpaFlightPlanRepository

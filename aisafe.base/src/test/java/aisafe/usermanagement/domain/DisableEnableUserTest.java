@@ -2,6 +2,7 @@ package aisafe.usermanagement.domain;
 
 import eapli.framework.infrastructure.authz.domain.model.NilPasswordPolicy;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
+import eapli.framework.infrastructure.authz.domain.model.Role;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import org.junit.jupiter.api.Test;
@@ -16,16 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class DisableEnableUserTest {
 
     private static final SecurityClearance DUMMY_CLEARANCE =
-            new SecurityClearance(SecurityLevel.LOW, LocalDate.now().plusYears(1));
+            new SecurityClearance(SecurityLevel.HIGH, LocalDate.now().plusYears(1));
 
-    private SystemUser dummySystemUser(final String username) {
+    private static SystemUser dummySystemUser(final String username, final Role... roles) {
         return new SystemUserBuilder(new NilPasswordPolicy(), new PlainTextEncoder())
-                .with(username, "duMMy1", "Dummy", "User", "dummy@aisafe.com")
-                .withRoles(AiSafeRoles.ADMIN)
+                .with(username, "duMMy1", "Dummy", "User", username + "@aisafe.com")
+                .withRoles(roles)
                 .build();
     }
 
-    private User buildUser(final SystemUser sys, final String mecNumber) {
+    private static User buildUser(final SystemUser sys, final String mecNumber) {
         return new UserBuilder()
                 .withSystemUser(sys)
                 .withMecanographicNumber(mecNumber)
@@ -37,26 +38,22 @@ class DisableEnableUserTest {
                 .build();
     }
 
-    // AC032.1 — disable an active user
-
     @Test
-    void ensureNewUserIsActiveByDefault() {
-        final SystemUser sys = dummySystemUser("user1");
+    void ensureNewSystemUserStartsActive() {
+        final SystemUser sys = dummySystemUser("user0", AiSafeRoles.ADMIN);
         assertTrue(sys.isActive());
     }
 
     @Test
     void ensureActiveUserCanBeDeactivated() {
-        final SystemUser sys = dummySystemUser("user2");
+        final SystemUser sys = dummySystemUser("user2", AiSafeRoles.ADMIN);
         sys.deactivate(Calendar.getInstance());
         assertFalse(sys.isActive());
     }
 
-    // AC032.2 — re-enable a disabled user
-
     @Test
     void ensureInactiveUserCanBeReactivated() {
-        final SystemUser sys = dummySystemUser("user3");
+        final SystemUser sys = dummySystemUser("user3", AiSafeRoles.ADMIN);
         sys.deactivate(Calendar.getInstance());
         sys.activate();
         assertTrue(sys.isActive());
@@ -64,19 +61,16 @@ class DisableEnableUserTest {
 
     @Test
     void ensureReactivatedUserIsFullyActive() {
-        final SystemUser sys = dummySystemUser("user4");
+        final SystemUser sys = dummySystemUser("user4", AiSafeRoles.ADMIN);
         sys.deactivate(Calendar.getInstance());
         sys.activate();
-        // second deactivation must be possible (user is truly active again)
         sys.deactivate(Calendar.getInstance());
         assertFalse(sys.isActive());
     }
 
-    // AC032.5 — graceful handling of edge cases
-
     @Test
     void ensureDeactivatingAlreadyInactiveUserThrows() {
-        final SystemUser sys = dummySystemUser("user5");
+        final SystemUser sys = dummySystemUser("user5", AiSafeRoles.ADMIN);
         sys.deactivate(Calendar.getInstance());
         assertThrows(IllegalStateException.class,
                 () -> sys.deactivate(Calendar.getInstance()));
@@ -84,17 +78,15 @@ class DisableEnableUserTest {
 
     @Test
     void ensureActivatingAlreadyActiveUserIsIdempotent() {
-        final SystemUser sys = dummySystemUser("user6");
+        final SystemUser sys = dummySystemUser("user6", AiSafeRoles.ADMIN);
         assertTrue(sys.isActive());
-        sys.activate(); // should not throw
+        sys.activate();
         assertTrue(sys.isActive());
     }
 
-    // AC032.3 — User aggregate reflects SystemUser active state
-
     @Test
     void ensureUserAggregateReflectsDeactivatedState() {
-        final SystemUser sys = dummySystemUser("user7");
+        final SystemUser sys = dummySystemUser("user7", AiSafeRoles.ADMIN);
         final User user = buildUser(sys, "MECNUM1");
         assertTrue(user.systemUser().isActive());
         sys.deactivate(Calendar.getInstance());
@@ -102,11 +94,13 @@ class DisableEnableUserTest {
     }
 
     @Test
-    void ensureUserAggregateReflectsReactivatedState() {
-        final SystemUser sys = dummySystemUser("user8");
-        final User user = buildUser(sys, "MECNUM2");
-        sys.deactivate(Calendar.getInstance());
-        sys.activate();
-        assertTrue(user.systemUser().isActive());
+    void ensureMultipleToggleCyclesPreserveState() {
+        final SystemUser sys = dummySystemUser("user8", AiSafeRoles.ADMIN);
+        for (int i = 0; i < 3; i++) {
+            sys.deactivate(Calendar.getInstance());
+            assertFalse(sys.isActive());
+            sys.activate();
+            assertTrue(sys.isActive());
+        }
     }
 }

@@ -3,6 +3,10 @@ package aisafe.airport.domain;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link GeoCoordinate} value object.
+ * Verifies latitude and longitude range validation.
+ */
 class GeoCoordinateTest {
 
     @Test

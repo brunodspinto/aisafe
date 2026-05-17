@@ -1,6 +1,7 @@
 package aisafe.weatherdata.application;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -47,7 +48,7 @@ public class RegisterWeatherDataController {
 
         final WeatherSource source = new WeatherSource(provider, format);
         final WeatherData weatherData = new WeatherData(
-                areaCode, source, date,
+                AirControlAreaCode.valueOf(areaCode), source, date,
                 temperature, windSpeed, windDirection,
                 pressure, visibility);
 

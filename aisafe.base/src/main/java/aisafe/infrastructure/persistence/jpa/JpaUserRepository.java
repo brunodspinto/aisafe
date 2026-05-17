@@ -3,6 +3,7 @@ package aisafe.infrastructure.persistence.jpa;
 import aisafe.usermanagement.domain.MecanographicNumber;
 import aisafe.usermanagement.domain.User;
 import aisafe.usermanagement.repositories.UserRepository;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.Username;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 import java.util.HashMap;
@@ -15,6 +16,10 @@ public class JpaUserRepository
 
     public JpaUserRepository(final String puName) {
         super(puName, "mecanographicNumber");
+    }
+
+    public JpaUserRepository(final TransactionalContext tx) {
+        super(tx, "mecanographicNumber");
     }
 
     @Override

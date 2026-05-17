@@ -4,6 +4,11 @@ import aisafe.auth.AuthenticationContext;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for user authentication.
+ * Prompts for credentials and delegates to {@link aisafe.auth.AuthenticationContext}.
+ * Allows up to three login attempts before aborting.
+ */
 public class LoginUI extends AbstractUI {
 
     private static final int MAX_ATTEMPTS = 3;

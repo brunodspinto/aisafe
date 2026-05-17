@@ -25,7 +25,7 @@ Test: Unit tests for `Maker` (94% coverage) and `AircraftModel` (93% coverage), 
 - **AC055.1** The aircraft model must have a name and a manufacturer (`Maker`), and their combination must be unique in the system.
 - **AC055.2** At least one certified engine model must be associated at creation time.
 - **AC055.3** The aircraft model must have a type: `PASSENGER`, `CARGO`, or `MIXED`.
-- **AC055.4** The aircraft model must have valid flight characteristics: empty weight, MTOW, MZFW, max fuel capacity, service ceiling, cruise speed, wing span, wing area, drag coefficient and lift coefficient — all strictly positive. MTOW must be greater than or equal to empty weight.
+- **AC055.4** The aircraft model must have valid flight characteristics: empty weight, MTOW, MZFW, max fuel capacity, service ceiling, cruise speed, wing span, wing area, drag coefficient, lift coefficient and max range — all strictly positive. MTOW must be greater than or equal to empty weight.
 - **AC055.5** This must also be achievable by a bootstrap process.
 
 **Dependencies/References:**
@@ -98,7 +98,7 @@ void ensureTwoModelsWithSameNameAndMakerAreEqual() {
             "737-800", validMaker(), AircraftType.CARGO,
             41140, 79016, 62732, 20894,
             12500, 230, 34.3, 125.0,
-            0.026, 1.5, validEngine()
+            0.026, 1.5, 5765.0, validEngine()
     );
     assertEquals(a, b);
 }
@@ -114,7 +114,7 @@ void ensureTwoModelsWithDifferentNamesAreNotEqual() {
             "737-900", validMaker(), AircraftType.PASSENGER,
             41140, 79016, 62732, 20894,
             12500, 230, 34.3, 125.0,
-            0.026, 1.5, validEngine()
+            0.026, 1.5, 5765.0, validEngine()
     );
     assertNotEquals(a, b);
 }
@@ -133,7 +133,7 @@ void ensureFirstEngineCannotBeNull() {
             new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                     41140, 79016, 62732, 20894,
                     12500, 230, 34.3, 125.0,
-                    0.026, 1.5, null));
+                    0.026, 1.5, 5765.0, null));
 }
 ```
 
@@ -173,7 +173,7 @@ void ensureAircraftTypeCannotBeNull() {
             new AircraftModel("737-800", validMaker(), null,
                     41140, 79016, 62732, 20894,
                     12500, 230, 34.3, 125.0,
-                    0.026, 1.5, validEngine()));
+                    0.026, 1.5, 5765.0, validEngine()));
 }
 ```
 
@@ -190,7 +190,7 @@ void ensureEmptyWeightMustBePositive() {
             new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                     0, 79016, 62732, 20894,
                     12500, 230, 34.3, 125.0,
-                    0.026, 1.5, validEngine()));
+                    0.026, 1.5, 5765.0, validEngine()));
 }
 ```
 
@@ -203,7 +203,7 @@ void ensureMTOWMustBeGreaterThanEmptyWeight() {
             new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
                     79016, 41140, 62732, 20894,
                     12500, 230, 34.3, 125.0,
-                    0.026, 1.5, validEngine()));
+                    0.026, 1.5, 5765.0, validEngine()));
 }
 ```
 
@@ -279,10 +279,12 @@ mvn clean test
 **To run the application:**
 ```bash
 # For development and quick testing (data is lost on exit)
-./run-bootstrap.sh && ./run-inmemory.sh
+./run-inmemory.sh
 
-# For demonstration with persistent data
-./run-bootstrap.sh && ./run-jpa.sh
+# For demonstration with persistent data (requires H2 server in a separate terminal)
+./start-h2.sh      # Terminal 1 — keep running
+./run-bootstrap.sh # Terminal 2 — first time only
+./run-jpa.sh       # Terminal 2 — every time
 ```
 
 **To register an aircraft model:**

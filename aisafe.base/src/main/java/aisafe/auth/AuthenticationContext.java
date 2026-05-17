@@ -12,14 +12,21 @@ import java.util.Optional;
 public final class AuthenticationContext {
 
 	/**
-	 * Authenticate in AISafe using eAPLI infrastructure.
+	 * Authenticates a user against the EAPLI infrastructure.
+	 *
+	 * @param username the login username
+	 * @param password the plaintext password
+	 * @return {@code true} if authentication succeeded; {@code false} otherwise
 	 */
 	public static boolean authenticate(final String username, final String password) {
 		return AuthzRegistry.authenticationService().authenticate(username, password, (Role) null).isPresent();
 	}
 
 	/**
-		 * Session creation must be done through authenticate(username, password).
+	 * Not supported — session creation must go through {@link #authenticate(String, String)}.
+	 *
+	 * @param user the user to set (ignored; pass {@code null} to clear the session)
+	 * @throws UnsupportedOperationException always, unless {@code user} is null or equals the current user
 	 */
 	public static void setCurrentUser(final SystemUser user) {
 		if (user == null) {
@@ -34,14 +41,18 @@ public final class AuthenticationContext {
 	}
 
 	/**
-	 * Get the currently authenticated user, if any.
+	 * Returns the currently authenticated user, if any.
+	 *
+	 * @return an {@link Optional} containing the authenticated {@link SystemUser}, or empty if no session is active
 	 */
 	public static Optional<SystemUser> currentUser() {
 		return AuthzRegistry.authorizationService().session().map(s -> s.authenticatedUser());
 	}
 
 	/**
-	 * Check if a user is currently authenticated.
+	 * Checks whether a user is currently authenticated.
+	 *
+	 * @return {@code true} if an active session exists; {@code false} otherwise
 	 */
 	public static boolean isAuthenticated() {
 		return AuthzRegistry.authorizationService().session().isPresent();
@@ -55,7 +66,10 @@ public final class AuthenticationContext {
 	}
 
 	/**
-	 * Check if current user has a specific role.
+	 * Checks whether the current user has the given role.
+	 *
+	 * @param role the role to check; returns {@code false} if {@code null}
+	 * @return {@code true} if the authenticated user has the role; {@code false} otherwise
 	 */
 	public static boolean hasRole(final Role role) {
 		if (role == null) {
@@ -65,7 +79,10 @@ public final class AuthenticationContext {
 	}
 
 	/**
-	 * Check if current user has ANY of the given roles.
+	 * Checks whether the current user has at least one of the given roles.
+	 *
+	 * @param roles the roles to check; returns {@code false} if null or empty
+	 * @return {@code true} if the authenticated user holds any of the specified roles; {@code false} otherwise
 	 */
 	public static boolean hasAnyRole(final Role... roles) {
 		if (roles == null || roles.length == 0) {

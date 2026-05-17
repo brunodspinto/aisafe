@@ -19,6 +19,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Aggregate root representing an air transport company (airline).
+ * Identified by a 2-letter IATA code; the ICAO code and company name must also be unique.
+ * Maintains the set of aircraft registration numbers that form the company's fleet.
+ */
 @Entity
 @Table(name = "T_AIR_TRANSPORT_COMPANY",
         uniqueConstraints = {
@@ -26,8 +31,6 @@ import java.util.Set;
                 @UniqueConstraint(columnNames = "icao_code")
         })
 public class AirTransportCompany implements AggregateRoot<IATACode> {
-
-    private static final long serialVersionUID = 1L;
 
     @Version
     private Long version;
@@ -47,6 +50,14 @@ public class AirTransportCompany implements AggregateRoot<IATACode> {
     @Column(name = "registration_number")
     private Set<String> fleet = new HashSet<>();
 
+    /**
+     * Creates a new air transport company.
+     *
+     * @param name     company name (non-blank, unique)
+     * @param iataCode 2-letter IATA identifier (primary key)
+     * @param icaoCode 2–3-letter ICAO identifier (unique)
+     * @throws IllegalArgumentException if any argument is null or blank
+     */
     public AirTransportCompany(final String name, final IATACode iataCode, final ICAOCode icaoCode) {
         if (name == null || name.isBlank())
             throw new IllegalArgumentException("Company name cannot be blank");
@@ -63,15 +74,25 @@ public class AirTransportCompany implements AggregateRoot<IATACode> {
         // for ORM
     }
 
+    /**
+     * Adds an aircraft's registration number to this company's fleet.
+     *
+     * @param aircraft the aircraft to add (non-null)
+     * @throws IllegalArgumentException if {@code aircraft} is null
+     */
     public void addAircraftToFleet(final Aircraft aircraft) {
         if (aircraft == null)
             throw new IllegalArgumentException("Aircraft cannot be null.");
-        fleet.add(aircraft.registrationNumber());
+        fleet.add(aircraft.registrationNumber().toString());
     }
 
+    /** @return unmodifiable set of aircraft registration numbers in this company's fleet */
     public Set<String> fleet() { return Collections.unmodifiableSet(fleet); }
 
+    /** @return company name */
     public String name() { return name; }
+
+    /** @return ICAO airline designator */
     public ICAOCode icaoCode() { return icaoCode; }
 
     @Override

@@ -3,12 +3,20 @@ package aisafe.airport.domain;
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 
+/**
+ * Value object representing a 4-letter ICAO airport code (e.g. "LPPT").
+ */
 @Embeddable
-public class AirportICAOCode implements ValueObject {
+public class AirportICAOCode implements ValueObject, Comparable<AirportICAOCode> {
 
-    private static final long serialVersionUID = 1L;
     private String icaoCode;
 
+    /**
+     * Creates a new ICAO code.
+     *
+     * @param code exactly 4 uppercase letters (e.g. "LPPT")
+     * @throws IllegalArgumentException if the format is not met
+     */
     public AirportICAOCode(final String code) {
         if (code == null || code.isBlank())
             throw new IllegalArgumentException("Airport ICAO code cannot be empty.");
@@ -20,10 +28,17 @@ public class AirportICAOCode implements ValueObject {
 
     protected AirportICAOCode() {}
 
+    /**
+     * Factory method — equivalent to the constructor.
+     *
+     * @param code the raw ICAO string
+     * @return a new {@code AirportICAOCode} instance
+     */
     public static AirportICAOCode valueOf(final String code) {
         return new AirportICAOCode(code);
     }
 
+    /** @return the 4-letter ICAO string */
     public String code() { return icaoCode; }
 
     @Override
@@ -38,4 +53,9 @@ public class AirportICAOCode implements ValueObject {
 
     @Override
     public String toString() { return icaoCode; }
+
+    @Override
+    public int compareTo(final AirportICAOCode other) {
+        return icaoCode.compareTo(other.icaoCode);
+    }
 }

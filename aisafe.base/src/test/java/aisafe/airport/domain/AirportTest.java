@@ -1,14 +1,19 @@
 package aisafe.airport.domain;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Airport} aggregate root.
+ * Verifies construction validation, identity, and equality.
+ */
 class AirportTest {
 
     private static AirControlArea validArea() {
-        return new AirControlArea("PT-N", "Northern Portugal", 1200.0,
+        return new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0,
                 new GeoBoundary(42.15, 36.95, -6.18, -9.50));
     }
 
@@ -40,7 +45,7 @@ class AirportTest {
         assertEquals(38.7756, airport.location().latitude());
         assertEquals(-9.1354, airport.location().longitude());
         assertEquals(113.0, airport.altitude());
-        assertEquals("PT-N", airport.airControlArea().areaCode());
+        assertEquals("PT-N", airport.airControlArea().areaCode().toString());
     }
 
     @Test

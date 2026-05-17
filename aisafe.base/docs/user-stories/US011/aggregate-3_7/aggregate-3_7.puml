@@ -1,0 +1,23 @@
+@startuml aggregate-3_7
+skinparam shadowing false
+title Aggregate: AirControlArea — Register an air control area (US050)
+
+participant ":RegisterAirControlAreaUI" as UI
+participant ":RegisterAirControlAreaController" as CTRL
+participant "area:AirControlArea" as DOMAIN
+participant ":AirControlAreaRepository" as REPO
+
+activate UI
+UI -> CTRL : registerAirControlArea(areaCode, name,\nminimumFuelRequired, geoBoundary)
+activate CTRL
+CTRL -> DOMAIN** : create(areaCode, name, minimumFuelRequired, geoBoundary)
+
+CTRL -> REPO : save(area)
+activate REPO
+REPO --> CTRL : savedArea
+deactivate REPO
+CTRL --> UI : savedArea
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

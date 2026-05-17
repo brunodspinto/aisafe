@@ -9,6 +9,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Remove Engine Model from Aircraft Model" use case (US056).
+ * Lets the user pick an aircraft model and de-certify one of its engines.
+ */
 public class RemoveEngineFromAircraftModelUI extends AbstractUI {
 
     private final RemoveEngineFromAircraftModelController controller =
@@ -23,7 +27,7 @@ public class RemoveEngineFromAircraftModelUI extends AbstractUI {
                 System.out.printf("  [%d] %s (%s) - %s - %d engine(s)%n",
                         models.size() + 1,
                         model.modelName(),
-                        model.maker().name(),
+                        model.makerName(),
                         model.aircraftType(),
                         model.certifiedEngines().size());
                 models.add(model);
@@ -64,7 +68,7 @@ public class RemoveEngineFromAircraftModelUI extends AbstractUI {
 
             System.out.println("\n Engine successfully removed!");
             System.out.println("  Model   : " + updated.modelName());
-            System.out.println("  Maker   : " + updated.maker().name());
+            System.out.println("  Maker   : " + updated.makerName());
             System.out.println("  Engines : " + updated.certifiedEngines().size() + " certified engine(s)");
 
         } catch (final IllegalArgumentException e) {

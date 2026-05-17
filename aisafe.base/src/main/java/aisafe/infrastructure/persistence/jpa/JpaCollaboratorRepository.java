@@ -4,6 +4,7 @@ import aisafe.aircontrolarea.domain.AirControlArea;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.collaborator.domain.Collaborator;
 import aisafe.collaborator.repositories.CollaboratorRepository;
+import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
@@ -19,18 +20,22 @@ public class JpaCollaboratorRepository
         super(puName, "id");
     }
 
-    @Override
-    public Iterable<Collaborator> findActiveByAirTransportCompany(final AirTransportCompany company) {
-        final Map<String, Object> params = new HashMap<>();
-        params.put("company", company);
-        return match("e.airTransportCompany = :company AND e.user.systemUser.active = true", params);
+    public JpaCollaboratorRepository(final TransactionalContext tx) {
+        super(tx, "id");
     }
 
     @Override
-    public Iterable<Collaborator> findActiveByAirControlArea(final AirControlArea area) {
+    public Iterable<Collaborator> findByAirTransportCompany(final AirTransportCompany company) {
+        final Map<String, Object> params = new HashMap<>();
+        params.put("company", company);
+        return match("e.airTransportCompany = :company", params);
+    }
+
+    @Override
+    public Iterable<Collaborator> findByAirControlArea(final AirControlArea area) {
         final Map<String, Object> params = new HashMap<>();
         params.put("area", area);
-        return match("e.airControlArea = :area AND e.user.systemUser.active = true", params);
+        return match("e.airControlArea = :area", params);
     }
 
     @Override

@@ -5,6 +5,10 @@ import aisafe.enginemodel.domain.EngineType;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Engine Model" use case (US056).
+ * Collects engine model details and delegates to {@link RegisterEngineModelController}.
+ */
 public class RegisterEngineModelUI extends AbstractUI {
 
     private final RegisterEngineModelController controller = new RegisterEngineModelController();
@@ -30,10 +34,11 @@ public class RegisterEngineModelUI extends AbstractUI {
                 }
             }
 
-            final double thrust = Console.readDouble("Thrust (kN): ");
+            final double thrustAtStandstill = Console.readDouble("Thrust at Standstill (kN): ");
+            final double thrustAtCruiseSpeed = Console.readDouble("Thrust at Cruise Speed (kN): ");
             final double tsfc = Console.readDouble("TSFC (kg/(kN·h)): ");
 
-            controller.registerEngineModel(name, makerName, engineType, thrust, tsfc);
+            controller.registerEngineModel(name, makerName, engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc);
 
             System.out.println("\nEngine model successfully registered!");
         } catch (final IllegalArgumentException e) {

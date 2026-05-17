@@ -2,6 +2,7 @@ package aisafe.app.console.presentation.aircraft;
 
 import aisafe.aircraft.application.AddAircraftController;
 import aisafe.aircraftmodel.domain.AircraftModel;
+import aisafe.aircraftmodel.domain.AircraftType;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
@@ -9,6 +10,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Add Aircraft to Fleet" use case (US070).
+ * Guides the user through selecting an aircraft model and entering aircraft details.
+ */
 public class AddAircraftUI extends AbstractUI {
 
     private final AddAircraftController controller = new AddAircraftController();
@@ -22,7 +27,7 @@ public class AddAircraftUI extends AbstractUI {
                 System.out.printf("  [%d] %s — %s (max seats: %s)%n",
                         models.size() + 1,
                         m.modelName(),
-                        m.maker().name(),
+                        m.makerName(),
                         m.maxCapacity() > 0 ? m.maxCapacity() : "unlimited");
                 models.add(m);
             }
@@ -52,36 +57,51 @@ public class AddAircraftUI extends AbstractUI {
                 crew = Console.readInteger("Number of crew elements: ");
             } while (crew < 1);
 
-            int firstClass;
-            do {
-                firstClass = Console.readInteger("First class seats: ");
-            } while (firstClass < 0);
+            final boolean isCargo = selectedModel.aircraftType() == AircraftType.CARGO;
+            int firstClass = 0;
+            int business = 0;
+            int economy = 0;
+            if (!isCargo) {
+                do {
+                    firstClass = Console.readInteger("First class seats: ");
+                } while (firstClass < 0);
 
-            int business;
-            do {
-                business = Console.readInteger("Business class seats: ");
-            } while (business < 0);
+                do {
+                    business = Console.readInteger("Business class seats: ");
+                } while (business < 0);
 
-            int economy;
-            do {
-                economy = Console.readInteger("Economy class seats: ");
-            } while (economy < 0);
+                do {
+                    economy = Console.readInteger("Economy class seats: ");
+                } while (economy < 0);
 
-            if (firstClass + business + economy == 0) {
-                System.out.println("Cabin must have at least one seat.");
-                return false;
+                if (firstClass + business + economy == 0) {
+                    System.out.println("Cabin must have at least one seat.");
+                    return false;
+                }
+            } else {
+                System.out.println("Cargo aircraft — skipping cabin configuration.");
             }
 
+            final int currentYear = java.time.Year.now().getValue();
+            int year;
+            do {
+                year = Console.readInteger("Year of manufacture (1900–" + currentYear + "): ");
+            } while (year < 1900 || year > currentYear);
+
             final AirTransportCompany company = controller.addAircraft(
-                    selectedModel, registration, country, crew, firstClass, business, economy);
+                    selectedModel, registration, country, crew, year, firstClass, business, economy);
 
             System.out.printf("%nAircraft '%s' successfully added to fleet of %s!%n",
                     registration.toUpperCase(), company.name());
-            System.out.printf("  Model      : %s (%s)%n", selectedModel.modelName(), selectedModel.maker().name());
+            System.out.printf("  Model      : %s (%s)%n", selectedModel.modelName(), selectedModel.makerName());
             System.out.printf("  Country    : %s%n", country);
             System.out.printf("  Crew       : %d%n", crew);
-            System.out.printf("  Cabin      : First=%d  Business=%d  Economy=%d  (Total=%d)%n",
-                    firstClass, business, economy, firstClass + business + economy);
+            if (isCargo) {
+                System.out.println("  Cabin      : N/A (Cargo)");
+            } else {
+                System.out.printf("  Cabin      : First=%d  Business=%d  Economy=%d  (Total=%d)%n",
+                        firstClass, business, economy, firstClass + business + economy);
+            }
 
         } catch (final IllegalArgumentException e) {
             System.out.println("\nValidation Error: " + e.getMessage());

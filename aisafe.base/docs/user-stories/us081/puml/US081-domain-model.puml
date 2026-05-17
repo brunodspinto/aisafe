@@ -2,81 +2,79 @@
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 
-package "Flight Aggregate" <<Rectangle>> {
-    class Flight <<entity, aggregate root>> {
-        flightDesignator
-        departureDateTime
-        scheduledArrival
+package "FlightPlan Aggregate" <<Rectangle>> {
+    class FlightPlan <<entity, aggregate root>> {
+        flightType : String
+        status : FlightPlanStatus
+        dslContent : String
     }
-    class FlightPlan <<entity>> {
-        totalFuelLoad
-        cargoWeight
-        passengerCount
-        crewCount
-        totalWeight
-        estimatedDuration
-        dslContent
+
+    class FlightPlanDesignator <<value object, EmbeddedId>> {
+        value : String
     }
-    class FlightSegment <<value object>> {
-        allowedAltitudeSlots
-        widthPerAltitudeSlot
-        windDirection
-        windSpeed
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
     }
-    class Node <<value object>> {
-        latitude
-        longitude
-        altitude
+}
+
+package "DSL AST (transient)" <<Rectangle>> {
+    class FlightPlanAst <<record>> {
+        identifier : String
+        flightType : FlightType
     }
-    Enum FlightType {
+
+    class LegAst <<record>> {
+    }
+
+    class SegmentAst <<record>> {
+        altitudeMeters : double
+        widthMeters : double
+        windSpeed : double
+        windDirection : double
+    }
+
+    class CoordinateAst <<record>> {
+        latitude : double
+        longitude : double
+    }
+
+    class EndpointAst <<record>> {
+        airportCode : String
+        date : String
+        time : String
+    }
+
+    class RouteAst <<record>> {
+        fromAirportCode : String
+        toAirportCode : String
+    }
+
+    class FuelAst <<record>> {
+        amount : double
+        unit : String
+    }
+
+    enum FlightType {
         REGULAR
         CHARTER
     }
-    Enum FlightPlanStatus {
-        DRAFT
-        VALIDATED
-        APPROVED
-        REJECTED
-    }
 }
 
-package "User Aggregate" <<Rectangle>> {
-    class User <<entity, aggregate root>> {
-        name
-        phoneNumber
-        position
-    }
-    Enum RoleType {
-        PILOT
-    }
-}
+FlightPlan "1" --> "1" FlightPlanDesignator : identified by
+FlightPlan "1" --> "1" FlightPlanStatus : has
 
-package "FlightRoute Aggregate" <<Rectangle>> {
-    class FlightRoute <<entity, aggregate root>> {
-        name
-        activeUntil
-    }
-}
+FlightPlanAst "1" *-- "1..*" LegAst : contains
+FlightPlanAst "1" --> "1" FlightType
+LegAst "1" *-- "1..*" SegmentAst : contains
+LegAst "1" --> "1" EndpointAst : departure
+LegAst "1" --> "1" EndpointAst : arrival
+LegAst "1" --> "1" RouteAst
+LegAst "1" --> "1" FuelAst
+SegmentAst "1" --> "2" CoordinateAst : from / to
 
-package "Aircraft Aggregate" <<Rectangle>> {
-    class Aircraft <<entity, aggregate root>> {
-        registrationNumber
-    }
-}
-
-class IATACode <<value object>> {
-    code
-}
-
-Flight "1" --> "1" FlightRoute : "instance of"
-Flight "1" --> "1" FlightType : "typed as"
-Flight "1" *-- "1..*" FlightPlan : "has"
-Flight "1" --> "1" Aircraft : "uses"
-Flight "1" --> "1" User : "assigned to (Pilot)"
-FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
-FlightPlan "1" --> "1" FlightPlanStatus : "has"
-FlightSegment "1" *-- "2" Node : "has"
-User "1" --> "1" RoleType : "has"
-FlightRoute "1" --> "2" IATACode : "connects"
+FlightPlanAst ..> FlightPlan : <<creates via fromDsl()>>
 
 @enduml

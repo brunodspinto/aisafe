@@ -1,6 +1,7 @@
 package aisafe.collaborator.domain;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.domain.IATACode;
@@ -20,6 +21,10 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link Collaborator} aggregate root.
+ * Verifies construction, company/area associations, and business rules.
+ */
 class CollaboratorTest {
 
     private static User validUser(final String username) {
@@ -47,158 +52,153 @@ class CollaboratorTest {
     }
 
     private static AirControlArea validArea() {
-        return new AirControlArea("PT-N", "Northern Portugal", 1200.0,
+        return new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0,
                 new GeoBoundary(42.15, 36.95, -6.18, -9.50));
     }
 
     @Test
     void ensureCompanyCollaboratorCanBeCreated() {
-        final Collaborator collaborator = new Collaborator(validUser("user1"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user1"), validCompany().identity());
         assertTrue(collaborator.isCompanyCollaborator());
         assertFalse(collaborator.isAreaCollaborator());
-        assertEquals("TAP Air Portugal", collaborator.customerName());
+        assertEquals("TP", collaborator.customerName());
     }
 
     @Test
     void ensureAreaCollaboratorCanBeCreated() {
-        final Collaborator collaborator = new Collaborator(validUser("user2"), validArea());
+        final Collaborator collaborator = new Collaborator(validUser("user2"), validArea().identity());
         assertTrue(collaborator.isAreaCollaborator());
         assertFalse(collaborator.isCompanyCollaborator());
-        assertEquals("Northern Portugal", collaborator.customerName());
+        assertEquals("PT-N", collaborator.customerName());
     }
 
     @Test
     void ensureUserCannotBeNullForCompanyCollaborator() {
         assertThrows(IllegalArgumentException.class,
-                () -> new Collaborator(null, validCompany()));
+                () -> new Collaborator(null, validCompany().identity()));
     }
 
     @Test
     void ensureUserCannotBeNullForAreaCollaborator() {
         assertThrows(IllegalArgumentException.class,
-                () -> new Collaborator(null, validArea()));
+                () -> new Collaborator(null, validArea().identity()));
     }
 
     @Test
     void ensureCompanyCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new Collaborator(validUser("user3"), (AirTransportCompany) null));
+                () -> new Collaborator(validUser("user3"), (IATACode) null));
     }
 
     @Test
     void ensureAreaCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new Collaborator(validUser("user4"), (AirControlArea) null));
+                () -> new Collaborator(validUser("user4"), (AirControlAreaCode) null));
     }
 
     @Test
     void ensureCompanyCollaboratorHasCorrectUser() {
         final User user = validUser("user5");
-        final Collaborator collaborator = new Collaborator(user, validCompany());
+        final Collaborator collaborator = new Collaborator(user, validCompany().identity());
         assertEquals(user, collaborator.user());
     }
 
     @Test
     void ensureAreaCollaboratorHasCorrectUser() {
         final User user = validUser("user6");
-        final Collaborator collaborator = new Collaborator(user, validArea());
+        final Collaborator collaborator = new Collaborator(user, validArea().identity());
         assertEquals(user, collaborator.user());
     }
 
     @Test
     void ensureToStringContainsCustomerName() {
-        final Collaborator collaborator = new Collaborator(validUser("user7"), validCompany());
-        assertTrue(collaborator.toString().contains("TAP Air Portugal"));
+        final Collaborator collaborator = new Collaborator(validUser("user7"), validCompany().identity());
+        assertTrue(collaborator.toString().contains("TP"));
     }
 
     @Test
     void ensureEqualsReturnsTrueForSameInstance() {
-        final Collaborator collaborator = new Collaborator(validUser("user8"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user8"), validCompany().identity());
         assertEquals(collaborator, collaborator);
     }
 
     @Test
     void ensureEqualsReturnsFalseForNull() {
-        final Collaborator collaborator = new Collaborator(validUser("user9"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user9"), validCompany().identity());
         assertNotEquals(null, collaborator);
     }
 
     @Test
     void ensureHashCodeIsConsistent() {
-        final Collaborator collaborator = new Collaborator(validUser("user10"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user10"), validCompany().identity());
         assertEquals(collaborator.hashCode(), collaborator.hashCode());
     }
 
     @Test
     void ensureSameAsReturnsTrueForSameInstance() {
-        final Collaborator collaborator = new Collaborator(validUser("user11"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user11"), validCompany().identity());
         assertTrue(collaborator.sameAs(collaborator));
     }
 
     @Test
-    void ensureAirTransportCompanyGetterWorks() {
-        final AirTransportCompany company = validCompany();
-        final Collaborator collaborator = new Collaborator(validUser("user12"), company);
-        assertEquals(company, collaborator.airTransportCompany());
-        assertNull(collaborator.airControlArea());
+    void ensureCompanyIataCodeGetterWorks() {
+        final IATACode iataCode = validCompany().identity();
+        final Collaborator collaborator = new Collaborator(validUser("user12"), iataCode);
+        assertEquals(iataCode, collaborator.companyIataCode());
+        assertNull(collaborator.areaCode());
     }
 
     @Test
-    void ensureAirControlAreaGetterWorks() {
-        final AirControlArea area = validArea();
-        final Collaborator collaborator = new Collaborator(validUser("user13"), area);
-        assertEquals(area, collaborator.airControlArea());
-        assertNull(collaborator.airTransportCompany());
+    void ensureAreaCodeGetterWorks() {
+        final AirControlAreaCode code = validArea().identity();
+        final Collaborator collaborator = new Collaborator(validUser("user13"), code);
+        assertEquals(code, collaborator.areaCode());
+        assertNull(collaborator.companyIataCode());
     }
 
-    @Test
-    void ensureIdentityIsNullBeforePersistence() {
-        final Collaborator collaborator = new Collaborator(validUser("user14"), validCompany());
-        assertNull(collaborator.identity());
-    }
 
     @Test
     void ensureEqualsReturnsFalseForDifferentType() {
-        final Collaborator collaborator = new Collaborator(validUser("user15"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user15"), validCompany().identity());
         assertNotEquals("string", collaborator);
     }
 
     @Test
     void ensureCustomerNameForCompanyCollaborator() {
-        final Collaborator collaborator = new Collaborator(validUser("user16"), validCompany());
-        assertEquals("TAP Air Portugal", collaborator.customerName());
+        final Collaborator collaborator = new Collaborator(validUser("user16"), validCompany().identity());
+        assertEquals("TP", collaborator.customerName());
     }
 
     @Test
     void ensureCustomerNameForAreaCollaborator() {
-        final Collaborator collaborator = new Collaborator(validUser("user17"), validArea());
-        assertEquals("Northern Portugal", collaborator.customerName());
+        final Collaborator collaborator = new Collaborator(validUser("user17"), validArea().identity());
+        assertEquals("PT-N", collaborator.customerName());
     }
 
 
     @Test
     void ensureTwoCollaboratorsWithSameIdAreEqual() {
-        final Collaborator collaborator = new Collaborator(validUser("user20"), validCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user20"), validCompany().identity());
         assertTrue(collaborator.sameAs(collaborator));
     }
 
     @Test
-    void ensureToStringContainsAreaName() {
-        final Collaborator collaborator = new Collaborator(validUser("user21"), validArea());
-        assertTrue(collaborator.toString().contains("Northern Portugal"));
+    void ensureToStringContainsAreaCode() {
+        final Collaborator collaborator = new Collaborator(validUser("user21"), validArea().identity());
+        assertTrue(collaborator.toString().contains("PT-N"));
     }
 
     @Test
     void ensureCompanyCollaboratorHasNullArea() {
-        final Collaborator collaborator = new Collaborator(validUser("user22"), validCompany());
-        assertNull(collaborator.airControlArea());
-        assertNotNull(collaborator.airTransportCompany());
+        final Collaborator collaborator = new Collaborator(validUser("user22"), validCompany().identity());
+        assertNull(collaborator.areaCode());
+        assertNotNull(collaborator.companyIataCode());
     }
 
     @Test
     void ensureAreaCollaboratorHasNullCompany() {
-        final Collaborator collaborator = new Collaborator(validUser("user23"), validArea());
-        assertNull(collaborator.airTransportCompany());
-        assertNotNull(collaborator.airControlArea());
+        final Collaborator collaborator = new Collaborator(validUser("user23"), validArea().identity());
+        assertNull(collaborator.companyIataCode());
+        assertNotNull(collaborator.areaCode());
     }
 }

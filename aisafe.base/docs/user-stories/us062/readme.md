@@ -72,7 +72,13 @@ The following class diagram shows the classes involved:
 
 ![Class Diagram](svg/US062-class-diagram.svg)
 
-### 4.2. Repository Implementation
+### 4.2. Acceptance Tests
+
+All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
+
+---
+
+### 4.3. Repository Implementation
 
 **In-memory:** iterates `findAll()` and filters by customer reference and active flag.
 
@@ -105,12 +111,28 @@ The implementation is distributed across the following packages in `aisafe.base`
 **To list active collaborators:**
 
 1. Login with Backoffice Operator or Admin credentials.
-2. Select **8 — Collaborators >** from the main menu.
+2. Select **5 — Collaborators >** from the main menu.
 3. Select **2 — List Customer's Collaborators**.
-4. Choose customer type: `1` for Air Transport Company, `2` for Air Control Area.
-5. The system lists available customers.
-6. Enter the customer identifier (IATA code or area code).
-7. The system displays a table of active collaborators, or a message if none exist.
+4. Choose customer type: `1` for Air Transport Company or `2` for Air Control Area.
+5. The system lists the available customers of that type, e.g. for companies:
+   ```
+   [TP] TAP Air Portugal
+   [FR] Ryanair
+   [LH] Lufthansa
+   ```
+   or for areas:
+   ```
+   [PT-N] Northern Portugal Control Area
+   [PT-S] South Portugal
+   ```
+6. Enter the customer identifier (IATA code for companies, area code for areas, e.g. `TP` or `PT-N`).
+7. The system displays a table of active collaborators, e.g.:
+   ```
+   Mecanographic No.    Name                      Position             Status
+   ----------------------------------------------------------------------------
+   ATC001               Air Transport             Air Transport Collaborator ACTIVE
+   ```
+   If no active collaborators exist for the selected customer, an informative message is displayed.
 
 ---
 

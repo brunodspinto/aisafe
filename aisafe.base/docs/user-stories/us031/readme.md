@@ -29,25 +29,21 @@ The implementation follows a DDD layered architecture: a UI layer collects input
 
 ## 3. Analysis
 
-The Core Flight DSL describes a flight plan in a hierarchical, block-based textual format. A flight plan contains one or more legs, each with departure, arrival, route, segments and fuel information.
+Registering a backoffice user is an administrative operation that creates two coordinated artifacts: an EAPLI `SystemUser` (responsible for authentication, password policy, and role assignment) and an AISafe `User` aggregate (responsible for the domain-specific attributes that the backoffice cares about — mecanographic number, contact info, security clearance, and skills assessment).
 
-Validation is performed in three stages:
+The role separation keeps the framework concerns (authentication, password hashing, role registry) isolated in EAPLI while the AISafe domain owns the data that is meaningful only to this application. Both artifacts are persisted in the same transaction so a partially registered user is never observable.
 
-1. Lexical analysis - tokenises the input and detects unrecognised tokens (ANTLR lexer).
-2. Syntactic analysis — verifies the structure of the DSL against the ANTLR grammar (ANTLR parser).
-3. Semantic analysis — verifies domain-level rules, implemented in FlightPlanSemanticValidator.
-
-The semantic rules implemented are:
+The classes involved in this US are:
 
 | Class | Type | Responsibility |
 |-------|------|----------------|
-| `User` | Entity / Aggregate Root | Holds AISafe-specific user data |
-| `MecanographicNumber` | Identity (Value Object) | Unique identifier for a `User` |
-| `Email` | Value Object | Validates and stores email in lowercase |
-| `SecurityClearance` | Value Object | Level + expiration date (today or future accepted) |
+| `User` | Entity / Aggregate Root | Holds AISafe-specific user data (phone, email, position, clearance, skills date) |
+| `MecanographicNumber` | Identity (Value Object) | Unique identifier of a `User`, distinct from the `SystemUser` username |
+| `Email` | Value Object | Validates the address and stores it in lowercase |
+| `SecurityClearance` | Value Object | Combines a `SecurityLevel` with an expiration date that must be today or in the future |
 | `SecurityLevel` | Enumeration | Five clearance levels: LOW, GUARDED, ELEVATED, HIGH, CRITICAL |
-| `AiSafeRoles` | Utility | Defines the 6 roles of the system |
-| `AiSafePasswordPolicy` | Domain Service | Enforces password rules (AC031.3) |
+| `AiSafeRoles` | Utility | Defines the assignable system roles (ADMIN, BACKOFFICE_OPERATOR, ATCC, PILOT, FCO, WEATHER_PERSON) |
+| `AiSafePasswordPolicy` | Domain Service | Enforces password rules required by AC031.3 |
 
 The following diagram shows the domain model excerpt for this US:
 
@@ -237,7 +233,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 The `AddUserController.addUser()` receives both `emailStr : String` (for the EAPLI `SystemUser`) and `email : Email` (for the AISafe `User`) because the two layers require different types of the same data.
 
-The `MecanographicNumber` is generated using `System.currentTimeMillis()` at the controller level, which guarantees uniqueness in single-threaded scenarios and is sufficient for the current in-memory implementation.
+The `MecanographicNumber` is generated using `UUID.randomUUID()` at the controller level, which guarantees uniqueness across concurrent registrations without relying on a database sequence.
 
 The test suite comprises **38 unit tests** (30 in `UserTest`, 8 in `AiSafePasswordPolicyTest`), all passing.
 
@@ -255,8 +251,9 @@ mvn clean test
 # Run with In-Memory persistence (data is lost when the application exits)
 ./run-inmemory.sh
 
-# Run with JPA persistence (data persists between sessions)
-./run-jpa.sh
+# Run with JPA persistence (requires H2 server running in a separate terminal)
+./start-h2.sh  # Terminal 1 — keep running
+./run-jpa.sh   # Terminal 2
 ```
 
 **Persistence modes:**

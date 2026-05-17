@@ -64,7 +64,8 @@ configurability, installability, scalability and more._
 
 - The system must follow **Domain-Driven Design (DDD)** principles, with clear separation between aggregates, entities, value objects, repositories, and services (US010).
 - **Scrum** must be used for project management, with weekly meetings with the Scrum Master and sprint deliverables committed to GitHub before each deadline (NFR01).
-- All UML diagrams must be produced using **PlantUML** and committed in both source (`.puml`) and rendered (`.png`) formats (NFR02).
+- All UML diagrams must be produced using **PlantUML** and committed in both source (`.puml`) and rendered vector (`.svg`) formats (NFR02).
+- **Source Control:** All source code, documentation and related artifacts must be versioned in the team's GitHub repository. Only the `main` branch is used as the release source — feature work merges back into `main` and there are no long-lived integration branches (NFR04).
 - **ANTLR4** must be used for DSL grammar definition and processing. At least one visitor and one listener must be implemented (section 3.4.4).
 - **Maven** must be used as the build automation tool and **GitHub Actions** for continuous integration with nightly builds (NFR05).
 
@@ -87,3 +88,7 @@ configurability, installability, scalability and more._
 ### Physical Constraints
 
 - All scripts and POSIX-dependent components assume a **Unix-compatible** environment (NFR07).
+
+### Assessment Constraints
+
+- **LPROG Assessment (NFR11):** the DSL deliverable is graded on the quality of its conceptual design, the clarity and correctness of the ANTLR grammar, the robustness of lexical and syntactic analysis, the completeness and rigor of semantic validation, the quality of error reporting, justified extensions beyond the Core Flight DSL, and the design of the internal representation (AST / domain model). Extensions that go beyond the minimum Core DSL in a coherent and well-structured way are positively valued.

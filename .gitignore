@@ -9,3 +9,7 @@ bin/
 *.log
 *.tmp
 .vscode/settings.json
+aisafe.base/db
+
+# C simulation binary
+aisafe.base/simulation/simulation

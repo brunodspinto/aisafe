@@ -35,11 +35,12 @@ ctrl -> authz : ensureAuthenticatedUserHasAnyOf\n(BACKOFFICE_OPERATOR, ADMIN)
 activate authz
 authz --> ctrl : ok
 deactivate authz
-ctrl -> collabRepo : findActiveByAirTransportCompany(company)\nor findActiveByAirControlArea(area)
+ctrl -> collabRepo : findByAirTransportCompany(company)\nor findByAirControlArea(area)
 activate collabRepo
-note right: filters: customer match\nAND systemUser.isActive() = true
-collabRepo --> ctrl : Iterable<Collaborator>
+collabRepo --> ctrl : Iterable<Collaborator> (active and inactive)
 deactivate collabRepo
+ctrl -> ctrl : filter(Collaborator::isActive)
+note right: isActive() delegates to\nsystemUser.isActive()
 ctrl --> ui : active collaborators
 deactivate ctrl
 

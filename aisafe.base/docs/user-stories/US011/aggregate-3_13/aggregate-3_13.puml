@@ -1,0 +1,23 @@
+@startuml aggregate-3_13
+skinparam shadowing false
+title Aggregate: Collaborator — Add a customer's collaborator (US061)
+
+participant ":AddCollaboratorUI" as UI
+participant ":AddCollaboratorController" as CTRL
+participant "collaborator:Collaborator" as DOMAIN
+participant ":CollaboratorRepository" as REPO
+
+activate UI
+UI -> CTRL : addCollaborator(user, customer)
+activate CTRL
+CTRL -> DOMAIN** : create(user, customer)
+
+CTRL -> REPO : save(collaborator)
+activate REPO
+REPO --> CTRL : savedCollaborator
+deactivate REPO
+CTRL --> UI : savedCollaborator
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

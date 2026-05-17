@@ -3,13 +3,20 @@ package aisafe.airtransportcompany.domain;
 import eapli.framework.domain.model.ValueObject;
 import jakarta.persistence.Embeddable;
 
+/**
+ * Value object representing a 2–3 letter ICAO airline designator code (e.g. "TAP").
+ */
 @Embeddable
-public class ICAOCode implements ValueObject {
-
-    private static final long serialVersionUID = 1L;
+public class ICAOCode implements ValueObject, Comparable<ICAOCode> {
 
     private String icaoCode;
 
+    /**
+     * Creates a new ICAO airline code.
+     *
+     * @param code 2 or 3 uppercase letters (e.g. "TAP")
+     * @throws IllegalArgumentException if the format is not met
+     */
     public ICAOCode(final String code) {
         if (code == null || code.isBlank())
             throw new IllegalArgumentException("ICAO code cannot be empty");
@@ -23,8 +30,19 @@ public class ICAOCode implements ValueObject {
         // for ORM
     }
 
+    /**
+     * Factory method — equivalent to the constructor.
+     *
+     * @param code the raw 2–3 letter string
+     * @return a new {@code ICAOCode} instance
+     */
     public static ICAOCode valueOf(final String code) {
         return new ICAOCode(code);
+    }
+
+    /** @return the 2–3-letter ICAO string */
+    public String code() {
+        return icaoCode;
     }
 
     @Override
@@ -42,5 +60,10 @@ public class ICAOCode implements ValueObject {
     @Override
     public String toString() {
         return icaoCode;
+    }
+
+    @Override
+    public int compareTo(final ICAOCode other) {
+        return icaoCode.compareTo(other.icaoCode);
     }
 }

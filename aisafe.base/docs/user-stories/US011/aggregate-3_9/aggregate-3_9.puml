@@ -1,0 +1,23 @@
+@startuml aggregate-3_9
+skinparam shadowing false
+title Aggregate: WeatherData — Register weather data (US041)
+
+participant ":RegisterWeatherDataUI" as UI
+participant ":RegisterWeatherDataController" as CTRL
+participant "weatherData:WeatherData" as DOMAIN
+participant ":WeatherDataRepository" as REPO
+
+activate UI
+UI -> CTRL : registerWeatherData(date, windSpeed, windDirection,\ntemperature, pressure, visibility,\nweatherSource, airControlArea)
+activate CTRL
+CTRL -> DOMAIN** : create(date, windSpeed, windDirection,\ntemperature, pressure, visibility,\nweatherSource, airControlArea)
+
+CTRL -> REPO : save(weatherData)
+activate REPO
+REPO --> CTRL : savedWeatherData
+deactivate REPO
+CTRL --> UI : savedWeatherData
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

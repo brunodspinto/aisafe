@@ -10,8 +10,6 @@ import java.util.Objects;
 @Embeddable
 public class WeatherSource implements ValueObject {
 
-    private static final long serialVersionUID = 1L;
-
     private String provider;
     private String format;
 
@@ -47,7 +45,7 @@ public class WeatherSource implements ValueObject {
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof WeatherSource)) return false;
         final WeatherSource that = (WeatherSource) o;
         return Objects.equals(provider, that.provider) && Objects.equals(format, that.format);
     }

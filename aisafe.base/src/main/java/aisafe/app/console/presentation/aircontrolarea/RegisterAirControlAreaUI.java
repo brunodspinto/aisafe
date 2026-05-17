@@ -4,6 +4,10 @@ import aisafe.aircontrolarea.application.RegisterAirControlAreaController;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Register Air Control Area" use case (US064).
+ * Collects area code, name, minimum fuel, and geographic boundaries, then delegates to the controller.
+ */
 public class RegisterAirControlAreaUI extends AbstractUI {
 
     // Instantiate the controller created earlier

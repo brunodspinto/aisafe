@@ -10,6 +10,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Disable Customer's Collaborator" use case (US064).
+ * Shows active collaborators filtered by company or area, and deactivates the chosen one after confirmation.
+ */
 public class DisableCollaboratorUI extends AbstractUI {
 
     private final DisableCollaboratorController controller = new DisableCollaboratorController();
@@ -59,7 +63,7 @@ public class DisableCollaboratorUI extends AbstractUI {
                 }
                 final String areaCode = Console.readLine("Area Code: ");
                 final AirControlArea selected = areas.stream()
-                        .filter(a -> a.areaCode().equalsIgnoreCase(areaCode))
+                        .filter(a -> a.areaCode().toString().equalsIgnoreCase(areaCode))
                         .findFirst().orElse(null);
                 if (selected == null) {
                     System.out.println("Area not found.");

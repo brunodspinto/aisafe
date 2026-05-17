@@ -57,7 +57,9 @@ The client confirmed that air control areas cannot overlap, and that the coordin
 
 The client confirmed that the location of an airport must be inside the air control area it belongs to. If the airport coordinates don't belong to the intended air control area, the system must reject the creation.
 
-`IATACode` and `ICAOCode` are now shared value objects outside any aggregate boundary. The client confirmed that the company name, IATA code and ICAO code must all be unique. These value objects encapsulate the format validation (IATA = 3 letters for airports / 2 letters for companies, ICAO = 4 letters for airports / 2-3 letters for companies).
+`Airport` is identified by `AirportIATACode` (3-letter code, e.g. LIS) and carries an `AirportICAOCode` (4-letter code, e.g. LPPT). These are separate value objects from the company-level `IATACode` and `ICAOCode`, which use different formats and serve a different purpose. All four must be unique in their respective scope (confirmed by US052 and US060).
+
+`AirTransportCompany` is identified by `IATACode` (2-letter code, e.g. TP) and `ICAOCode` (2–3 letter code). These remain as value objects inside the `AirTransportCompany Aggregate` because they only identify companies and are not shared with airport identification.
 
 ---
 
@@ -65,7 +67,9 @@ The client confirmed that the location of an airport must be inside the air cont
 
 `FlightRoute` is an entity identified by its `name` (format: company initials + up to 4 digits, e.g. TP123). The client confirmed that a route is owned by an Air Transport Company and its ID includes the company ID.
 
-`FlightRoute` references `IATACode` with multiplicity `2` — a route always connects exactly two airports. The multiplicity `2` with a single association replaces two separate arrows and is cleaner. The distinction between origin and destination is handled at the implementation level.
+`FlightRoute` references `AirportIATACode` with multiplicity `2` — a route always connects exactly two airports, identified by their airport IATA codes (3-letter). The multiplicity `2` with a single association replaces two separate arrows and is cleaner. The distinction between origin and destination is handled at the implementation level.
+
+Previously (V5), this association incorrectly referenced `IATACode` (the 2-letter company code). A flight route connects airports, not companies, so the reference must be `AirportIATACode`.
 
 The client confirmed that each route is unique per company — different companies can operate routes between the same airports but they are distinct routes.
 
@@ -85,7 +89,7 @@ The `FlightPlanStatus` belongs to the `FlightPlan` entity — each plan has its 
 
 The client confirmed that weather conditions are not the same everywhere inside an air control area. Weather data is added to a flight plan via US082 after the plan is created. The client confirmed: *"US080 → Create a flight, including its flight plan. US082 → Add weather data to an existing flight plan of a flight."*
 
-`Flight` references `IATACode` with multiplicity `2` for departure and arrival airports. The `FlightPlan` references one `IATACode` for the alternate airport.
+`Flight` references `AirportIATACode` with multiplicity `2` for departure and arrival airports. The `FlightPlan` references one `AirportIATACode` for the alternate airport. Both connect to airports (identified by 3-letter IATA codes), not to companies. Previously (V5), these associations incorrectly referenced `IATACode` (the 2-letter company code).
 
 `FlightSegment` is a value object. The client confirmed that nodes are not necessarily airports — they are navigation waypoints. Each `FlightSegment` has exactly `2` nodes — start and end — represented by a single association with multiplicity `2` instead of two separate arrows.
 
@@ -115,11 +119,44 @@ The client confirmed that the simulation module is implemented in C (SCOMP), but
 
 `SafetyViolation` is a **value object** — it is an immutable record of a safety event. Once recorded it never changes state and has no independent lifecycle. It includes a `flightDesignator` attribute to identify which flight was involved, and a `description` field for human-readable context. The `FlightId` value object was removed as redundant — the `flightDesignator` attribute provides sufficient identification for reporting purposes.
 
+`FlightExecutionStatus` is a **value object** added in V6 — it records the execution outcome of a single flight within a simulation run (e.g. COMPLETED, TERMINATED, FAILED). US109 requires the report to include "individual execution statuses" per flight alongside the aggregate counters. `SimulationReport` already held `totalFlights` and `passed` at the global level, but had no way to record per-flight results. `FlightExecutionStatus` fills this gap: it is immutable once recorded and is identified only by its `flightDesignator` within the report, so a value object is appropriate.
+
 ---
 
-## Shared Value Objects
+## AircraftModel — wingSpan
 
-`IATACode` and `ICAOCode` are declared outside any aggregate boundary because they are used by multiple aggregates (`Airport`, `AirTransportCompany`, `FlightRoute`, `Flight`, `FlightPlan`). As immutable value objects with format validation, they can be freely shared.
+`wingSpan` is not listed in the informal definition of aircraft model in section 3.2 of the requirements. However, section 3.3 defines the Aspect Ratio as AR = wingSpan² / wingArea, which is used in the drag coefficient formula. Without `wingSpan`, it is impossible to compute AR and therefore impossible to perform the flight physics simulation required by US085 and US100. The attribute was therefore kept in the model.
+
+---
+
+## Aircraft — yearOfManufacture
+
+`yearOfManufacture` is not explicitly listed in the requirements definition of `Aircraft` (section 3.2). It was included to support US072d, which requires listing a company's fleet filtered by age. Age can only be computed if the year of manufacture is stored.
+
+---
+
+## Collaborator — XOR constraint
+
+The domain model shows two associations from `Collaborator`:
+- `Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"`
+- `Collaborator "0..*" --> "0..1" AirControlArea : "works for"`
+
+These two are subject to an XOR constraint: a collaborator must work for exactly one customer, which is either an `AirTransportCompany` or an `AirControlArea`, never both and never neither. This is stated in US061: *"A customer may be an air transport company or an air control area."* The multiplicity `0..1` on both sides is a modelling limitation of UML class diagrams; the XOR invariant is enforced at the aggregate level.
+
+---
+
+## Separation of Airport and Company IATA/ICAO Codes
+
+In V5, `IATACode` and `ICAOCode` were defined inside the `AirTransportCompany Aggregate` but were also used in `FlightRoute`, `Flight`, and `FlightPlan` to reference airports. This was incorrect because:
+
+- Company IATA codes are 2 letters (e.g. TP), while airport IATA codes are 3 letters (e.g. LIS).
+- Company ICAO codes are 2–3 letters, while airport ICAO codes are 4 letters (e.g. LPPT).
+- A flight route connects airports, not companies. Referencing a company code to represent an airport connection is semantically wrong.
+
+In V6:
+- `IATACode` and `ICAOCode` remain in the `AirTransportCompany Aggregate` as company identifiers.
+- `AirportIATACode` and `AirportICAOCode` remain in the `Airport Aggregate` as airport identifiers.
+- `FlightRoute`, `Flight`, and `FlightPlan` now reference `AirportIATACode` when connecting or referencing airports.
 
 ---
 

@@ -2,38 +2,55 @@ package aisafe.maker.domain;
 
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing an aircraft or engine manufacturer.
  */
 @Entity
-public class Maker implements AggregateRoot<String> {
+@Table(name = "T_MAKER")
+public class Maker implements AggregateRoot<MakerName> {
 
-    @Id
-    private String name;
+    @EmbeddedId
+    private MakerName name;
 
+    @Version
+    private Long version;
+
+    @Column(nullable = false)
     private String country;
 
     protected Maker() {}
 
-    public Maker(final String name, final String country) {
-        if (name == null || name.isBlank())
+    /**
+     * Creates a new maker.
+     *
+     * @param name    manufacturer name (non-null); used as the unique identifier
+     * @param country country of the manufacturer (non-blank)
+     * @throws IllegalArgumentException if either value is null or blank
+     */
+    public Maker(final MakerName name, final String country) {
+        if (name == null)
             throw new IllegalArgumentException("Maker name cannot be null or empty.");
         if (country == null || country.isBlank())
             throw new IllegalArgumentException("Country cannot be null or empty.");
-        this.name = name.trim();
+        this.name = name;
         this.country = country.trim();
     }
 
-    public String name() { return name; }
+    /** @return unique manufacturer name string (primary key) */
+    public String name() { return name.toString(); }
+
+    /** @return country of the manufacturer */
     public String country() { return country; }
 
     @Override
-    public String identity() { return name; }
+    public MakerName identity() { return name; }
 
     @Override
     public boolean sameAs(final Object other) {
@@ -41,14 +58,10 @@ public class Maker implements AggregateRoot<String> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return Objects.equals(name, ((Maker) o).name);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return Objects.hash(name); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {

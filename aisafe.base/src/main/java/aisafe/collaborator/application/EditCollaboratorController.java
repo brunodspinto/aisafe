@@ -14,6 +14,13 @@ import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
+import java.util.stream.StreamSupport;
+
+/**
+ * Application-layer controller for the "Edit Customer's Collaborator" use case (US063).
+ * Allows updating a collaborator's contact information (email and phone).
+ * Requires a Back-Office Operator or Admin role.
+ */
 @UseCaseController
 public class EditCollaboratorController {
 
@@ -27,26 +34,60 @@ public class EditCollaboratorController {
     private final UserRepository userRepo =
             PersistenceContext.repositories().users();
 
+    /**
+     * Returns all registered air transport companies for selection in the UI.
+     *
+     * @return all {@link AirTransportCompany} instances
+     */
     public Iterable<AirTransportCompany> allCompanies() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
         return companyRepo.findAll();
     }
 
+    /**
+     * Returns all registered air control areas for selection in the UI.
+     *
+     * @return all {@link AirControlArea} instances
+     */
     public Iterable<AirControlArea> allAreas() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
         return areaRepo.findAll();
     }
 
+    /**
+     * Returns active collaborators of the given company.
+     *
+     * @param company the company to filter by
+     * @return active collaborators
+     */
     public Iterable<Collaborator> activeCollaboratorsByCompany(final AirTransportCompany company) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirTransportCompany(company);
+        return StreamSupport.stream(collaboratorRepo.findByAirTransportCompany(company).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
+    /**
+     * Returns active collaborators of the given air control area.
+     *
+     * @param area the area to filter by
+     * @return active collaborators
+     */
     public Iterable<Collaborator> activeCollaboratorsByArea(final AirControlArea area) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
-        return collaboratorRepo.findActiveByAirControlArea(area);
+        return StreamSupport.stream(collaboratorRepo.findByAirControlArea(area).spliterator(), false)
+                .filter(Collaborator::isActive)
+                .toList();
     }
 
+    /**
+     * Updates the email and phone of the given collaborator and persists the changes.
+     *
+     * @param collaborator the collaborator to update
+     * @param newEmail     new email address
+     * @param newPhone     new phone number
+     * @return the updated {@link Collaborator}
+     */
     public Collaborator updateContact(final Collaborator collaborator,
                                       final String newEmail,
                                       final String newPhone) {

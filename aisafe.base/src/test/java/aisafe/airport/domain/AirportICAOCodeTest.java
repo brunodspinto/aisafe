@@ -3,6 +3,10 @@ package aisafe.airport.domain;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Unit tests for the {@link AirportICAOCode} value object.
+ * Verifies ICAO code format validation and equality semantics.
+ */
 class AirportICAOCodeTest {
 
     @Test
@@ -87,5 +91,14 @@ class AirportICAOCodeTest {
     void ensureCodeGetterReturnsValue() {
         final AirportICAOCode code = new AirportICAOCode("LPPT");
         assertEquals("LPPT", code.code());
+    }
+
+    @Test
+    void ensureCompareToWorks() {
+        final AirportICAOCode a = new AirportICAOCode("LPPR");
+        final AirportICAOCode b = new AirportICAOCode("LPPT");
+        assertTrue(a.compareTo(b) < 0);
+        assertTrue(b.compareTo(a) > 0);
+        assertEquals(0, a.compareTo(a));
     }
 }

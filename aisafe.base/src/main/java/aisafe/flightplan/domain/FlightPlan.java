@@ -1,16 +1,18 @@
 package aisafe.flightplan.domain;
 
 import aisafe.dsl.ast.FlightPlanAst;
+import aisafe.dsl.ast.FlightType;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing a Flight Plan.
@@ -18,14 +20,21 @@ import java.util.Objects;
  * a multi-step validation process (US080, US081, US085).
  */
 @Entity
-public class FlightPlan implements AggregateRoot<String> {
+@Table(name = "T_FLIGHT_PLAN")
+public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
 
-    @Id
-    private String designator;
+    @EmbeddedId
+    private FlightPlanDesignator designator;
 
-    private String flightType;
+    @Version
+    private Long version;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private FlightType flightType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private FlightPlanStatus status;
 
     @Lob
@@ -43,65 +52,90 @@ public class FlightPlan implements AggregateRoot<String> {
      * Creates a new FlightPlan from a validated DSL file.
      * Status starts as DRAFT.
      */
-    public FlightPlan(final String designator, final String flightType, final String dslContent) {
-        if (designator == null || designator.trim().isEmpty()) {
+    public FlightPlan(final FlightPlanDesignator designator, final FlightType flightType, final String dslContent) {
+        if (designator == null) {
             throw new IllegalArgumentException("Flight plan designator cannot be null or empty.");
         }
-        if (flightType == null || flightType.trim().isEmpty()) {
-            throw new IllegalArgumentException("Flight type cannot be null or empty.");
+        if (flightType == null) {
+            throw new IllegalArgumentException("Flight type cannot be null.");
         }
         if (dslContent == null || dslContent.trim().isEmpty()) {
             throw new IllegalArgumentException("DSL content cannot be null or empty.");
         }
-        this.designator = designator.trim().toUpperCase();
-        this.flightType = flightType.trim().toUpperCase();
+        this.designator = designator;
+        this.flightType = flightType;
         this.dslContent = dslContent;
         this.status = FlightPlanStatus.DRAFT;
     }
 
     /**
-     * Factory method to create a FlightPlan from a parsed AST and the original DSL content.
+     * Factory method that creates a {@link FlightPlan} from a parsed AST and the original DSL source.
+     *
+     * @param ast        the validated parse tree containing the designator and flight type
+     * @param dslContent the raw DSL text to store alongside the plan
+     * @return a new {@link FlightPlan} in {@link FlightPlanStatus#DRAFT} status
      */
     public static FlightPlan fromDsl(final FlightPlanAst ast, final String dslContent) {
         return new FlightPlan(
-                ast.identifier(),
-                ast.flightType().name(),
+                FlightPlanDesignator.valueOf(ast.identifier()),
+                ast.flightType(),
                 dslContent
         );
     }
 
-    // --- Getters ---
-
+    /** @return unique flight plan designator string (always upper-case) */
     public String designator() {
-        return designator;
+        return designator.toString();
     }
 
-    public String flightType() {
+    /** @return flight type classification */
+    public FlightType flightType() {
         return flightType;
     }
 
+    /** @return current lifecycle status */
     public FlightPlanStatus status() {
         return status;
     }
 
+    /** @return original DSL source content */
     public String dslContent() {
         return dslContent;
     }
 
-    // --- Identity Methods ---
+    /**
+     * Advances this flight plan from {@link FlightPlanStatus#DRAFT} to
+     * {@link FlightPlanStatus#VALIDATED} after all validation checks pass (US080, US081).
+     *
+     * @throws IllegalStateException if the current status is not DRAFT
+     */
+    public void markValidated() {
+        if (this.status != FlightPlanStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Cannot validate a flight plan that is not in DRAFT status. Current status: " + status);
+        }
+        this.status = FlightPlanStatus.VALIDATED;
+    }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final FlightPlan that = (FlightPlan) o;
-        return Objects.equals(designator, that.designator);
+    /**
+     * Advances this flight plan from {@link FlightPlanStatus#VALIDATED} to
+     * {@link FlightPlanStatus#TESTED} after successful simulation (US085).
+     *
+     * @throws IllegalStateException if the current status is not VALIDATED
+     */
+    public void markTested() {
+        if (this.status != FlightPlanStatus.VALIDATED) {
+            throw new IllegalStateException(
+                    "Cannot mark a flight plan as tested unless it is in VALIDATED status. Current status: " + status);
+        }
+        this.status = FlightPlanStatus.TESTED;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(designator);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
+
+    @Override
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public boolean sameAs(final Object other) {
@@ -109,7 +143,7 @@ public class FlightPlan implements AggregateRoot<String> {
     }
 
     @Override
-    public String identity() {
+    public FlightPlanDesignator identity() {
         return this.designator;
     }
 

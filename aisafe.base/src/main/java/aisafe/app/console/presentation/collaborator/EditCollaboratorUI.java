@@ -10,6 +10,10 @@ import eapli.framework.presentation.console.AbstractUI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Console UI for the "Edit Customer's Collaborator" use case (US063).
+ * Allows updating the email and phone number of an active collaborator.
+ */
 public class EditCollaboratorUI extends AbstractUI {
 
     private final EditCollaboratorController controller = new EditCollaboratorController();
@@ -59,7 +63,7 @@ public class EditCollaboratorUI extends AbstractUI {
                 }
                 final String areaCode = Console.readLine("Area Code: ");
                 final AirControlArea selected = areas.stream()
-                        .filter(a -> a.areaCode().equalsIgnoreCase(areaCode))
+                        .filter(a -> a.areaCode().toString().equalsIgnoreCase(areaCode))
                         .findFirst().orElse(null);
                 if (selected == null) {
                     System.out.println("Area not found.");

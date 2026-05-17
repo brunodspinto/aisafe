@@ -24,7 +24,6 @@ deactivate UI
 ADM -> UI : inputs the requested data
 activate UI
 
-note right of UI: The Controller is instantiated\nand fetches its dependencies.
 UI -> CTRL** : create()
 activate CTRL
 
@@ -43,12 +42,11 @@ PC --> CTRL : factory
 deactivate PC
 deactivate CTRL
 
-note right of UI: Execution of the Use Case
 UI -> CTRL : registerAirControlArea(areaCode, name, minimumFuelRequired,\n northLat, southLat, eastLong, westLong)
 activate CTRL
 
 participant "authz\n:AuthorizationService" as AUTHZ
-CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ADMIN)
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN)
 activate AUTHZ
 AUTHZ --> CTRL : (ok)
 deactivate AUTHZ

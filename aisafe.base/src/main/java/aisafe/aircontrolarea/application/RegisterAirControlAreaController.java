@@ -1,6 +1,7 @@
 package aisafe.aircontrolarea.application;
 
 import aisafe.aircontrolarea.domain.AirControlArea;
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import aisafe.aircontrolarea.domain.GeoBoundary;
 import aisafe.aircontrolarea.repositories.AirControlAreaRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
@@ -27,9 +28,18 @@ public class RegisterAirControlAreaController {
             PersistenceContext.repositories().airControlAreas();
 
     /**
-     * Registers a new Air Control Area in the system.
-     * Note that the UI only passes primitive data types (Strings and doubles).
-     * The Controller is responsible for building complex domain objects.
+     * Validates and persists a new air control area.
+     * Normalises the area code to upper-case and enforces uniqueness.
+     *
+     * @param areaCode            unique area code (will be trimmed and uppercased)
+     * @param name                descriptive name (non-blank)
+     * @param minimumFuelRequired minimum required fuel (non-negative)
+     * @param northLat            northern boundary latitude (-90 to 90); must be &gt; southLat
+     * @param southLat            southern boundary latitude (-90 to 90)
+     * @param eastLong            eastern boundary longitude (-180 to 180)
+     * @param westLong            western boundary longitude (-180 to 180)
+     * @return the saved {@link AirControlArea}
+     * @throws IllegalArgumentException if the area code already exists or any value is invalid
      */
     public AirControlArea registerAirControlArea(final String areaCode, final String name,
                                                  final double minimumFuelRequired,
@@ -40,9 +50,12 @@ public class RegisterAirControlAreaController {
                 authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
                 final String normalizedAreaCode = normalizeAreaCode(areaCode);
-                if (repository.ofIdentity(normalizedAreaCode).isPresent()) {
+                if (repository.ofIdentity(AirControlAreaCode.valueOf(normalizedAreaCode)).isPresent()) {
                         throw new IllegalArgumentException("Air Control Area code already exists: " + normalizedAreaCode);
                 }
+
+        if (name == null || name.isBlank())
+            throw new IllegalArgumentException("Air control area name cannot be blank.");
 
         // Instantiate domain objects
         // First the Value Object
@@ -51,15 +64,22 @@ public class RegisterAirControlAreaController {
 
         // Then the Aggregate Root entity
         final AirControlArea newArea =
-                                new AirControlArea(normalizedAreaCode, name == null ? null : name.trim(), minimumFuelRequired, boundaries);
+                new AirControlArea(AirControlAreaCode.valueOf(normalizedAreaCode), name.trim(), minimumFuelRequired, boundaries);
 
         // Save in the repository (persist to database)
         return repository.save(newArea);
     }
 
+        /**
+         * Normalizes an area code for consistent identity lookup and persistence.
+         *
+         * @param areaCode raw area code input
+         * @return uppercased and trimmed area code
+         * @throws IllegalArgumentException if {@code areaCode} is null
+         */
         private String normalizeAreaCode(final String areaCode) {
                 if (areaCode == null) {
-                        return null;
+                        throw new IllegalArgumentException("Area code cannot be null.");
                 }
                 return areaCode.trim().toUpperCase();
         }

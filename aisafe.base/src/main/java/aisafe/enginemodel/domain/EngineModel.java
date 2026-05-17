@@ -1,8 +1,11 @@
 package aisafe.enginemodel.domain;
 
+import aisafe.maker.domain.MakerName;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 /**
  * Entity and Aggregate Root representing an aircraft engine model.
@@ -21,28 +25,31 @@ import jakarta.persistence.UniqueConstraint;
 @Entity
 @Table(name = "T_ENGINE_MODEL",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"name", "makerName"})
+                @UniqueConstraint(columnNames = {"name", "maker_name"})
         })
 public class EngineModel implements AggregateRoot<Long> {
-
-    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Version
+    private Long version;
+
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
-    private String makerName;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "maker_name", nullable = false))
+    private MakerName makerName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EngineType engineType;
 
     @Column(nullable = false)
-    private double thrust;
+    private double thrustAtStandstill;
+    private double thrustAtCruiseSpeed;
 
     @Column(nullable = false)
     private double tsfc;
@@ -58,51 +65,60 @@ public class EngineModel implements AggregateRoot<Long> {
      * Creates a valid EngineModel with all required fields.
      *
      * @param name       the model name (non-blank)
-     * @param makerName  the manufacturer name (non-blank)
+     * @param makerName  the manufacturer name (non-null)
      * @param engineType the engine type (non-null)
-     * @param thrust     the thrust in kN (must be &gt; 0)
+     * @param thrustAtStandstill  the thrust at standstill in kN (must be &gt; 0)
+     * @param thrustAtCruiseSpeed the thrust at cruise speed in kN (must be &gt; 0)
      * @param tsfc       the thrust-specific fuel consumption (must be &gt; 0)
      */
-    public EngineModel(final String name, final String makerName, final EngineType engineType,
-                       final double thrust, final double tsfc) {
+    public EngineModel(final String name, final MakerName makerName, final EngineType engineType,
+                       final double thrustAtStandstill, final double thrustAtCruiseSpeed, final double tsfc) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Engine model name cannot be null or blank.");
         }
-        if (makerName == null || makerName.isBlank()) {
-            throw new IllegalArgumentException("Maker name cannot be null or blank.");
+        if (makerName == null) {
+            throw new IllegalArgumentException("Maker name cannot be null.");
         }
         if (engineType == null) {
             throw new IllegalArgumentException("Engine type cannot be null.");
         }
-        if (thrust <= 0) {
-            throw new IllegalArgumentException("Thrust must be greater than zero.");
+        if (thrustAtStandstill <= 0){
+            throw new IllegalArgumentException("Thrust at standstill must be greater than zero.");
+        }
+        if (thrustAtCruiseSpeed <= 0) {
+            throw new IllegalArgumentException("Thrust at cruise speed must be greater than zero.");
         }
         if (tsfc <= 0) {
             throw new IllegalArgumentException("TSFC must be greater than zero.");
         }
         this.name = name.trim();
-        this.makerName = makerName.trim();
+        this.makerName = makerName;
         this.engineType = engineType;
-        this.thrust = thrust;
+        this.thrustAtStandstill = thrustAtStandstill;
+        this.thrustAtCruiseSpeed = thrustAtCruiseSpeed;
         this.tsfc = tsfc;
     }
 
+    /** @return the engine model name */
     public String name() {
         return name;
     }
 
+    /** @return the name of the manufacturer */
     public String makerName() {
-        return makerName;
+        return makerName.toString();
     }
 
+    /** @return the propulsion type of this engine */
     public EngineType engineType() {
         return engineType;
     }
 
-    public double thrust() {
-        return thrust;
-    }
+    /** @return maximum thrust in kN */
+    public double thrustAtStandstill() { return thrustAtStandstill; }
+    public double thrustAtCruiseSpeed() { return thrustAtCruiseSpeed; }
 
+    /** @return thrust-specific fuel consumption in kg/(kN·h) */
     public double tsfc() {
         return tsfc;
     }

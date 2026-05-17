@@ -1,0 +1,29 @@
+@startuml aggregate-3_11
+skinparam shadowing false
+title Aggregate: FlightRoute — Create a flight route (US073)
+
+participant ":CreateFlightRouteUI" as UI
+participant ":CreateFlightRouteController" as CTRL
+participant "route:FlightRoute" as DOMAIN
+participant ":FlightRouteRepository" as REPO
+
+activate UI
+UI -> CTRL : createFlightRoute(name, originAirportIataCode,\ndestinationAirportIataCode, company)
+activate CTRL
+CTRL -> DOMAIN** : create(name, originAirportIataCode, destinationAirportIataCode)
+
+alt name format invalid (not /[A-Z]{2}[0-9]{1,4}/) or origin == destination
+    DOMAIN --> CTRL : throws IllegalArgumentException
+else valid
+    DOMAIN --> CTRL : flightRoute
+end
+
+CTRL -> REPO : save(flightRoute)
+activate REPO
+REPO --> CTRL : savedFlightRoute
+deactivate REPO
+CTRL --> UI : savedFlightRoute
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

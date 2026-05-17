@@ -1,0 +1,67 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Air Transport Company Collaborator" as ATCC
+
+participant ":ListFleetUI" as UI
+participant ":ListFleetController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "collaboratorRepo\n:CollaboratorRepository" as CREPO
+participant "aircraftRepo\n:AircraftRepository" as AREPO
+participant "myCompany\n:AirTransportCompany" as COMPANY
+
+activate ATCC
+ATCC -> UI : requests to list fleet
+activate UI
+
+UI -> CTRL** : create()
+
+UI --> ATCC : displays filter menu\n(all / by model / by maker / by capacity / by year)
+deactivate UI
+
+ATCC -> UI : selects filter and provides criteria
+activate UI
+
+UI -> CTRL : companyFleet() [or fleetByX(criteria)]
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC, ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AUTHZ : session().authenticatedUser()
+activate AUTHZ
+AUTHZ --> CTRL : currentUser
+deactivate AUTHZ
+
+CTRL -> CREPO : findBySystemUser(currentUser)
+activate CREPO
+CREPO --> CTRL : collaborator
+deactivate CREPO
+
+CTRL -> COMPANY : fleet()
+activate COMPANY
+COMPANY --> CTRL : Set<String> registrationNumbers
+deactivate COMPANY
+
+loop for each registration in fleet
+    CTRL -> AREPO : ofIdentity(registration)
+    activate AREPO
+    AREPO --> CTRL : Optional<Aircraft>
+    deactivate AREPO
+end
+
+note right of CTRL : Applies in-memory filter\n(model / maker / capacity / year)
+
+CTRL --> UI : List<Aircraft>
+deactivate CTRL
+
+UI --> ATCC : displays formatted fleet table\n(registration, country, model, maker, seats, year)
+deactivate UI
+deactivate ATCC
+
+@enduml

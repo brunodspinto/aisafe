@@ -5,11 +5,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Unit tests for the {@link AiSafePasswordPolicy}.
+ * Verifies password strength validation rules enforced on user registration.
+ */
 class AiSafePasswordPolicyTest {
 
     private final AiSafePasswordPolicy policy = new AiSafePasswordPolicy();
-
-    // --- Valid passwords (AC031.3) ---
 
     @Test
     void ensureValidPasswordIsAccepted() {
@@ -26,7 +28,6 @@ class AiSafePasswordPolicyTest {
         assertTrue(policy.isSatisfiedBy("SuperSecurePassword123"));
     }
 
-    // --- Invalid passwords (AC031.3) ---
 
     @Test
     void ensurePasswordShorterThanSixCharsIsRejected() {

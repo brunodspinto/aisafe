@@ -6,13 +6,18 @@ import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.domain.AircraftType;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
-import aisafe.maker.domain.Maker;
+import aisafe.aircraft.domain.RegistrationNumber;
+import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Unit tests for the {@link AirTransportCompany} aggregate root.
+ * Verifies IATA/ICAO code validation and fleet management behaviour.
+ */
 class AirTransportCompanyTest {
 
     // AC060.2 — IATA code validation
@@ -102,12 +107,11 @@ class AirTransportCompanyTest {
     // AC070 — Fleet management
 
     private static Aircraft validAircraft(final String registration) {
-        final Maker maker = new Maker("Boeing", "USA");
-        final EngineModel engine = new EngineModel("CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 0.35);
-        final AircraftModel model = new AircraftModel("737-800", maker, AircraftType.PASSENGER,
-                41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, engine);
+        final EngineModel engine = new EngineModel("CFM56", MakerName.valueOf("CFM International"), EngineType.TURBOFAN, 120.0, 115.0, 0.35);
+        final AircraftModel model = new AircraftModel("737-800", MakerName.valueOf("Boeing"), AircraftType.PASSENGER,
+                41140, 79016, 62732, 20894, 12500, 230, 34.3, 125.0, 0.026, 1.5, 5765.0, engine);
         final CabinConfiguration cabin = new CabinConfiguration(0, 20, 150);
-        return new Aircraft(registration, "Portugal", 6, cabin, model);
+        return new Aircraft(RegistrationNumber.valueOf(registration), "Portugal", 6, 2018, cabin, model);
     }
 
     @Test

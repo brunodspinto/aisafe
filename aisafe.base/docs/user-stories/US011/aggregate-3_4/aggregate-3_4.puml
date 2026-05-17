@@ -1,0 +1,23 @@
+@startuml aggregate-3_4
+skinparam shadowing false
+title Aggregate: EngineModel — Register a new engine model (US056)
+
+participant ":RegisterEngineModelUI" as UI
+participant ":RegisterEngineModelController" as CTRL
+participant "engine:EngineModel" as DOMAIN
+participant ":EngineModelRepository" as REPO
+
+activate UI
+UI -> CTRL : registerEngineModel(name, makerName,\nengineType, thrust, tsfc)
+activate CTRL
+CTRL -> DOMAIN** : create(name, makerName, engineType, thrust, tsfc)
+
+CTRL -> REPO : save(engineModel)
+activate REPO
+REPO --> CTRL : savedEngineModel
+deactivate REPO
+CTRL --> UI : savedEngineModel
+deactivate CTRL
+UI --> : displays success message
+deactivate UI
+@enduml

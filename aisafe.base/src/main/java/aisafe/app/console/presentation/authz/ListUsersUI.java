@@ -4,6 +4,10 @@ import aisafe.usermanagement.application.ListUsersController;
 import aisafe.usermanagement.domain.User;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "List Users" use case (US030).
+ * Displays all registered system users in a formatted table.
+ */
 public class ListUsersUI extends AbstractUI {
 
     private final ListUsersController controller = new ListUsersController();

@@ -13,8 +13,8 @@ package "Presentation" {
 
 package "Application" {
     class AddAircraftController {
-        + activeAircraftModels() : Iterable<AircraftModel>
-        + addAircraft(model: AircraftModel, registration: String, country: String, crew: int, first: int, business: int, economy: int) : AirTransportCompany
+        + allAircraftModels() : Iterable<AircraftModel>
+        + addAircraft(model: AircraftModel, registration: String, country: String, crew: int, year: int, first: int, business: int, economy: int) : AirTransportCompany
     }
 }
 
@@ -23,16 +23,26 @@ package "Domain" {
         - name : String
         - version : Long <<@Version>>
         - fleet : Set<String>
-        + addAircraftToFleet(aircraft: Aircraft) : boolean
+        + addAircraftToFleet(aircraft: Aircraft) : void
+        + fleet() : Set<String>
+    }
+
+    class RegistrationNumber <<value object, identity>> {
+        - code : String
+        + {static} valueOf(code : String) : RegistrationNumber
+        + toString() : String
     }
 
     class Aircraft <<entity>> <<aggregate root>> {
-        - registrationNumber : String
+        - registrationNumber : RegistrationNumber <<@EmbeddedId>>
         - registeredCountry : String
         - numberOfCrewElements : int
+        - yearOfManufacture : int
         - operationalStatus : OperationalStatus
-        + Aircraft(registration: String, country: String, crew: int, model: AircraftModel, cabin: CabinConfiguration)
-        + identity() : String
+        + Aircraft(registration, country, crew, year, cabin, model)
+        + identity() : RegistrationNumber
+        + decommission() : void
+        + isActive() : boolean
     }
 
     class CabinConfiguration <<value object>> <<@Embeddable>> {
@@ -45,8 +55,8 @@ package "Domain" {
 
     class AircraftModel <<entity>> <<aggregate root>> {
         - modelName : String
-        - maxPassengerCapacity : int
-        + maxPassengerCapacity() : int
+        - maxCapacity : int
+        + maxCapacity() : int
     }
 
     enum OperationalStatus {
@@ -72,16 +82,20 @@ package "Persistence" {
 
     interface AirTransportCompanyRepository <<repository>> {
         + save(entity: AirTransportCompany) : AirTransportCompany
-        + findCompanyByCollaborator(user: SystemUser) : AirTransportCompany
     }
 
     interface AircraftModelRepository <<repository>> {
         + findAll() : Iterable<AircraftModel>
     }
 
+    interface CollaboratorRepository <<repository>> {
+        + findBySystemUser(user: SystemUser) : Optional<Collaborator>
+    }
+
     class JpaAircraftRepository { }
     class JpaAirTransportCompanyRepository { }
     class JpaAircraftModelRepository { }
+    class JpaCollaboratorRepository { }
 }
 
 AddAircraftUI .down.> AddAircraftController
@@ -92,21 +106,20 @@ AddAircraftController .down.> AircraftModel
 AddAircraftController .down.> AirTransportCompanyRepository
 AddAircraftController .down.> AircraftRepository
 AddAircraftController .down.> AircraftModelRepository
+AddAircraftController .down.> CollaboratorRepository
 AddAircraftController .down.> AuthorizationService
 
-note bottom of Aircraft: Stores only the AircraftModel ID\nto maintain Low Coupling.
-
+Aircraft "1" *-- "1" RegistrationNumber : "identified by >"
 Aircraft "1" *-- "1" CabinConfiguration : "has (Embedded) >"
 Aircraft "1" --> "1" OperationalStatus : "has >"
-Aircraft "1" ..> "1" AircraftModel : "references by ID >"
+Aircraft "1" --> "1" AircraftModel : "defined by >"
 
-note right of AirTransportCompany: Maintains a Set of\nregistration IDs (Strings)\nto maintain Low Coupling.
-
-AirTransportCompany "1" ..> "*" Aircraft : "references by registration >"
+AirTransportCompany "1" ..> "*" Aircraft : "fleet\n(by registrationNumber: String)"
 
 ' Persistence Implementations (Dependency Inversion)
 JpaAircraftRepository .up.|> AircraftRepository
 JpaAirTransportCompanyRepository .up.|> AirTransportCompanyRepository
 JpaAircraftModelRepository .up.|> AircraftModelRepository
+JpaCollaboratorRepository .up.|> CollaboratorRepository
 
 @enduml

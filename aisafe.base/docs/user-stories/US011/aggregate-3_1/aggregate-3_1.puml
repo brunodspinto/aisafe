@@ -1,43 +1,30 @@
-@startuml
-autonumber
+@startuml aggregate-3_1
+skinparam shadowing false
+title Aggregate: AirTransportCompany — Register an air transport company (US060)
 
-actor "Backoffice Operator" as BO
-participant ":RegisterAirTransportCompanyUI" as UI <<presentation>>
-participant ":RegisterAirTransportCompanyController" as Controller <<application>>
-participant "company\n:AirTransportCompany" as Domain <<domain>>
-participant "companyRepository\n:AirTransportCompanyRepository" as Repository <<repository>>
+participant ":RegisterAirTransportCompanyUI" as UI
+participant ":RegisterAirTransportCompanyController" as CTRL
+participant "company:AirTransportCompany" as DOMAIN
+participant ":AirTransportCompanyRepository" as REPO
 
-BO -> UI : asks to register a new air transport company
 activate UI
-UI --> BO : requests data (name, IATA code, ICAO code)
-deactivate UI
+UI -> CTRL : registerCompany(name, iataCode, icaoCode)
+activate CTRL
+CTRL -> DOMAIN** : create(name, iataCode, icaoCode)
 
-BO -> UI : types requested data
-activate UI
+alt name already exists or iataCode not unique or icaoCode not unique
+    DOMAIN --> CTRL : throws IllegalArgumentException
+else valid
+    DOMAIN --> CTRL : company
+end
 
-UI -> Controller : registerCompany(name, iata, icao)
-activate Controller
-
-
-Controller -> Domain : create(name, iata, icao)
-activate Domain
-Domain --> Controller : company
-deactivate Domain
-
-note right of Controller
-  Repository creation via PersistenceContext and Factory
-  was omitted in this diagram for readability purposes.
-end note
-
-Controller -> Repository : save(company)
-activate Repository
-Repository --> Controller : company
-deactivate Repository
-
-Controller --> UI : company
-deactivate Controller
-
-UI --> BO : displays operation success
+CTRL -> REPO : save(company)
+activate REPO
+REPO --> CTRL : savedCompany
+deactivate REPO
+CTRL --> UI : savedCompany
+deactivate CTRL
+UI --> : displays success message
 deactivate UI
 
 @enduml

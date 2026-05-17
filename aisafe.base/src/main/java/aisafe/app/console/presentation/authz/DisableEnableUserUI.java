@@ -6,6 +6,10 @@ import eapli.framework.infrastructure.authz.domain.model.Username;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
+/**
+ * Console UI for the "Disable/Enable User" use case (US032).
+ * Lists all users and allows an administrator to toggle any account's active state.
+ */
 public class DisableEnableUserUI extends AbstractUI {
 
     private final DisableEnableUserController controller = new DisableEnableUserController();

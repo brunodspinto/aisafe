@@ -25,23 +25,43 @@ public interface RepositoryFactory {
 
     UserRepository users();
 
+    AirTransportCompanyRepository airTransportCompanies(TransactionalContext tx);
+
     AirTransportCompanyRepository airTransportCompanies();
+
+    AirControlAreaRepository airControlAreas(TransactionalContext tx);
 
     AirControlAreaRepository airControlAreas();
 
+    FlightPlanRepository flightPlans(TransactionalContext tx);
+
     FlightPlanRepository flightPlans();
+
+    WeatherDataRepository weatherData(TransactionalContext tx);
 
     WeatherDataRepository weatherData();
 
+    AirportRepository airports(TransactionalContext tx);
+
     AirportRepository airports();
+
+    EngineModelRepository engineModels(TransactionalContext tx);
 
     EngineModelRepository engineModels();
 
+    MakerRepository makers(TransactionalContext tx);
+
     MakerRepository makers();
+
+    AircraftModelRepository aircraftModels(TransactionalContext tx);
 
     AircraftModelRepository aircraftModels();
 
+    CollaboratorRepository collaborators(TransactionalContext tx);
+
     CollaboratorRepository collaborators();
+
+    AircraftRepository aircraft(TransactionalContext tx);
 
     AircraftRepository aircraft();
 }
