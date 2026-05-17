@@ -14,6 +14,7 @@ import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.collaborator.repositories.CollaboratorRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
+import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryTransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import eapli.framework.infrastructure.authz.repositories.impl.inmemory.InMemoryUserRepository;
@@ -116,7 +117,7 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
 
     @Override
     public TransactionalContext newTransactionalContext() {
-        return null;
+        return new InMemoryTransactionalContext();
     }
 
     @Override
