@@ -25,7 +25,7 @@ can assess the safety and performance of the flights post-simulation.
 | ID | Criterion | Status |
 |----|-----------|--------|
 | AC1 | The system must aggregate all flight data only after the main simulation loop concludes | Done |
-| AC2 | The report includes the total number of flights, individual execution statuses, and detailed safety violation events | Done |
+| AC2 | The report includes the total number of flights, individual execution statuses (ACA entry/exit), and total safety violations count. Individual violation events (pair, timestamp, position) are logged to stdout during the simulation by US102. | Done |
 | AC3 | **Course Specific:** The report generation must be executed by a dedicated **process** (not a thread) during Sprint 2 | Done |
 | AC4 | The final validation result (pass/fail) is clearly indicated and the complete report is saved to a file for future reference | Done |
 
@@ -61,10 +61,15 @@ nested structs across an IPC boundary.
 
 The final report provides both a high-level summary and per-flight detail:
 
-1. **Simulation Status:** Natural completion (`COMPLETED`) vs. aborted (`ABORTED — MAX_VIOLATIONS`).
-2. **Global Metrics:** Total flights, total positions captured, total safety violations.
-3. **Per-Flight Data:** Trajectory snapshots (lat/lon/alt/spd/hdg), ACA entry/exit state, and
-   individual safety violation events with timestamps and velocity vectors.
+1. **Simulation Status:** Natural completion (`COMPLETED (Normal)`) vs. aborted (`ABORTED (Threshold Reached)`).
+2. **Global Metrics:** Total flights tracked, total safety violations detected.
+3. **Per-Flight Data:** ACA entry/exit state, position count, and trajectory snapshots
+   with lat/lon/alt/speed/heading/vz (velocity vector) for every position logged inside the ACA.
+
+> **Note:** Individual safety violation events (which pair violated, at what exact timestamp
+> and position) are emitted to stdout in real time by `safety_monitor.c` (US102) during the
+> simulation. They are not stored in `flight_history_t` and therefore not repeated in the
+> file report. `total_violations` is the only aggregate carried into the report.
 
 ---
 
@@ -136,7 +141,8 @@ void generate_final_report(const flight_history_t *histories, int n_flights,
 
 ### `libs/scripts/build_c.sh`
 
-* Included `report.c` in the compilation list.
+* **No changes required** — the script compiles all `.c` files via `"$C_DIR"/*.c` glob,
+  so `report.c` is picked up automatically.
 
 ---
 
@@ -171,44 +177,46 @@ Zero compiler warnings (enforced by `-Wall -Wextra`).
 [FLIGHT_03] ended with code 0
 
 [SYSTEM] Simulation concluded. Spawning report generation process...
-[REPORT] Report successfully saved to 'simulation_report.txt'.
-[SYSTEM] Shutting down gracefully.
+[SYSTEM US109] Parent process (PID: 1234) waiting for report process...
+[REPORT US109] Child process (PID: 1235) generating report...
+[SYSTEM US109] Report process ended successfully with exit value: 0
 ```
 
 ### Expected File Output (`simulation_report.txt`)
 
 ```
 ==================================================
-        FLIGHT SIMULATION FINAL REPORT
+        FLIGHT SIMULATION - FINAL REPORT
 ==================================================
-Simulation Status: COMPLETED
+Generated on: Sun May 17 12:00:00 2026
+Simulation End Status: COMPLETED (Normal)
 Total Safety Violations Detected: 0
-Total Flights Tracked: 3
+Total Aircraft Records: 3
 
 --------------------------------------------------
-FLIGHT ID: FLIGHT_01
+Aircraft Identifier: FLIGHT_01
 ACA Status: Exited ACA
-Total Positions Logged: 25
-Route Log:
-  T+0:  lat=41.2629 lon=-8.6852 alt=69m   spd=250kt hdg=42.5 vz=12.0m/s
+Logged Snapshots inside ACA: 25
+--------------------------------------------------
+  [001] Lat: 41.2629 | Lon: -8.6852 | Alt: 69m | Spd: 250kt | Hdg: 42.5 | Vz: 12.0m/s
   ...
-  T+24: lat=41.9800 lon=-8.1000 alt=9249m spd=460kt hdg=42.5 vz=0.0m/s
+  [025] Lat: 41.9800 | Lon: -8.1000 | Alt: 9249m | Spd: 460kt | Hdg: 42.5 | Vz: 0.0m/s
 
 --------------------------------------------------
-FLIGHT ID: FLIGHT_02
-ACA Status: Exited ACA
+Aircraft Identifier: FLIGHT_02
 ...
 
 --------------------------------------------------
-FLIGHT ID: FLIGHT_03
-ACA Status: Exited ACA
+Aircraft Identifier: FLIGHT_03
 ...
+
+=================== END OF REPORT ===================
 ```
 
 In the collision scenario (`--collision`), the header reads:
 
 ```
-Simulation Status: ABORTED — MAX_VIOLATIONS REACHED
+Simulation End Status: ABORTED (Threshold Reached)
 Total Safety Violations Detected: 3
 ```
 

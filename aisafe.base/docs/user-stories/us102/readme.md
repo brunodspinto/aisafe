@@ -35,22 +35,24 @@ overlaps so that I can identify and report safety violations.
 ### 3.1 Safety Cylinder
 
 The International Civil Aviation Organization (ICAO) minimum separation standard used in
-this simulation is:
+this simulation as default values is:
 
-| Dimension | Value |
-|-----------|-------|
-| Horizontal | 8 Nautical Miles = 14 816 m |
-| Vertical | 600 m |
+| Dimension | Default value | Config key |
+|-----------|--------------|------------|
+| Horizontal | 8 Nautical Miles ≈ 14 816 m | `safe_dist_horiz_m` |
+| Vertical | 600 m | `safe_dist_vert_m` |
 
-A violation occurs when **both** conditions are breached simultaneously: `d_horiz < 14816 m`
-AND `d_vert < 600 m`.
+Both thresholds are read from `simulation.conf` at startup via `simulation_params_t` and
+passed down through `monitor_safety_violations`. A violation occurs when **both** conditions
+are breached simultaneously: `d_horiz < safe_dist_horiz_m` AND `d_vert < safe_dist_vert_m`.
 
 ### 3.2 Motion Vector Approach
 
 Because the simulation advances one second at a time, two aircraft can in theory "jump
 over" each other between consecutive time steps if their speed is high enough. To prevent
 missed intersections, the check interpolates the displacement vector of each aircraft into
-10 sub-steps and evaluates the safety cylinder at each sub-step position.
+11 sub-steps (indices 0 to `SUB_STEPS` inclusive, where `#define SUB_STEPS 10`) and
+evaluates the safety cylinder at each sub-step position.
 
 ### 3.3 Synchronised Step-by-Step Simulation
 
@@ -225,7 +227,8 @@ STOP or SIGUSR1.
 - Loop changed from fixed step count to a `while` loop that runs until the segment's
   target altitude (climb/descend) or target position (cruise) is reached.
 - After each `write(pos_write_fd, …)` the child blocks on `read(ctrl_read_fd, &token)`.
-  If `token == 'S'`, the child closes its file descriptors and calls `exit(1)`.
+  Exit condition: `collision_alert || r <= 0 || token == 'S'` — covers three cases: SIGUSR1
+  set the flag, the pipe was closed (parent exited), or an explicit STOP token arrived.
 - `nanosleep()` removed — the pipe round-trip provides natural pacing.
 - Step size: `STEP_SECONDS = 1` (one simulation second per pipe round-trip).
 
