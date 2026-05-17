@@ -3,6 +3,7 @@ package aisafe.usermanagement.domain;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import eapli.framework.infrastructure.authz.domain.model.SystemUser;
+import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
@@ -22,8 +23,6 @@ import java.time.LocalDate;
 @Table(name = "T_AISAFE_USER")
 public class User implements AggregateRoot<MecanographicNumber> {
 
-    private static final long serialVersionUID = 1L;
-
     @Version
     private Long version;
 
@@ -34,6 +33,7 @@ public class User implements AggregateRoot<MecanographicNumber> {
     @JoinColumn(name = "system_user_id")
     private SystemUser systemUser;
 
+    @Column(nullable = false)
     private String phoneNumber;
 
     private String position;

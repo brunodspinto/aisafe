@@ -4,7 +4,6 @@ import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.domain.AircraftType;
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
-import aisafe.maker.domain.Maker;
 import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 
@@ -18,18 +17,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class AircraftTest {
 
     private static AircraftModel validModel() {
-        final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
         final EngineModel engine = new EngineModel("CFM56", MakerName.valueOf("CFM International"), EngineType.TURBOFAN, 120.0, 115.0, 0.35);
-        return new AircraftModel("737-800", maker, AircraftType.PASSENGER,
+        return new AircraftModel("737-800", MakerName.valueOf("Boeing"), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, engine);
     }
 
     private static AircraftModel validCargoModel() {
-        final Maker maker = new Maker(MakerName.valueOf("Boeing"), "USA");
         final EngineModel engine = new EngineModel("CFM56", MakerName.valueOf("CFM International"), EngineType.TURBOFAN, 120.0, 115.0, 0.35);
-        return new AircraftModel("747F", maker, AircraftType.CARGO,
+        return new AircraftModel("747F", MakerName.valueOf("Boeing"), AircraftType.CARGO,
                 178756, 412775, 302000, 162500,
                 13700, 255, 68.4, 541.0,
                 0.026, 1.5, 5765.0, engine);

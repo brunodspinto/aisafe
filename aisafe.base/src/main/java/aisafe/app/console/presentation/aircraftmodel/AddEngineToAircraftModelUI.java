@@ -27,7 +27,7 @@ public class AddEngineToAircraftModelUI extends AbstractUI {
                 System.out.printf("  [%d] %s (%s) - %s - %d engine(s)%n",
                         models.size() + 1,
                         model.modelName(),
-                        model.maker().name(),
+                        model.makerName(),
                         model.aircraftType(),
                         model.certifiedEngines().size());
                 models.add(model);
@@ -70,7 +70,7 @@ public class AddEngineToAircraftModelUI extends AbstractUI {
 
             System.out.println("\n Engine successfully added!");
             System.out.println("  Model   : " + updated.modelName());
-            System.out.println("  Maker   : " + updated.maker().name());
+            System.out.println("  Maker   : " + updated.makerName());
             System.out.println("  Engines : " + updated.certifiedEngines().size() + " certified engine(s)");
 
         } catch (final IllegalArgumentException e) {

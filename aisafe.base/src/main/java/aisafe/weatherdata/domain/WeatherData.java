@@ -26,8 +26,6 @@ import java.util.Set;
 @Table(name = "T_WEATHER_DATA")
 public class WeatherData implements AggregateRoot<Long> {
 
-    private static final long serialVersionUID = 1L;
-
     private static final Set<String> VALID_DIRECTIONS = Set.of(
         "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
         "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"

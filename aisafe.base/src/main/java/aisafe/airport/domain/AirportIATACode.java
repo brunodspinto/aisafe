@@ -10,7 +10,6 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class AirportIATACode implements ValueObject, Comparable<AirportIATACode> {
 
-    private static final long serialVersionUID = 1L;
     private String iataCode;
 
     /**

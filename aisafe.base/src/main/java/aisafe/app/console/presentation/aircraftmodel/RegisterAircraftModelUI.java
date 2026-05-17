@@ -96,7 +96,7 @@ public class RegisterAircraftModelUI extends AbstractUI {
 
             System.out.println("\n Aircraft Model successfully registered!");
             System.out.println("  Model    : " + model.modelName());
-            System.out.println("  Maker    : " + model.maker().name());
+            System.out.println("  Maker    : " + model.makerName());
             System.out.println("  Type     : " + model.aircraftType());
             System.out.println("  Engines  : " + model.certifiedEngines().size() + " certified engine(s)");
             System.out.println("  Max Range: " + model.maxRange() + " km");

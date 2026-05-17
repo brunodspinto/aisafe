@@ -1,6 +1,7 @@
 package aisafe.flightplan.domain;
 
 import aisafe.dsl.ast.FlightPlanAst;
+import aisafe.dsl.ast.FlightType;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.Column;
@@ -28,8 +29,9 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
     @Version
     private Long version;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String flightType;
+    private FlightType flightType;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -50,18 +52,18 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
      * Creates a new FlightPlan from a validated DSL file.
      * Status starts as DRAFT.
      */
-    public FlightPlan(final FlightPlanDesignator designator, final String flightType, final String dslContent) {
+    public FlightPlan(final FlightPlanDesignator designator, final FlightType flightType, final String dslContent) {
         if (designator == null) {
             throw new IllegalArgumentException("Flight plan designator cannot be null or empty.");
         }
-        if (flightType == null || flightType.trim().isEmpty()) {
-            throw new IllegalArgumentException("Flight type cannot be null or empty.");
+        if (flightType == null) {
+            throw new IllegalArgumentException("Flight type cannot be null.");
         }
         if (dslContent == null || dslContent.trim().isEmpty()) {
             throw new IllegalArgumentException("DSL content cannot be null or empty.");
         }
         this.designator = designator;
-        this.flightType = flightType.trim().toUpperCase();
+        this.flightType = flightType;
         this.dslContent = dslContent;
         this.status = FlightPlanStatus.DRAFT;
     }
@@ -76,7 +78,7 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
     public static FlightPlan fromDsl(final FlightPlanAst ast, final String dslContent) {
         return new FlightPlan(
                 FlightPlanDesignator.valueOf(ast.identifier()),
-                ast.flightType().name(),
+                ast.flightType(),
                 dslContent
         );
     }
@@ -86,8 +88,8 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
         return designator.toString();
     }
 
-    /** @return flight type (e.g. "IFR", "VFR") */
-    public String flightType() {
+    /** @return flight type classification */
+    public FlightType flightType() {
         return flightType;
     }
 

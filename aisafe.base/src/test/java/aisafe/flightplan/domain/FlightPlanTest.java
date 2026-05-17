@@ -5,6 +5,8 @@ import aisafe.dsl.ast.FlightType;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
+import static aisafe.dsl.ast.FlightType.REGULAR;
+import static aisafe.dsl.ast.FlightType.CHARTER;
 
 /**
  * Unit tests for the {@link FlightPlan} aggregate root.
@@ -14,57 +16,51 @@ class FlightPlanTest {
 
     @Test
     void ensureValidFlightPlanCanBeCreated() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "flight TP1234 { }");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "flight TP1234 { }");
         assertEquals("TP1234", plan.designator());
-        assertEquals("REGULAR", plan.flightType());
+        assertEquals(REGULAR, plan.flightType());
         assertEquals(FlightPlanStatus.DRAFT, plan.status());
     }
 
     @Test
     void ensureDesignatorIsNormalizedToUpperCase() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("tp1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("tp1234"), REGULAR, "content");
         assertEquals("TP1234", plan.designator());
     }
 
     @Test
     void ensureDesignatorCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan((FlightPlanDesignator) null, "REGULAR", "content"));
+                () -> new FlightPlan(null, REGULAR, "content"));
     }
 
     @Test
     void ensureDesignatorCannotBeBlank() {
         assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan(FlightPlanDesignator.valueOf("   "), "REGULAR", "content"));
+                () -> new FlightPlan(FlightPlanDesignator.valueOf("   "), REGULAR, "content"));
     }
 
     @Test
     void ensureFlightTypeCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), null, "content"));
-    }
-
-    @Test
-    void ensureFlightTypeCannotBeBlank() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "   ", "content"));
+                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), (FlightType) null, "content"));
     }
 
     @Test
     void ensureDslContentCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", null));
+                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, null));
     }
 
     @Test
     void ensureDslContentCannotBeBlank() {
         assertThrows(IllegalArgumentException.class,
-                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "   "));
+                () -> new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "   "));
     }
 
     @Test
     void ensureStatusStartsAsDraft() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertEquals(FlightPlanStatus.DRAFT, plan.status());
     }
 
@@ -73,65 +69,65 @@ class FlightPlanTest {
         final FlightPlanAst ast = new FlightPlanAst("TP1234", FlightType.REGULAR, List.of());
         final FlightPlan plan = FlightPlan.fromDsl(ast, "dsl content");
         assertEquals("TP1234", plan.designator());
-        assertEquals("REGULAR", plan.flightType());
+        assertEquals(REGULAR, plan.flightType());
         assertEquals(FlightPlanStatus.DRAFT, plan.status());
     }
 
     @Test
     void ensureTwoFlightPlansWithSameDesignatorAreEqual() {
-        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
-        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "CHARTER", "other content");
+        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
+        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), CHARTER, "other content");
         assertEquals(p1, p2);
     }
 
     @Test
     void ensureTwoFlightPlansWithDifferentDesignatorsAreNotEqual() {
-        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
-        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP5678"), "REGULAR", "content");
+        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
+        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP5678"), REGULAR, "content");
         assertNotEquals(p1, p2);
     }
 
     @Test
     void ensureIdentityReturnsDesignator() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertEquals(FlightPlanDesignator.valueOf("TP1234"), plan.identity());
     }
 
     @Test
     void ensureHashCodeIsConsistentWithEquals() {
-        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
-        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "CHARTER", "other");
+        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
+        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), CHARTER, "other");
         assertEquals(p1.hashCode(), p2.hashCode());
     }
 
     @Test
     void ensureToStringContainsDesignator() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertTrue(plan.toString().contains("TP1234"));
     }
 
     @Test
     void ensureDslContentIsStored() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "my dsl content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "my dsl content");
         assertEquals("my dsl content", plan.dslContent());
     }
 
     @Test
     void ensureSameAsReturnsTrueForEqualPlans() {
-        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
-        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan p1 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
+        final FlightPlan p2 = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertTrue(p1.sameAs(p2));
     }
 
     @Test
     void ensureEqualsReturnsFalseForNull() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertNotEquals(null, plan);
     }
 
     @Test
     void ensureEqualsReturnsFalseForDifferentType() {
-        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), "REGULAR", "content");
+        final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertNotEquals("TP1234", plan);
     }
 }

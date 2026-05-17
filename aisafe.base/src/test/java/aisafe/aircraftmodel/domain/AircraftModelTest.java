@@ -2,7 +2,6 @@ package aisafe.aircraftmodel.domain;
 
 import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
-import aisafe.maker.domain.Maker;
 import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class AircraftModelTest {
 
-    private static Maker validMaker() {
-        return new Maker(MakerName.valueOf("Boeing"), "USA");
+    private static MakerName validMakerName() {
+        return MakerName.valueOf("Boeing");
     }
 
     private static EngineModel validEngine() {
@@ -23,7 +22,7 @@ class AircraftModelTest {
 
     private static AircraftModel validAircraftModel() {
         return new AircraftModel(
-                "737-800", validMaker(), AircraftType.PASSENGER,
+                "737-800", validMakerName(), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()
@@ -34,7 +33,7 @@ class AircraftModelTest {
     void ensureValidAircraftModelCanBeCreated() {
         final AircraftModel model = validAircraftModel();
         assertEquals("737-800", model.modelName());
-        assertEquals("Boeing", model.maker().name());
+        assertEquals("Boeing", model.makerName());
         assertEquals(AircraftType.PASSENGER, model.aircraftType());
         assertEquals(1, model.certifiedEngines().size());
     }
@@ -42,7 +41,7 @@ class AircraftModelTest {
     @Test
     void ensureModelNameCannotBeNull() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel(null, validMaker(), AircraftType.PASSENGER,
+                new AircraftModel(null, validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -60,7 +59,7 @@ class AircraftModelTest {
     @Test
     void ensureAircraftTypeCannotBeNull() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), null,
+                new AircraftModel("737-800", validMakerName(), null,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -69,7 +68,7 @@ class AircraftModelTest {
     @Test
     void ensureFirstEngineCannotBeNull() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, null));
@@ -78,7 +77,7 @@ class AircraftModelTest {
     @Test
     void ensureEmptyWeightMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         0, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -87,7 +86,7 @@ class AircraftModelTest {
     @Test
     void ensureMTOWMustBeGreaterThanEmptyWeight() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         79016, 41140, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -103,7 +102,7 @@ class AircraftModelTest {
     void ensureTwoModelsWithSameNameAndMakerAreEqual() {
         final AircraftModel a = validAircraftModel();
         final AircraftModel b = new AircraftModel(
-                "737-800", validMaker(), AircraftType.CARGO,
+                "737-800", validMakerName(), AircraftType.CARGO,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()
@@ -115,7 +114,7 @@ class AircraftModelTest {
     void ensureUnpersistedModelsShareNullIdentityAndAreEqual() {
         final AircraftModel a = validAircraftModel();
         final AircraftModel b = new AircraftModel(
-                "737-900", validMaker(), AircraftType.PASSENGER,
+                "737-900", validMakerName(), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()
@@ -180,7 +179,7 @@ class AircraftModelTest {
     @Test
     void ensureMZFWMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 0, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -189,7 +188,7 @@ class AircraftModelTest {
     @Test
     void ensureMZFWCannotExceedMTOW() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 80000, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -198,7 +197,7 @@ class AircraftModelTest {
     @Test
     void ensureMaxFuelCapacityMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 0,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -207,7 +206,7 @@ class AircraftModelTest {
     @Test
     void ensureServiceCeilingMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         0, 230, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -216,7 +215,7 @@ class AircraftModelTest {
     @Test
     void ensureCruiseSpeedMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 0, 34.3, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -225,7 +224,7 @@ class AircraftModelTest {
     @Test
     void ensureWingSpanMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 0, 125.0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -234,7 +233,7 @@ class AircraftModelTest {
     @Test
     void ensureWingAreaMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 0,
                         0.026, 1.5, 5765.0, validEngine()));
@@ -243,7 +242,7 @@ class AircraftModelTest {
     @Test
     void ensureDragCoefficientMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0, 1.5, 5765.0, validEngine()));
@@ -252,7 +251,7 @@ class AircraftModelTest {
     @Test
     void ensureLiftCoefficientMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 0, 5765.0, validEngine()));
@@ -318,7 +317,7 @@ class AircraftModelTest {
     @Test
     void ensureMaxRangeMustBePositive() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AircraftModel("737-800", validMaker(), AircraftType.PASSENGER,
+                new AircraftModel("737-800", validMakerName(), AircraftType.PASSENGER,
                         41140, 79016, 62732, 20894,
                         12500, 230, 34.3, 125.0,
                         0.026, 1.5, 0, validEngine()));
@@ -334,7 +333,7 @@ class AircraftModelTest {
     void ensureHashCodeIsConsistentForUnpersistedModels() {
         final AircraftModel a = validAircraftModel();
         final AircraftModel b = new AircraftModel(
-                "737-900", validMaker(), AircraftType.PASSENGER,
+                "737-900", validMakerName(), AircraftType.PASSENGER,
                 41140, 79016, 62732, 20894,
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()

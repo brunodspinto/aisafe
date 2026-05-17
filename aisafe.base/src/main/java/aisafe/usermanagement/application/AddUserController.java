@@ -72,24 +72,25 @@ public class AddUserController {
         final var tx = PersistenceContext.repositories().newTransactionalContext();
         final var userRepo = PersistenceContext.repositories().users(tx);
 
-        if (tx != null) tx.beginTransaction();
+        tx.beginTransaction();
         try {
             final SystemUser systemUser = userSvc.registerNewUser(
                     username, password, firstName, lastName, emailStr, roles,
                     CurrentTimeCalendars.now());
 
+            final long nextId = java.util.stream.StreamSupport
+                    .stream(userRepo.findAll().spliterator(), false).count() + 1;
             final MecanographicNumber mecNumber =
-                    MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
+                    MecanographicNumber.valueOf(String.format("EMP%05d", nextId));
 
             final User user = new User(systemUser, mecNumber, phoneNumber, email,
                     position, securityClearance, skillsAssessmentDate);
 
             final var savedUser = userRepo.save(user);
-            if (tx != null) tx.commit();
+            tx.commit();
             return savedUser;
         } catch (final Exception e) {
-            if (tx != null) tx.rollback();
-            System.err.println("[AddUserController] Transaction rolled back: " + e.getMessage());
+            tx.rollback();
             throw e;
         }
     }

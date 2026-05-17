@@ -13,8 +13,6 @@ import java.time.LocalDate;
 @Embeddable
 public class SecurityClearance implements ValueObject {
 
-    private static final long serialVersionUID = 1L;
-
     @Enumerated(EnumType.STRING)
     private SecurityLevel level;
     private LocalDate expirationDate;

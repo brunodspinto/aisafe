@@ -101,7 +101,7 @@ public class ListFleetController {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC, AiSafeRoles.ADMIN);
         final List<Aircraft> result = new ArrayList<>();
         for (final Aircraft a : loadFleet(resolveCompany())) {
-            if (a.aircraftModel().maker().name().equalsIgnoreCase(makerName.trim()))
+            if (a.aircraftModel().makerName().equalsIgnoreCase(makerName.trim()))
                 result.add(a);
         }
         return result;

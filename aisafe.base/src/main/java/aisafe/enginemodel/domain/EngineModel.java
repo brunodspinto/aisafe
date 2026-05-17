@@ -29,8 +29,6 @@ import jakarta.persistence.Version;
         })
 public class EngineModel implements AggregateRoot<Long> {
 
-    private static final long serialVersionUID = 1L;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

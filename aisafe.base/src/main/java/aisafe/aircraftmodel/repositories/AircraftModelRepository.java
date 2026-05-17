@@ -1,7 +1,6 @@
 package aisafe.aircraftmodel.repositories;
 
 import aisafe.aircraftmodel.domain.AircraftModel;
-import aisafe.maker.domain.Maker;
 import eapli.framework.domain.repositories.DomainRepository;
 
 import java.util.Optional;
@@ -12,11 +11,11 @@ import java.util.Optional;
 public interface AircraftModelRepository extends DomainRepository<Long, AircraftModel> {
 
     /**
-     * Finds an aircraft model by its name and maker combination (uniqueness constraint).
+     * Finds an aircraft model by its name and maker name combination (uniqueness constraint).
      *
      * @param modelName the model name
-     * @param maker     the manufacturer
+     * @param makerName the manufacturer name
      * @return an {@code Optional} with the matching model, or empty if not found
      */
-    Optional<AircraftModel> findByModelNameAndMaker(String modelName, Maker maker);
+    Optional<AircraftModel> findByModelNameAndMaker(String modelName, String makerName);
 }

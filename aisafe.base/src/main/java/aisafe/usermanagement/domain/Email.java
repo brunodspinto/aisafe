@@ -10,8 +10,6 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class Email implements ValueObject {
 
-    private static final long serialVersionUID = 1L;
-
     private String address;
 
     /**

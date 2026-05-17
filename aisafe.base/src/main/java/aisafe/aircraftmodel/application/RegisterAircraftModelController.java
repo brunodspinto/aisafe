@@ -97,19 +97,21 @@ public class RegisterAircraftModelController {
 
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.BACKOFFICE_OPERATOR, AiSafeRoles.ADMIN);
 
-        final Maker maker = makerRepository.ofIdentity(MakerName.valueOf(makerName))
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Maker '" + makerName + "' not found."));
+        final MakerName makerNameVo = MakerName.valueOf(makerName);
+
+        if (makerRepository.ofIdentity(makerNameVo).isEmpty()) {
+            throw new IllegalArgumentException("Maker '" + makerName + "' not found.");
+        }
 
         final AircraftType aircraftType = AircraftType.valueOf(aircraftTypeName.toUpperCase());
 
-        if (aircraftModelRepository.findByModelNameAndMaker(modelName, maker).isPresent()) {
+        if (aircraftModelRepository.findByModelNameAndMaker(modelName, makerName).isPresent()) {
             throw new IllegalArgumentException(
                     "An aircraft model with name '" + modelName + "' and maker '" + makerName + "' already exists.");
         }
 
         final AircraftModel model = new AircraftModel(
-                modelName, maker, aircraftType,
+                modelName, makerNameVo, aircraftType,
                 emptyWeight, mtow, mzfw, maxFuelCapacity,
                 serviceCeiling, cruiseSpeed, wingSpan, wingArea,
                 dragCoefficient, liftCoefficient, maxRange, engine

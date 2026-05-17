@@ -111,16 +111,16 @@ public class AddCollaboratorController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Transport Company '" + companyIataCode + "' not found."));
 
-        if (tx != null) tx.beginTransaction();
+        tx.beginTransaction();
         try {
             final User user = createUser(username, password, firstName, lastName,
                     emailStr, roles, phoneNumber, position, email,
                     securityClearance, skillsAssessmentDate);
             final Collaborator collab = collaboratorRepo.save(new Collaborator(user, company.identity()));
-            if (tx != null) tx.commit();
+            tx.commit();
             return collab;
         } catch (final Exception e) {
-            if (tx != null) tx.rollback();
+            tx.rollback();
             throw e;
         }
     }
@@ -162,16 +162,16 @@ public class AddCollaboratorController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Air Control Area '" + areaCode + "' not found."));
 
-        if (tx != null) tx.beginTransaction();
+        tx.beginTransaction();
         try {
             final User user = createUser(username, password, firstName, lastName,
                     emailStr, roles, phoneNumber, position, email,
                     securityClearance, skillsAssessmentDate);
             final Collaborator collab = collaboratorRepo.save(new Collaborator(user, area.identity()));
-            if (tx != null) tx.commit();
+            tx.commit();
             return collab;
         } catch (final Exception e) {
-            if (tx != null) tx.rollback();
+            tx.rollback();
             throw e;
         }
     }
@@ -187,8 +187,10 @@ public class AddCollaboratorController {
                 username, password, firstName, lastName, emailStr, roles,
                 CurrentTimeCalendars.now());
 
+        final long nextId = java.util.stream.StreamSupport
+                .stream(userRepo.findAll().spliterator(), false).count() + 1;
         final MecanographicNumber mecNumber =
-                MecanographicNumber.valueOf(java.util.UUID.randomUUID().toString());
+                MecanographicNumber.valueOf(String.format("EMP%05d", nextId));
 
         final User user = new User(systemUser, mecNumber, phoneNumber, email,
                 position, securityClearance, skillsAssessmentDate);

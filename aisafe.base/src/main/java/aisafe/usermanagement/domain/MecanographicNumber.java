@@ -10,8 +10,6 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class MecanographicNumber implements ValueObject, Comparable<MecanographicNumber> {
 
-    private static final long serialVersionUID = 1L;
-
     private String number;
 
     /**

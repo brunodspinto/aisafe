@@ -1,5 +1,7 @@
 package aisafe.aircontrolarea.domain;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
@@ -30,8 +32,13 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
     @Column(nullable = false)
     private double minimumFuelRequired;
 
-    // GeoBoundary is our embedded Value Object
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "northLatitude", column = @Column(nullable = false)),
+            @AttributeOverride(name = "southLatitude", column = @Column(nullable = false)),
+            @AttributeOverride(name = "eastLongitude", column = @Column(nullable = false)),
+            @AttributeOverride(name = "westLongitude", column = @Column(nullable = false))
+    })
     private GeoBoundary boundaries;
 
     /**

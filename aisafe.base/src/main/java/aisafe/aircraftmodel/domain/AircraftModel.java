@@ -1,11 +1,13 @@
 package aisafe.aircraftmodel.domain;
 
 import aisafe.enginemodel.domain.EngineModel;
-import aisafe.maker.domain.Maker;
 import aisafe.enginemodel.domain.EngineType;
+import aisafe.maker.domain.MakerName;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -16,7 +18,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
@@ -45,9 +46,9 @@ public class AircraftModel implements AggregateRoot<Long> {
     @Column(name = "model_name", nullable = false)
     private String modelName;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
-    @JoinColumn(name = "maker_name", nullable = false)
-    private Maker maker;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "maker_name", nullable = false))
+    private MakerName makerName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -82,7 +83,7 @@ public class AircraftModel implements AggregateRoot<Long> {
      * At least one certified engine model must be provided.
      *
      * @param modelName       commercial name of the model (non-blank)
-     * @param maker           manufacturer (non-null)
+     * @param makerName       manufacturer name (non-null)
      * @param aircraftType    type classification (non-null)
      * @param emptyWeight     operating empty weight in kg (&gt; 0)
      * @param mtow            maximum take-off weight in kg (&gt; emptyWeight)
@@ -98,7 +99,7 @@ public class AircraftModel implements AggregateRoot<Long> {
      * @throws IllegalArgumentException if any constraint is violated
      */
     public AircraftModel(final String modelName,
-                         final Maker maker,
+                         final MakerName makerName,
                          final AircraftType aircraftType,
                          final double emptyWeight,
                          final double mtow,
@@ -115,8 +116,8 @@ public class AircraftModel implements AggregateRoot<Long> {
 
         if (modelName == null || modelName.isBlank())
             throw new IllegalArgumentException("Model name cannot be null or empty.");
-        if (maker == null)
-            throw new IllegalArgumentException("Maker cannot be null.");
+        if (makerName == null)
+            throw new IllegalArgumentException("Maker name cannot be null.");
         if (aircraftType == null)
             throw new IllegalArgumentException("Aircraft type cannot be null.");
         if (firstEngine == null)
@@ -149,7 +150,7 @@ public class AircraftModel implements AggregateRoot<Long> {
             throw new IllegalArgumentException("Max range must be positive.");
 
         this.modelName = modelName.trim();
-        this.maker = maker;
+        this.makerName = makerName;
         this.aircraftType = aircraftType;
         this.emptyWeight = emptyWeight;
         this.mtow = mtow;
@@ -211,8 +212,8 @@ public class AircraftModel implements AggregateRoot<Long> {
     /** @return commercial name of this model */
     public String modelName() { return modelName; }
 
-    /** @return manufacturer of this model */
-    public Maker maker() { return maker; }
+    /** @return manufacturer name of this model */
+    public String makerName() { return makerName.toString(); }
 
     /** @return primary purpose classification */
     public AircraftType aircraftType() { return aircraftType; }
@@ -286,6 +287,6 @@ public class AircraftModel implements AggregateRoot<Long> {
     @Override
     public String toString() {
         return String.format("AircraftModel{modelName='%s', maker='%s', type=%s}",
-                modelName, maker.name(), aircraftType);
+                modelName, makerName, aircraftType);
     }
 }

@@ -11,8 +11,6 @@ import java.util.Objects;
 @Embeddable
 public class GeoBoundary implements ValueObject {
 
-    private static final long serialVersionUID = 1L;
-
     private double northLatitude;
     private double southLatitude;
     private double eastLongitude;
@@ -90,14 +88,14 @@ public class GeoBoundary implements ValueObject {
     // Since it's a Value Object, equality is based on attributes, not identity
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof GeoBoundary)) {
             return false;
         }
-        GeoBoundary that = (GeoBoundary) o;
+        final GeoBoundary that = (GeoBoundary) o;
         return Double.compare(that.northLatitude, northLatitude) == 0 &&
                 Double.compare(that.southLatitude, southLatitude) == 0 &&
                 Double.compare(that.eastLongitude, eastLongitude) == 0 &&

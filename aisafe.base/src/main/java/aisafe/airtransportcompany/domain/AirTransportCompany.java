@@ -32,8 +32,6 @@ import java.util.Set;
         })
 public class AirTransportCompany implements AggregateRoot<IATACode> {
 
-    private static final long serialVersionUID = 1L;
-
     @Version
     private Long version;
 

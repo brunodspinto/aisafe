@@ -9,8 +9,6 @@ import jakarta.persistence.Embeddable;
 @Embeddable
 public class ICAOCode implements ValueObject, Comparable<ICAOCode> {
 
-    private static final long serialVersionUID = 1L;
-
     private String icaoCode;
 
     /**

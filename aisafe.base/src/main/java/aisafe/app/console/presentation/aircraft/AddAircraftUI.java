@@ -27,7 +27,7 @@ public class AddAircraftUI extends AbstractUI {
                 System.out.printf("  [%d] %s — %s (max seats: %s)%n",
                         models.size() + 1,
                         m.modelName(),
-                        m.maker().name(),
+                        m.makerName(),
                         m.maxCapacity() > 0 ? m.maxCapacity() : "unlimited");
                 models.add(m);
             }
@@ -93,7 +93,7 @@ public class AddAircraftUI extends AbstractUI {
 
             System.out.printf("%nAircraft '%s' successfully added to fleet of %s!%n",
                     registration.toUpperCase(), company.name());
-            System.out.printf("  Model      : %s (%s)%n", selectedModel.modelName(), selectedModel.maker().name());
+            System.out.printf("  Model      : %s (%s)%n", selectedModel.modelName(), selectedModel.makerName());
             System.out.printf("  Country    : %s%n", country);
             System.out.printf("  Crew       : %d%n", crew);
             if (isCargo) {

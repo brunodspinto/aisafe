@@ -2,7 +2,6 @@ package aisafe.infrastructure.persistence.jpa;
 
 import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
-import aisafe.maker.domain.Maker;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.jpa.JpaAutoTxRepository;
 
@@ -23,10 +22,10 @@ public class JpaAircraftModelRepository
     }
 
     @Override
-    public Optional<AircraftModel> findByModelNameAndMaker(final String modelName, final Maker maker) {
+    public Optional<AircraftModel> findByModelNameAndMaker(final String modelName, final String makerName) {
         final Map<String, Object> params = new HashMap<>();
         params.put("modelName", modelName);
-        params.put("makerName", maker.name());
-        return matchOne("LOWER(e.modelName) = LOWER(:modelName) AND e.maker.name.value = :makerName", params);
+        params.put("makerName", makerName);
+        return matchOne("LOWER(e.modelName) = LOWER(:modelName) AND e.makerName.value = :makerName", params);
     }
 }

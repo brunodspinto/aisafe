@@ -80,7 +80,7 @@ public class ListFleetUI extends AbstractUI {
                     a.registrationNumber(),
                     a.registeredCountry(),
                     a.aircraftModel().modelName(),
-                    a.aircraftModel().maker().name(),
+                    a.aircraftModel().makerName(),
                     seats,
                     a.yearOfManufacture());
         }

@@ -375,11 +375,12 @@ public final class AiSafeBootstrap {
         final var makerRepo = PersistenceContext.repositories().makers();
         final var engineRepo = PersistenceContext.repositories().engineModels();
 
-        makerRepo.ofIdentity(MakerName.valueOf("Boeing")).ifPresent(boeing -> {
+        final MakerName boeingName = MakerName.valueOf("Boeing");
+        if (makerRepo.ofIdentity(boeingName).isPresent()) {
             engineRepo.findByNameAndMaker("CFM56", "CFM International").ifPresent(engine -> {
-                if (aircraftModelRepo.findByModelNameAndMaker("737-800", boeing).isEmpty()) {
+                if (aircraftModelRepo.findByModelNameAndMaker("737-800", "Boeing").isEmpty()) {
                     final var model = new aisafe.aircraftmodel.domain.AircraftModel(
-                            "737-800", boeing, aisafe.aircraftmodel.domain.AircraftType.PASSENGER,
+                            "737-800", boeingName, aisafe.aircraftmodel.domain.AircraftType.PASSENGER,
                             41140, 79016, 62732, 20894,
                             12500, 230, 34.3, 125.0,
                             0.026, 1.5, 5765.0, engine);
@@ -389,7 +390,7 @@ public final class AiSafeBootstrap {
                     System.out.println("Aircraft model already exists: 737-800 by Boeing");
                 }
             });
-        });
+        }
     }
 
     /**
