@@ -10,6 +10,7 @@ participant ":AddAircraftUI" as UI
 participant ":AddAircraftController" as CTRL
 participant "authz\n:AuthorizationService" as AUTHZ
 participant "modelRepo\n:AircraftModelRepository" as MREPO
+participant "collaboratorRepo\n:CollaboratorRepository" as COLLABREPO
 participant "companyRepo\n:AirTransportCompanyRepository" as CREPO
 participant "aircraftRepo\n:AircraftRepository" as AREPO
 participant "newCabin\n:CabinConfiguration" as CABIN
@@ -23,10 +24,10 @@ activate UI
 UI -> CTRL** : create()
 
 ' Step 1: List Aircraft Models (List & Select)
-UI -> CTRL : activeAircraftModels()
+UI -> CTRL : allAircraftModels()
 activate CTRL
 
-CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC)
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC, RoleType.ADMIN)
 activate AUTHZ
 AUTHZ --> CTRL : (ok)
 deactivate AUTHZ
@@ -39,34 +40,41 @@ deactivate MREPO
 CTRL --> UI : aircraftModelsList
 deactivate CTRL
 
-UI --> ATCC : displays aircraft models and requests data\n(model selection, registration, country, crew, seats distribution)
+UI --> ATCC : displays aircraft models and requests data\n(model selection, registration, country, crew, year, seats distribution)
 deactivate UI
 
 ' Step 2: Data Input
 ATCC -> UI : selects model and inputs the requested data
 activate UI
 
-' Inclusion of the 'crew' parameter in the Controller call
-UI -> CTRL : addAircraft(model, registration, country, crew, first, business, economy)
+UI -> CTRL : addAircraft(model, registration, country, crew, year, first, business, economy)
 activate CTRL
 
-' Retrieve the logged-in user and their respective company
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC, RoleType.ADMIN)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+' Retrieve the logged-in user and their respective company via CollaboratorRepository
 CTRL -> AUTHZ : session().authenticatedUser()
 activate AUTHZ
 AUTHZ --> CTRL : currentUser
 deactivate AUTHZ
 
-CTRL -> CREPO : findCompanyByCollaborator(currentUser)
-activate CREPO
-CREPO --> CTRL : myCompany
-deactivate CREPO
+CTRL -> COLLABREPO : findBySystemUser(currentUser)
+activate COLLABREPO
+COLLABREPO --> CTRL : collaborator
+deactivate COLLABREPO
+
+CTRL -> CTRL : collaborator.airTransportCompany()
+note right: Gets company from collaborator.\nThrows if not a company collaborator.
 
 ' Value Object creation and business validation in the Domain
 CTRL -> CABIN** : create(first, business, economy)
 
-' Aircraft entity instantiation with the 'crew' parameter
-CTRL -> AC** : create(registration, country, crew, model, newCabin)
-note right of AC: The constructor validates US070.2:\ncabin.totalSeats() <= model.maxPassengerCapacity()
+' Aircraft entity instantiation
+CTRL -> AC** : create(registration, country, crew, year, newCabin, model)
+note right of AC: The constructor validates AC070.2:\ncabin.totalSeats() <= model.maxCapacity()
 
 ' Persist the new aircraft
 CTRL -> AREPO : save(newAircraft)
@@ -88,7 +96,7 @@ note right of CREPO: Checks @Version field.\nThrows ConcurrencyException if modi
 CREPO --> CTRL : updatedCompany
 deactivate CREPO
 
-CTRL --> UI : success
+CTRL --> UI : updatedCompany
 deactivate CTRL
 
 UI --> ATCC : displays operation success message
