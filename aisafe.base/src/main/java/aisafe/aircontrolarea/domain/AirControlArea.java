@@ -6,7 +6,6 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
-import java.util.Objects;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 
@@ -96,17 +95,10 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AirControlArea that = (AirControlArea) o;
-        return Objects.equals(areaCode, that.areaCode);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(areaCode);
-    }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public boolean sameAs(final Object other) {

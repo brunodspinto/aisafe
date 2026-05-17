@@ -24,7 +24,6 @@ import jakarta.persistence.Version;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing an aircraft model.
@@ -279,15 +278,10 @@ public class AircraftModel implements AggregateRoot<Long> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AircraftModel)) return false;
-        final AircraftModel that = (AircraftModel) o;
-        return Objects.equals(modelName, that.modelName) && Objects.equals(maker, that.maker);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return Objects.hash(modelName, maker); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {

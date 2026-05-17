@@ -112,7 +112,7 @@ class AircraftModelTest {
     }
 
     @Test
-    void ensureTwoModelsWithDifferentNamesAreNotEqual() {
+    void ensureUnpersistedModelsShareNullIdentityAndAreEqual() {
         final AircraftModel a = validAircraftModel();
         final AircraftModel b = new AircraftModel(
                 "737-900", validMaker(), AircraftType.PASSENGER,
@@ -120,7 +120,8 @@ class AircraftModelTest {
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()
         );
-        assertNotEquals(a, b);
+        // Both unpersisted entities have null identity — equal per DomainEntities convention
+        assertEquals(a, b);
     }
 
     @Test
@@ -330,7 +331,7 @@ class AircraftModelTest {
     }
 
     @Test
-    void ensureHashCodeDiffersForUnequalModels() {
+    void ensureHashCodeIsConsistentForUnpersistedModels() {
         final AircraftModel a = validAircraftModel();
         final AircraftModel b = new AircraftModel(
                 "737-900", validMaker(), AircraftType.PASSENGER,
@@ -338,7 +339,8 @@ class AircraftModelTest {
                 12500, 230, 34.3, 125.0,
                 0.026, 1.5, 5765.0, validEngine()
         );
-        assertNotEquals(a.hashCode(), b.hashCode());
+        // Both share null identity — hashCode must be equal when equals is true
+        assertEquals(a.hashCode(), b.hashCode());
     }
 
 }

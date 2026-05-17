@@ -139,14 +139,10 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
     public boolean sameAs(final Object other) { return DomainEntities.areEqual(this, other); }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return registrationNumber.equals(((Aircraft) o).registrationNumber);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return registrationNumber.hashCode(); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {

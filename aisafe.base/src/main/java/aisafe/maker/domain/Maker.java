@@ -8,7 +8,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing an aircraft or engine manufacturer.
@@ -59,14 +58,10 @@ public class Maker implements AggregateRoot<MakerName> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return Objects.equals(name, ((Maker) o).name);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return Objects.hash(name); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {

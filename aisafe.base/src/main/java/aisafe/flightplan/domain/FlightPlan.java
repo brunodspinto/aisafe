@@ -12,7 +12,6 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing a Flight Plan.
@@ -102,18 +101,39 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
         return dslContent;
     }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final FlightPlan that = (FlightPlan) o;
-        return Objects.equals(designator, that.designator);
+    /**
+     * Advances this flight plan from {@link FlightPlanStatus#DRAFT} to
+     * {@link FlightPlanStatus#VALIDATED} after all validation checks pass (US080, US081).
+     *
+     * @throws IllegalStateException if the current status is not DRAFT
+     */
+    public void markValidated() {
+        if (this.status != FlightPlanStatus.DRAFT) {
+            throw new IllegalStateException(
+                    "Cannot validate a flight plan that is not in DRAFT status. Current status: " + status);
+        }
+        this.status = FlightPlanStatus.VALIDATED;
+    }
+
+    /**
+     * Advances this flight plan from {@link FlightPlanStatus#VALIDATED} to
+     * {@link FlightPlanStatus#TESTED} after successful simulation (US085).
+     *
+     * @throws IllegalStateException if the current status is not VALIDATED
+     */
+    public void markTested() {
+        if (this.status != FlightPlanStatus.VALIDATED) {
+            throw new IllegalStateException(
+                    "Cannot mark a flight plan as tested unless it is in VALIDATED status. Current status: " + status);
+        }
+        this.status = FlightPlanStatus.TESTED;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(designator);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
+
+    @Override
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public boolean sameAs(final Object other) {

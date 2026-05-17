@@ -58,6 +58,21 @@ public class CabinConfiguration implements ValueObject {
     }
 
     @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CabinConfiguration)) return false;
+        final CabinConfiguration that = (CabinConfiguration) o;
+        return firstClassSeats == that.firstClassSeats
+                && businessClassSeats == that.businessClassSeats
+                && economyClassSeats == that.economyClassSeats;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * (31 * firstClassSeats + businessClassSeats) + economyClassSeats;
+    }
+
+    @Override
     public String toString() {
         return String.format("CabinConfiguration{first=%d, business=%d, economy=%d, total=%d}",
                 firstClassSeats, businessClassSeats, economyClassSeats, totalSeats());

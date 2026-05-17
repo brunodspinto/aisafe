@@ -18,7 +18,6 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Entity and Aggregate Root representing a customer's collaborator.
@@ -123,14 +122,10 @@ public class Collaborator implements AggregateRoot<Long> {
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return Objects.equals(id, ((Collaborator) o).id);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return Objects.hash(id); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public String toString() {

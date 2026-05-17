@@ -14,7 +14,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
 
-import java.util.Objects;
 
 /**
  * Aggregate root representing an airport.
@@ -127,14 +126,10 @@ public class Airport implements AggregateRoot<AirportIATACode> {
     public AirControlArea airControlArea() { return airControlArea; }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        return Objects.equals(iataCode, ((Airport) o).iataCode);
-    }
+    public boolean equals(final Object o) { return DomainEntities.areEqual(this, o); }
 
     @Override
-    public int hashCode() { return Objects.hash(iataCode); }
+    public int hashCode() { return DomainEntities.hashCode(this); }
 
     @Override
     public boolean sameAs(final Object other) {
