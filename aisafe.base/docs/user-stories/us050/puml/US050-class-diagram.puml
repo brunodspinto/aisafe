@@ -17,11 +17,19 @@ class RegisterAirControlAreaController {
     + registerAirControlArea(areaCode, name, minimumFuel, northLat, southLat, eastLong, westLong) : AirControlArea
 }
 
+class AirControlAreaCode <<value object, identity>> {
+    - code : String
+    + {static} valueOf(code : String) : AirControlAreaCode
+    + toString() : String
+}
+
 class AirControlArea <<entity>> <<aggregate root>> {
-    - areaCode : String
+    - areaCode : AirControlAreaCode <<@EmbeddedId>>
     - name : String
     - minimumFuelRequired : double
+    - version : Long <<@Version>>
     + AirControlArea(areaCode, name, minimumFuel, boundaries)
+    + identity() : AirControlAreaCode
 }
 
 class GeoBoundary <<value object>> {
@@ -46,6 +54,7 @@ AiSafeBootstrap .down.> GeoBoundary
 AiSafeBootstrap .down.> AirControlAreaRepository
 
 ' Relações do Domínio
+AirControlArea "1" *-- "1" AirControlAreaCode : identified by >
 AirControlArea "1" *-- "1" GeoBoundary : bounded by >
 AirControlAreaRepository "1" --> "*" AirControlArea : stores >
 
