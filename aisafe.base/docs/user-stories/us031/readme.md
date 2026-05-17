@@ -91,11 +91,11 @@ void ensureEmailRejectsMissingDomain() {
 }
 ```
 
-**Test:** `ensureEmailIsSavedLowercase` — verifies that the address is normalised to lowercase.
+**Test:** `ensureEmailIsNormalisedToLowerCase` — verifies that the address is normalised to lowercase.
 
 ```java
 @Test
-void ensureEmailIsSavedLowercase() {
+void ensureEmailIsNormalisedToLowerCase() {
     final Email email = new Email("User@AiSafe.COM");
     assertEquals("user@aisafe.com", email.address());
 }

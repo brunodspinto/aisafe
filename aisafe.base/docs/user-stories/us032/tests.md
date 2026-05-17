@@ -2,7 +2,7 @@
 
 ## Scope
 
-US032 covers disabling and re-enabling backoffice users from the administrator console flow. The implementation reuses the existing `User` aggregate and the EAPLI `SystemUser` active flag — there is no AISafe-owned state for activation, so domain-level unit tests for the toggle behaviour are not required.
+US032 covers disabling and re-enabling backoffice users from the administrator console flow. The implementation reuses the existing `User` aggregate and the EAPLI `SystemUser` active flag.
 
 ## Automated Tests
 
@@ -15,6 +15,19 @@ The AISafe-side coverage of US032 is the `User` aggregate's identity, equality a
 - `ensureUsersWithSameMecanographicNumberAreEqual`
 - `ensureUserConstructorRejectsNullSystemUser`
 - `ensureIdentityReturnsMecanographicNumber`
+
+### `DisableEnableUserTest`
+
+Location: `src/test/java/aisafe/usermanagement/domain/DisableEnableUserTest.java`
+
+- `ensureNewSystemUserStartsActive`
+- `ensureActiveUserCanBeDeactivated`
+- `ensureInactiveUserCanBeReactivated`
+- `ensureReactivatedUserIsFullyActive`
+- `ensureDeactivatingAlreadyInactiveUserThrows`
+- `ensureActivatingAlreadyActiveUserIsIdempotent`
+- `ensureUserAggregateReflectsDeactivatedState`
+- `ensureMultipleToggleCyclesPreserveState`
 
 ### EAPLI framework
 

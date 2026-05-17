@@ -148,27 +148,27 @@ void ensureSameAsReturnsTrueForSameInstance() {
 }
 ```
 
-**Test:** `ensureAirTransportCompanyGetterWorks`
+**Test:** `ensureCompanyIataCodeGetterWorks`
 
 ```java
 @Test
-void ensureAirTransportCompanyGetterWorks() {
-    final AirTransportCompany company = validCompany();
-    final Collaborator collaborator = new Collaborator(validUser("user12"), company);
-    assertEquals(company, collaborator.airTransportCompany());
-    assertNull(collaborator.airControlArea());
+void ensureCompanyIataCodeGetterWorks() {
+    final IATACode iataCode = validCompany().identity();
+    final Collaborator collaborator = new Collaborator(validUser("user12"), iataCode);
+    assertEquals(iataCode, collaborator.companyIataCode());
+    assertNull(collaborator.areaCode());
 }
 ```
 
-**Test:** `ensureAirControlAreaGetterWorks`
+**Test:** `ensureAreaCodeGetterWorks`
 
 ```java
 @Test
-void ensureAirControlAreaGetterWorks() {
-    final AirControlArea area = validArea();
-    final Collaborator collaborator = new Collaborator(validUser("user13"), area);
-    assertEquals(area, collaborator.airControlArea());
-    assertNull(collaborator.airTransportCompany());
+void ensureAreaCodeGetterWorks() {
+    final AirControlAreaCode code = validArea().identity();
+    final Collaborator collaborator = new Collaborator(validUser("user13"), code);
+    assertEquals(code, collaborator.areaCode());
+    assertNull(collaborator.companyIataCode());
 }
 ```
 
@@ -212,13 +212,13 @@ void ensureTwoCollaboratorsWithSameIdAreEqual() {
 }
 ```
 
-**Test:** `ensureToStringContainsAreaName`
+**Test:** `ensureToStringContainsAreaCode`
 
 ```java
 @Test
-void ensureToStringContainsAreaName() {
-    final Collaborator collaborator = new Collaborator(validUser("user21"), validArea());
-    assertTrue(collaborator.toString().contains("Northern Portugal"));
+void ensureToStringContainsAreaCode() {
+    final Collaborator collaborator = new Collaborator(validUser("user21"), validArea().identity());
+    assertTrue(collaborator.toString().contains("PT-N"));
 }
 ```
 
@@ -250,10 +250,10 @@ void ensureAreaCollaboratorHasNullCompany() {
 
 - AC062.1: `ensureCompanyCollaboratorCanBeCreated`, `ensureAreaCollaboratorCanBeCreated`; UI prompts for customer type selection
 - AC062.2: UI loads and displays available customers before asking for selection
-- AC062.3: Repository methods filter on `systemUser.active = true`; `ensureAirTransportCompanyGetterWorks`, `ensureAirControlAreaGetterWorks`
+- AC062.3: Repository methods filter on `systemUser.active = true`; `ensureCompanyIataCodeGetterWorks`, `ensureAreaCodeGetterWorks`
 - AC062.4: Controller returns empty result and UI displays informative message when no active collaborators exist
 - AC062.5: Controller checks `BACKOFFICE_OPERATOR` or `ADMIN` role via `AuthorizationService`; validated by manual test
-- Domain invariants (construction): `ensureUserCannotBeNullForCompanyCollaborator`, `ensureUserCannotBeNullForAreaCollaborator`, `ensureCompanyCannotBeNull`, `ensureAreaCannotBeNull`, `ensureCompanyCollaboratorHasCorrectUser`, `ensureAreaCollaboratorHasCorrectUser`, `ensureCustomerNameForCompanyCollaborator`, `ensureCustomerNameForAreaCollaborator`, `ensureCompanyCollaboratorHasNullArea`, `ensureAreaCollaboratorHasNullCompany`, `ensureToStringContainsCustomerName`, `ensureToStringContainsAreaName`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureEqualsReturnsFalseForDifferentType`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`, `ensureTwoCollaboratorsWithSameIdAreEqual`
+- Domain invariants (construction): `ensureUserCannotBeNullForCompanyCollaborator`, `ensureUserCannotBeNullForAreaCollaborator`, `ensureCompanyCannotBeNull`, `ensureAreaCannotBeNull`, `ensureCompanyCollaboratorHasCorrectUser`, `ensureAreaCollaboratorHasCorrectUser`, `ensureCustomerNameForCompanyCollaborator`, `ensureCustomerNameForAreaCollaborator`, `ensureCompanyCollaboratorHasNullArea`, `ensureAreaCollaboratorHasNullCompany`, `ensureToStringContainsCustomerName`, `ensureToStringContainsAreaCode`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureEqualsReturnsFalseForDifferentType`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`, `ensureTwoCollaboratorsWithSameIdAreEqual`
 
 ---
 

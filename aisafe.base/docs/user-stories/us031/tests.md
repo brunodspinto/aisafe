@@ -17,8 +17,8 @@ Location: `src/test/java/aisafe/usermanagement/domain/UserTest.java`
 
 - `ensureEmailRejectsInvalidFormat`
 - `ensureEmailRejectsMissingDomain`
-- `ensureEmailIsSavedLowercase`
-- `ensureEmailRejectsBlank`
+- `ensureEmailIsNormalisedToLowerCase`
+- `ensureEmailCannotBeBlank`
 
 ### `AiSafePasswordPolicyTest`
 
@@ -41,7 +41,7 @@ Location: `src/test/java/aisafe/usermanagement/domain/AiSafePasswordPolicyTest.j
 ## Coverage by Acceptance Criterion
 
 - AC031.1: `ensureUsersWithSameMecanographicNumberAreEqual`, `ensureUserConstructorRejectsNullSystemUser`
-- AC031.2: `ensureEmailRejectsInvalidFormat`, `ensureEmailRejectsMissingDomain`, `ensureEmailIsSavedLowercase`, `ensureEmailRejectsBlank`
+- AC031.2: `ensureEmailRejectsInvalidFormat`, `ensureEmailRejectsMissingDomain`, `ensureEmailIsNormalisedToLowerCase`, `ensureEmailCannotBeBlank`
 - AC031.3: `ensurePasswordShorterThanSixCharsIsRejected`, `ensurePasswordWithoutDigitIsRejected`, `ensurePasswordWithoutCapitalLetterIsRejected`, `ensureValidPasswordIsAccepted`, `ensureNullPasswordIsRejected`, `ensureEmptyPasswordIsRejected`
 - AC031.4: Validated by EAPLI framework role assignment — no isolated unit test needed
 - AC031.5: Enforced by `@UniqueConstraint` on the underlying `SystemUser` table

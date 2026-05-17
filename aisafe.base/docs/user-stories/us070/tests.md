@@ -108,6 +108,16 @@ void ensureZeroCrewElementsThrows() {
 }
 ```
 
+**Test:** `ensureNegativeCrewElementsThrows`
+
+```java
+@Test
+void ensureNegativeCrewElementsThrows() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new Aircraft(RegistrationNumber.valueOf("CS-TUA"), "Portugal", -1, 2018, validCabin(), validModel()));
+}
+```
+
 **Test:** `ensurePassengerAircraftWithNullCabinThrows`
 
 ```java
@@ -451,7 +461,7 @@ void ensureEconomyClassSeatsGetterReturnsCorrectValue() {
 - AC070.4: `ensureAircraftMustBeRegisteredToACountry`
 - AC070.5: `ensureAircraftIsCreatedWithActiveOperationalStatus`, `ensureDecommissionChangesStatus`, `ensureCannotDecommissionAlreadyDecommissioned`, `ensureIsActiveReturnsTrueForActiveAircraft`, `ensureIsActiveReturnsFalseAfterDecommission`
 - AC070.6: Controller checks `ATCC` role via `AuthorizationService`; validated by manual test
-- Domain invariants (construction): `ensureValidAircraftIsCreatedSuccessfully`, `ensureZeroCrewElementsThrows`, `ensurePassengerAircraftWithNullCabinThrows`, `ensureCargoAircraftWithNullCabinIsValid`, `ensureCargoAircraftWithNonNullCabinThrows`, `ensureNullAircraftModelThrows`, `ensureYearOfManufactureIsStored`, `ensureYearOfManufactureBefore1900IsRejected`, `ensureYearOfManufactureInFutureIsRejected`, `ensureGettersReturnCorrectValues`, `ensureToStringContainsRegistrationNumber`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureSameAsReturnsTrueForSameInstance`, `ensureHashCodeIsConsistent`
+- Domain invariants (construction): `ensureValidAircraftIsCreatedSuccessfully`, `ensureZeroCrewElementsThrows`, `ensureNegativeCrewElementsThrows`, `ensurePassengerAircraftWithNullCabinThrows`, `ensureCargoAircraftWithNullCabinIsValid`, `ensureCargoAircraftWithNonNullCabinThrows`, `ensureNullAircraftModelThrows`, `ensureYearOfManufactureIsStored`, `ensureYearOfManufactureBefore1900IsRejected`, `ensureYearOfManufactureInFutureIsRejected`, `ensureGettersReturnCorrectValues`, `ensureToStringContainsRegistrationNumber`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureSameAsReturnsTrueForSameInstance`, `ensureHashCodeIsConsistent`
 
 ---
 

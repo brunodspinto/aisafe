@@ -21,14 +21,14 @@ public class SecurityClearance implements ValueObject {
      * Creates a new security clearance.
      *
      * @param level          the clearance level (must not be null)
-     * @param expirationDate the date on which the clearance expires (must be a future date)
+     * @param expirationDate the date on which the clearance expires (must be today or a future date)
      * @throws IllegalArgumentException if {@code level} is null or {@code expirationDate} is null or in the past
      */
     public SecurityClearance(final SecurityLevel level, final LocalDate expirationDate) {
         if (level == null)
             throw new IllegalArgumentException("Security clearance level cannot be null");
         if (expirationDate == null || expirationDate.isBefore(LocalDate.now()))
-            throw new IllegalArgumentException("Expiration date must be in the future");
+            throw new IllegalArgumentException("Expiration date must be today or in the future");
         this.level = level;
         this.expirationDate = expirationDate;
     }

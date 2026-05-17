@@ -50,16 +50,6 @@ void ensureAreaCodeCannotBeNull() {
 }
 ```
 
-**Test:** `ensureAreaCodeCannotBeBlank`
-
-```java
-@Test
-void ensureAreaCodeCannotBeBlank() {
-    assertThrows(IllegalArgumentException.class,
-            () -> new WeatherData("   ", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 10.0));
-}
-```
-
 **Test:** `ensureSourceCannotBeNull`
 
 ```java
@@ -117,6 +107,39 @@ void ensureWindSpeedOfZeroIsValid() {
 void ensureVisibilityOfZeroIsValid() {
     final WeatherData wd = new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 0.0);
     assertEquals(0.0, wd.visibility());
+}
+```
+
+**Test:** `ensureWindDirectionCannotBeNull`
+
+```java
+@Test
+void ensureWindDirectionCannotBeNull() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new WeatherData(VALID_AREA_CODE, VALID_SOURCE, VALID_DATE, 20.0, 15.0, null, 1013.0, 10.0));
+}
+```
+
+**Test:** `ensureWindDirectionCannotBeBlank`
+
+```java
+@Test
+void ensureWindDirectionCannotBeBlank() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new WeatherData(VALID_AREA_CODE, VALID_SOURCE, VALID_DATE, 20.0, 15.0, "   ", 1013.0, 10.0));
+}
+```
+
+**Test:** `ensureWindDirectionMustBeValidCompassDirection`
+
+```java
+@Test
+void ensureWindDirectionMustBeValidCompassDirection() {
+    assertThrows(IllegalArgumentException.class,
+            () -> new WeatherData(VALID_AREA_CODE, VALID_SOURCE, VALID_DATE, 20.0, 15.0, "NORTHEAST", 1013.0, 10.0));
+
+    final WeatherData wd = new WeatherData(VALID_AREA_CODE, VALID_SOURCE, VALID_DATE, 20.0, 15.0, "NE", 1013.0, 10.0);
+    assertEquals("NE", wd.windDirection());
 }
 ```
 
@@ -226,7 +249,7 @@ void ensureFormatIsStoredTrimmed() {
 ## Coverage by Acceptance Criterion
 
 - AC041.1: `ensureValidWeatherDataCanBeCreated`, `ensureWindSpeedCannotBeNegative`, `ensureVisibilityCannotBeNegative`, `ensureWindSpeedOfZeroIsValid`, `ensureVisibilityOfZeroIsValid`, `ensureDateCannotBeNull`, `ensureSourceCannotBeNull`; `ensureValidWeatherSourceCanBeCreated`, `ensureProviderCannotBeNull`, `ensureProviderCannotBeBlank`, `ensureFormatCannotBeNull`, `ensureFormatCannotBeBlank`, `ensureEqualityForSameValues`, `ensureInequalityForDifferentProvider`, `ensureInequalityForDifferentFormat`, `ensureProviderIsStoredTrimmed`, `ensureFormatIsStoredTrimmed`
-- AC041.2: `ensureAreaCodeCannotBeNull`, `ensureAreaCodeCannotBeBlank`, `ensureAreaCodeIsNormalisedToUpperCase`; area existence validated at controller level via `AirControlAreaRepository`
+- AC041.2: `ensureAreaCodeCannotBeNull`, `ensureAreaCodeIsNormalisedToUpperCase`, `ensureWindDirectionCannotBeNull`, `ensureWindDirectionCannotBeBlank`, `ensureWindDirectionMustBeValidCompassDirection`; area existence validated at controller level via `AirControlAreaRepository`
 - AC041.3: Controller checks `WEATHER_PERSON` role via `AuthorizationService`; validated by manual test
 
 ---
