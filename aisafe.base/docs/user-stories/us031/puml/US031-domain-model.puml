@@ -17,7 +17,6 @@ package "User Aggregate" <<Rectangle>> {
     }
 
     class SecurityClearance <<value object>> {
-        level : SecurityLevel
         expirationDate
     }
 
@@ -41,7 +40,7 @@ package "User Aggregate" <<Rectangle>> {
 
 User "1" *-- "1" Email : "identified by"
 User "1" *-- "1" SecurityClearance : "holds"
-SecurityClearance --> SecurityLevel : "classified as"
-User "1" --> "1" RoleType : "has"
+SecurityClearance "1" --> "1" SecurityLevel : "at level"
+User "1" --> "1..*" RoleType : "has"
 
 @enduml
