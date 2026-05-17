@@ -125,6 +125,8 @@ int main(int argc, char *argv[]) {
     }
 
     memset(histories, 0, sizeof(histories));
+    for (i = 0; i < MAX_FLIGHTS; i++)
+        histories[i].aca_state = ACA_BEFORE;
 
     /* US102: per-flight motion vector state */
     aircraft_position_t prev_positions[n_flights];

@@ -151,7 +151,8 @@ CHILD_i                              PARENT
 ──────────────────────────────────────────────────────────────
 compute position at step T
 write(pos_write_fd, &pos)  ─────────►
-                                     select() until ALL active children
+                                     sequential blocking read() for each
+                                     active flight (TP5 pattern) until ALL
                                      have written their position for step T
 read(ctrl_read_fd, &token)  ◄────────
                                      US101: ACA filter + history update
@@ -161,15 +162,18 @@ read(ctrl_read_fd, &token)  ◄────────
 if safe:                             write('G', ctrl_write_fd[i]) for each child
   token == 'G' → next step ◄────────
                                      ─────────────────────────────────
-if violation:                        write('S', ctrl_write_fd[i]) for each child
-  token == 'S' → exit(1)  ◄────────  kill(pid_violator, SIGUSR1)
+if violation limit reached:          kill(pids[k], SIGTERM) for ALL flights
+                                     write('S', ctrl_write_fd[i]) for each child
+  token == 'S' → exit(1)  ◄────────
+if single violation:                 kill(pid_i, SIGUSR1); kill(pid_j, SIGUSR1)
+                                     write('G', ctrl_write_fd[k]) for each child
 ```
 
 ### 4.4 Safety Cylinder Check Algorithm (safety_monitor.c)
 
 ```
 for each updated flight i:
-  for each other active flight j (j ≠ i, has ≥ 2 positions):
+  for each other active flight j (j > i, has ≥ 2 positions):
     for sub_step in 0..SUB_STEPS (10):
       t = sub_step / SUB_STEPS
       p1_interp = prev[i] + t * (curr[i] - prev[i])
@@ -244,13 +248,16 @@ STOP or SIGUSR1.
 - Fork setup: each child closes all file descriptors except its own `pos_write_fd[i]`
   and `ctrl_read_fd[i]`.
 - Parent main loop rewritten as **collect-all-then-decide**:
-  1. Inner `select()` loop runs until every active flight has delivered its position for
-     the current step.
+  1. Sequential blocking `read()` per active flight (TP5 pattern) until every active
+     flight has delivered its position for the current step. No `select()` is used.
   2. US101 (ACA filter + history) and US102 (cylinder check) are run once all positions
      are in.
-  3. If safe: `write('G', …)` to every active flight, reset `received[]`.
-  4. If violation limit reached: `write('S', …)` + `SIGUSR1` to violating pair,
-     break out of main loop.
+  3. If safe: `write('G', …)` to every active flight.
+  4. If a single violation is detected (below threshold): `kill(SIGUSR1)` to both
+     violating flights; `write('G', …)` to all active flights so the step continues.
+  5. If violation limit reached: `kill(SIGTERM)` to all flights (inside
+     `monitor_safety_violations`), then `write('S', …)` to every active flight via
+     the control pipe, break out of main loop.
 - EOF on `pos_read_fd[i]` closes both `pos_read_fd[i]` and `ctrl_write_fd[i]` and marks
   `active[i] = 0`.
 
