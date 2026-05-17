@@ -29,8 +29,9 @@ package "Application" <<Rectangle>> {
 
 package "Domain" <<Rectangle>> {
     interface CollaboratorRepository {
-        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
-        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findBySystemUser(SystemUser) : Optional<Collaborator>
     }
 
     class Collaborator <<entity, aggregate root>> {
@@ -39,18 +40,22 @@ package "Domain" <<Rectangle>> {
         +airControlArea() : AirControlArea
         +isCompanyCollaborator() : boolean
         +isAreaCollaborator() : boolean
+        +isActive() : boolean
+        +customerName() : String
     }
 }
 
 package "Persistence" <<Rectangle>> {
     class InMemoryCollaboratorRepository {
-        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
-        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findBySystemUser(SystemUser) : Optional<Collaborator>
     }
 
     class JpaCollaboratorRepository {
-        +findActiveByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
-        +findActiveByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findByAirTransportCompany(AirTransportCompany) : Iterable<Collaborator>
+        +findByAirControlArea(AirControlArea) : Iterable<Collaborator>
+        +findBySystemUser(SystemUser) : Optional<Collaborator>
     }
 }
 

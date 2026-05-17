@@ -9,13 +9,14 @@ package "AircraftModel Aggregate" <<Rectangle>> {
         - modelName
         - aircraftType
         - version : Long <<@Version>>
-        + addCertifiedEngine(engine: EngineModel)
+        + addEngine(engine: EngineModel)
     }
 }
 
 package "EngineModel Aggregate" <<Rectangle>> {
     class EngineModel <<entity, aggregate root>> {
-        - engineModelCode
+        - name
+        - makerName
         - engineType
     }
 }

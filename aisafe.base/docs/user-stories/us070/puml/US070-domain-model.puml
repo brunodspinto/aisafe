@@ -8,14 +8,19 @@ package "AirTransportCompany Aggregate" <<Rectangle>> {
     class AirTransportCompany <<entity, aggregate root>> {
         name
         version : Long <<@Version>>
+        fleet : Set<String>
     }
 }
 
 package "Aircraft Aggregate" <<Rectangle>> {
+    class RegistrationNumber <<value object, identity>> {
+        code : String
+    }
+
     class Aircraft <<entity, aggregate root>> {
-        registrationNumber
-        registrationCountry
+        registeredCountry
         numberOfCrewElements
+        yearOfManufacture
     }
 
     class CabinConfiguration <<value object>> {
@@ -33,14 +38,19 @@ package "Aircraft Aggregate" <<Rectangle>> {
 package "AircraftModel Aggregate" <<Rectangle>> {
     class AircraftModel <<entity, aggregate root>> {
         modelName
-        maxPassengerCapacity
+        maxCapacity
     }
 }
 
-AirTransportCompany "1" --> "0..*" Aircraft : "owns"
+AirTransportCompany "1" ..> "0..*" Aircraft : "fleet\n(by registrationNumber: String)"
 
+note bottom of AirTransportCompany
+  Fleet stored as Set<String>
+  (registration numbers)
+end note
+
+Aircraft "1" *-- "1" RegistrationNumber : "identified by"
 Aircraft "1" *-- "1" CabinConfiguration : "has"
-
 Aircraft "1" --> "1" OperationalStatus : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
 
