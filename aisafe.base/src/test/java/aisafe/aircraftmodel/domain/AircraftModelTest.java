@@ -329,4 +329,16 @@ class AircraftModelTest {
         assertEquals(5765.0, model.maxRange());
     }
 
+    @Test
+    void ensureHashCodeDiffersForUnequalModels() {
+        final AircraftModel a = validAircraftModel();
+        final AircraftModel b = new AircraftModel(
+                "737-900", validMaker(), AircraftType.PASSENGER,
+                41140, 79016, 62732, 20894,
+                12500, 230, 34.3, 125.0,
+                0.026, 1.5, 5765.0, validEngine()
+        );
+        assertNotEquals(a.hashCode(), b.hashCode());
+    }
+
 }

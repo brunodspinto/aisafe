@@ -3,9 +3,12 @@ package aisafe.airport.domain;
 import aisafe.aircontrolarea.domain.AirControlArea;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -34,8 +37,11 @@ public class Airport implements AggregateRoot<AirportIATACode> {
     @Embedded
     private AirportICAOCode icaoCode;
 
+    @Column(nullable = false)
     private String name;
+    @Column(nullable = false)
     private String town;
+    @Column(nullable = false)
     private String country;
 
     @Embedded
@@ -43,7 +49,8 @@ public class Airport implements AggregateRoot<AirportIATACode> {
 
     private double altitude;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "air_control_area_code")
     private AirControlArea airControlArea;
 
     protected Airport() {}

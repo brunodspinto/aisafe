@@ -86,4 +86,25 @@ class WeatherDataTest {
         final WeatherData wd = new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "N", 1013.0, 0.0);
         assertEquals(0.0, wd.visibility());
     }
+
+    @Test
+    void ensureWindDirectionCannotBeNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, null, 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureWindDirectionCannotBeBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "   ", 1013.0, 10.0));
+    }
+
+    @Test
+    void ensureWindDirectionMustBeValidCompassDirection() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "NORTHEAST", 1013.0, 10.0));
+
+        final WeatherData wd = new WeatherData("PT-N", VALID_SOURCE, VALID_DATE, 20.0, 15.0, "NE", 1013.0, 10.0);
+        assertEquals("NE", wd.windDirection());
+    }
 }

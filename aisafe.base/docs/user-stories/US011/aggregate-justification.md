@@ -6,7 +6,7 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 * **Value Objects:** `IATACode`, `ICAOCode`
 * **Scenario:** Register a new air transport company in the system (US060).
 * **Invariant (Business Rule):** An air transport company must have a valid name, and its IATA code (2 letters) and ICAO code (2-3 letters) must be strictly formatted and globally unique.
-* **Justification:** Acts as the root entity representing an airline, defined entirely by primitive attributes. It ensures loose coupling by holding only external references to the `User`, `Aircraft`, and `FlightRoute` aggregates, preventing heavy database memory loads. `IATACode` and `ICAOCode` are value objects owned by this aggregate and referenced by other aggregates (`FlightRoute`, `Flight`, `FlightPlan`).
+* **Justification:** Acts as the root entity representing an airline, defined entirely by primitive attributes. It ensures loose coupling by holding only external references to `FlightRoute` and by referencing `Aircraft` via a set of registration number strings (`fleet : Set<String>`) rather than direct entity references. `IATACode` and `ICAOCode` are value objects that identify the company itself — they are distinct from `AirportIATACode` and `AirportICAOCode`, which identify airports and are owned by the `Airport` aggregate.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_1/aggregate-3_1.puml)*
  
@@ -117,10 +117,9 @@ Justification of the main Aggregates identified for the *AISafe* domain:
 ---
 ### 3.13. Aggregate: Collaborator
 * **Aggregate Root:** `Collaborator`
-* **Enums:** `CollaboratorStatus`
 * **Scenario:** Register a customer's collaborator (US061).
-* **Invariant (Business Rule):** A collaborator must be associated with exactly one customer — either an `AirTransportCompany` or an `AirControlArea` — and must reference a valid system `User`. A collaborator has a status (ACTIVE or DISABLED) that controls system access (US062, US064).
-* **Justification:** Acts as the root entity representing the business relationship between a system user and a customer. It maintains low coupling by holding external references to `User`, `AirTransportCompany` and `AirControlArea`. The `CollaboratorStatus` enum enforces the lifecycle invariant required by US062 and US064.
+* **Invariant (Business Rule):** A collaborator must be associated with exactly one customer — either an `AirTransportCompany` or an `AirControlArea` — and must reference a valid system `User`. A collaborator cannot be associated with both a company and an area simultaneously (XOR constraint).
+* **Justification:** Acts as the root entity representing the business relationship between a system user and a customer. It maintains low coupling by holding external references to `User`, `AirTransportCompany` and `AirControlArea`. The active/inactive state of a collaborator is derived from the associated `SystemUser` (`user.systemUser().isActive()`), managed by the EAPLI framework — no separate `CollaboratorStatus` enum is needed or present in the implementation.
 * **Sequence Diagram:**
   *[Sequence Diagram](aggregate-3_13/aggregate-3_13.puml)*
 ---

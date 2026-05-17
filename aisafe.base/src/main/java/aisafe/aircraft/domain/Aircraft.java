@@ -10,6 +10,8 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -44,7 +46,8 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
     @Column(nullable = false)
     private OperationalStatus operationalStatus;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY, cascade = {})
+    @JoinColumn(name = "aircraft_model_id")
     private AircraftModel aircraftModel;
 
     /**
