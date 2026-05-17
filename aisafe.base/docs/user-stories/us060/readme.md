@@ -103,7 +103,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 **To register an Air Transport Company:**
 
 1. Login with Backoffice Operator credentials.
-2. Select **3 — Companies >** from the main menu.
+2. Select **2 — Companies >** from the main menu.
 3. Select **1 — Register Air Transport Company**.
 4. Enter the company name (e.g. `TAP Air Portugal`).
 5. Enter the IATA code (e.g. `TP`).
