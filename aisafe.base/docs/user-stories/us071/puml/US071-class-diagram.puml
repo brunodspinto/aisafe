@@ -1,0 +1,103 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US071 - Class Diagram (Decommission Aircraft)
+
+package "Presentation" {
+    class DecommissionAircraftUI {
+        # doShow() : boolean
+        # headline() : String
+    }
+}
+
+package "Application" {
+    class DecommissionAircraftController <<UseCaseController>> {
+        + allCompanies() : Iterable<AirTransportCompany>
+        + activeAircraftByCompany(companyIataCode : String) : Iterable<Aircraft>
+        + decommission(aircraft : Aircraft) : Aircraft
+    }
+}
+
+package "Domain" {
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - name : String
+        - fleet : Set<String>
+        + fleet() : Set<String>
+    }
+
+    class Aircraft <<entity>> <<aggregate root>> {
+        - registrationNumber : RegistrationNumber
+        - registeredCountry : String
+        - numberOfCrewElements : int
+        - yearOfManufacture : int
+        - operationalStatus : OperationalStatus
+        + decommission() : void
+        + isActive() : boolean
+        + identity() : RegistrationNumber
+    }
+
+    class RegistrationNumber <<value object>> <<@Embeddable>> {
+        - number : String
+        + valueOf(value : String) : RegistrationNumber
+    }
+
+    class CabinConfiguration <<value object>> <<@Embeddable>> {
+        - firstClassSeats : int
+        - businessClassSeats : int
+        - economyClassSeats : int
+        + totalSeats() : int
+    }
+
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        + modelName() : String
+    }
+
+    enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+class AuthorizationService <<eapli.framework>> {
+    + ensureAuthenticatedUserHasAnyOf(roles : RoleType...)
+    + session() : UserSession
+}
+
+package "Persistence" {
+    interface AircraftRepository <<repository>> {
+        + findAll() : Iterable<Aircraft>
+        + ofIdentity(id : RegistrationNumber) : Optional<Aircraft>
+        + save(entity : Aircraft) : Aircraft
+    }
+
+    interface AirTransportCompanyRepository <<repository>> {
+        + findAll() : Iterable<AirTransportCompany>
+        + ofIdentity(id : IATACode) : Optional<AirTransportCompany>
+    }
+
+    class JpaAircraftRepository { }
+    class JpaAirTransportCompanyRepository { }
+}
+
+DecommissionAircraftUI .down.> DecommissionAircraftController
+
+DecommissionAircraftController .down.> AirTransportCompany
+DecommissionAircraftController .down.> Aircraft
+DecommissionAircraftController .down.> AircraftRepository
+DecommissionAircraftController .down.> AirTransportCompanyRepository
+DecommissionAircraftController .down.> AuthorizationService
+
+Aircraft "1" *-- "1" RegistrationNumber : "identified by >"
+Aircraft "1" *-- "0..1" CabinConfiguration : "has (Embedded) >"
+Aircraft "1" --> "1" OperationalStatus : "has >"
+Aircraft "1" ..> "1" AircraftModel : "references by ID >"
+
+AirTransportCompany "1" ..> "*" Aircraft : "references by registration >"
+
+JpaAircraftRepository .up.|> AircraftRepository
+JpaAirTransportCompanyRepository .up.|> AirTransportCompanyRepository
+
+@enduml

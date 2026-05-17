@@ -1,0 +1,104 @@
+@startuml
+'skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+'hide footbox
+
+actor "ATCC / Administrator" as ACTOR
+participant ":DecommissionAircraftUI" as UI
+participant ":DecommissionAircraftController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "companyRepo\n:AirTransportCompanyRepository" as COMPANY_REPO
+participant "company\n:AirTransportCompany" as COMPANY
+participant "aircraftRepo\n:AircraftRepository" as AIRCRAFT_REPO
+participant "aircraft\n:Aircraft" as AIRCRAFT
+
+activate ACTOR
+
+ACTOR -> UI : requests to decommission an aircraft
+activate UI
+    UI --> CTRL** : create()
+
+    UI -> CTRL : allCompanies()
+    activate CTRL
+        CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC, ADMIN)
+        activate AUTHZ
+            AUTHZ --> CTRL : ok
+        deactivate AUTHZ
+
+        CTRL -> COMPANY_REPO : findAll()
+        activate COMPANY_REPO
+            COMPANY_REPO --> CTRL : companies
+        deactivate COMPANY_REPO
+
+        CTRL --> UI : companies
+    deactivate CTRL
+
+    UI --> ACTOR : shows company list, requests IATA code
+deactivate UI
+
+|||
+
+ACTOR -> UI : enters IATA code
+activate UI
+    UI -> CTRL : activeAircraftByCompany(iataCode)
+    activate CTRL
+        CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC, ADMIN)
+        activate AUTHZ
+            AUTHZ --> CTRL : ok
+        deactivate AUTHZ
+
+        CTRL -> COMPANY_REPO : ofIdentity(IATACode.valueOf(iataCode))
+        activate COMPANY_REPO
+            COMPANY_REPO --> CTRL : company
+        deactivate COMPANY_REPO
+
+        CTRL -> COMPANY : fleet()
+        activate COMPANY
+            COMPANY --> CTRL : registrationNumbers
+        deactivate COMPANY
+
+        loop for each registration number
+            CTRL -> AIRCRAFT_REPO : ofIdentity(registrationNumber)
+            activate AIRCRAFT_REPO
+                AIRCRAFT_REPO --> CTRL : Optional<Aircraft>
+            deactivate AIRCRAFT_REPO
+        end
+
+        CTRL --> UI : activeAircraft
+    deactivate CTRL
+
+    UI --> ACTOR : shows active aircraft list, requests selection and confirmation
+deactivate UI
+
+|||
+
+ACTOR -> UI : selects aircraft and confirms
+activate UI
+    UI -> CTRL : decommission(selectedAircraft)
+    activate CTRL
+        CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC, ADMIN)
+        activate AUTHZ
+            AUTHZ --> CTRL : ok
+        deactivate AUTHZ
+
+        CTRL -> AIRCRAFT : decommission()
+        activate AIRCRAFT
+            AIRCRAFT --> CTRL : ok
+        deactivate AIRCRAFT
+
+        CTRL -> AIRCRAFT_REPO : save(aircraft)
+        activate AIRCRAFT_REPO
+            AIRCRAFT_REPO --> CTRL : savedAircraft
+        deactivate AIRCRAFT_REPO
+
+        CTRL --> UI : savedAircraft
+    deactivate CTRL
+
+    UI --> ACTOR : displays operation success
+deactivate UI
+
+deactivate ACTOR
+
+@enduml
