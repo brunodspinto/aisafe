@@ -111,13 +111,22 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 **To add an Aircraft to a company's fleet:**
 
-1. Login with Air Transport Company Collaborator (ATCC) credentials.
-2. Select **Fleet Management > Add Aircraft** from the main menu.
-3. Select an existing Aircraft Model from the presented list (e.g., `Boeing 737`).
-4. Enter the registration number (e.g., `CS-TUA`).
+1. Login with Air Transport Company Collaborator (ATCC) credentials (e.g., username: `atcc1`, password: `Password1`).
+2. Select **Fleet Management > Add Aircraft to Fleet** from the main menu.
+3. Select an existing Aircraft Model from the presented list by number (e.g., `1` for `737-800 — Boeing`).
+4. Enter the registration number (e.g., `CS-TUG`).
 5. Enter the registered country (e.g., `Portugal`).
-6. Enter the number of seats for each class (first, business, economy).
-7. The system confirms: `Aircraft 'CS-TUA' successfully added to the fleet.`
+6. Enter the number of crew elements (e.g., `20`).
+7. Enter the number of seats for each class: first class, business class, and economy class (e.g., `20`, `20`, `60`).
+8. Enter the year of manufacture (e.g., `2020`).
+9. The system confirms with a summary, e.g.:
+   ```
+   Aircraft 'CS-TUG' successfully added to fleet of TAP Air Portugal!
+     Model      : 737-800 (Boeing)
+     Country    : Portugal
+     Crew       : 20
+     Cabin      : First=20  Business=20  Economy=60  (Total=100)
+   ```
 
 **Validation scenarios:**
 
