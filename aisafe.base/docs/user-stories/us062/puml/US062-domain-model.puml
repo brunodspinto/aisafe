@@ -46,15 +46,5 @@ User "1" --> "1" SystemUser : "backed by"
 Collaborator "0..*" --> "0..1" AirTransportCompany : "belongs to"
 Collaborator "0..*" --> "0..1" AirControlArea : "belongs to"
 
-note bottom of SystemUser
-  isActive() determines
-  whether collaborator is listed
-end note
-
-note right of Collaborator
-  exactly one of
-  airTransportCompany or
-  airControlArea is non-null
-end note
 
 @enduml
