@@ -24,6 +24,7 @@
 #include "flight_data.h"
 #include "flight_process.h"
 #include "safety_monitor.h"
+#include "report.h"
 
 #define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
 #define CONFIG_FILE "simulation.conf"
@@ -132,6 +133,7 @@ int main(int argc, char *argv[]) {
     memset(has_position, 0, sizeof(has_position));
 
     int total_violations = 0;
+    int sim_aborted = 0;
     int active[n_flights];
     int n_active = n_flights;
     for (i = 0; i < n_flights; i++) active[i] = 1;
@@ -233,6 +235,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (abort_sim) {
+            sim_aborted = 1;
             /* Send STOP to all active flights */
             for (i = 0; i < n_flights; i++) {
                 if (active[i]) {
@@ -262,6 +265,10 @@ int main(int argc, char *argv[]) {
         if (WIFEXITED(status))
             printf("[FLIGHT_%02d] ended with code %d\n", i + 1, WEXITSTATUS(status));
     }
+
+    /* US109: spawn dedicated child process to write the final report */
+    printf("\n[SYSTEM] Simulation concluded. Spawning report generation process...\n");
+    generate_final_report(histories, n_flights, total_violations, sim_aborted);
 
     for (i = 0; i < n_flights; i++)
         free_flight_plan(plans[i]);
