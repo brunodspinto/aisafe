@@ -112,12 +112,17 @@ public class AddCollaboratorController {
                         "Air Transport Company '" + companyIataCode + "' not found."));
 
         if (tx != null) tx.beginTransaction();
-        final User user = createUser(username, password, firstName, lastName,
-                emailStr, roles, phoneNumber, position, email,
-                securityClearance, skillsAssessmentDate);
-        final Collaborator collab = collaboratorRepo.save(new Collaborator(user, company));
-        if (tx != null) tx.commit();
-        return collab;
+        try {
+            final User user = createUser(username, password, firstName, lastName,
+                    emailStr, roles, phoneNumber, position, email,
+                    securityClearance, skillsAssessmentDate);
+            final Collaborator collab = collaboratorRepo.save(new Collaborator(user, company.identity()));
+            if (tx != null) tx.commit();
+            return collab;
+        } catch (final Exception e) {
+            if (tx != null) tx.rollback();
+            throw e;
+        }
     }
 
     /**
@@ -158,12 +163,17 @@ public class AddCollaboratorController {
                         "Air Control Area '" + areaCode + "' not found."));
 
         if (tx != null) tx.beginTransaction();
-        final User user = createUser(username, password, firstName, lastName,
-                emailStr, roles, phoneNumber, position, email,
-                securityClearance, skillsAssessmentDate);
-        final Collaborator collab = collaboratorRepo.save(new Collaborator(user, area));
-        if (tx != null) tx.commit();
-        return collab;
+        try {
+            final User user = createUser(username, password, firstName, lastName,
+                    emailStr, roles, phoneNumber, position, email,
+                    securityClearance, skillsAssessmentDate);
+            final Collaborator collab = collaboratorRepo.save(new Collaborator(user, area.identity()));
+            if (tx != null) tx.commit();
+            return collab;
+        } catch (final Exception e) {
+            if (tx != null) tx.rollback();
+            throw e;
+        }
     }
 
     private User createUser(final String username, final String password,

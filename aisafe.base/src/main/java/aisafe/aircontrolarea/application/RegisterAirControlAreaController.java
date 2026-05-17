@@ -54,6 +54,9 @@ public class RegisterAirControlAreaController {
                         throw new IllegalArgumentException("Air Control Area code already exists: " + normalizedAreaCode);
                 }
 
+        if (name == null || name.isBlank())
+            throw new IllegalArgumentException("Air control area name cannot be blank.");
+
         // Instantiate domain objects
         // First the Value Object
         final GeoBoundary boundaries =
@@ -61,7 +64,7 @@ public class RegisterAirControlAreaController {
 
         // Then the Aggregate Root entity
         final AirControlArea newArea =
-                                new AirControlArea(AirControlAreaCode.valueOf(normalizedAreaCode), name == null ? null : name.trim(), minimumFuelRequired, boundaries);
+                new AirControlArea(AirControlAreaCode.valueOf(normalizedAreaCode), name.trim(), minimumFuelRequired, boundaries);
 
         // Save in the repository (persist to database)
         return repository.save(newArea);
@@ -71,11 +74,12 @@ public class RegisterAirControlAreaController {
          * Normalizes an area code for consistent identity lookup and persistence.
          *
          * @param areaCode raw area code input
-         * @return uppercased and trimmed area code, or {@code null} when input is null
+         * @return uppercased and trimmed area code
+         * @throws IllegalArgumentException if {@code areaCode} is null
          */
         private String normalizeAreaCode(final String areaCode) {
                 if (areaCode == null) {
-                        return null;
+                        throw new IllegalArgumentException("Area code cannot be null.");
                 }
                 return areaCode.trim().toUpperCase();
         }

@@ -89,6 +89,7 @@ public class AddUserController {
             return savedUser;
         } catch (final Exception e) {
             if (tx != null) tx.rollback();
+            System.err.println("[AddUserController] Transaction rolled back: " + e.getMessage());
             throw e;
         }
     }

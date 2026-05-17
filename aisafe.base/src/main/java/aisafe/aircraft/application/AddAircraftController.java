@@ -73,7 +73,9 @@ public class AddAircraftController {
                 .map(c -> {
                     if (!c.isCompanyCollaborator())
                         throw new IllegalStateException("Authenticated user is not a company collaborator.");
-                    return c.airTransportCompany();
+                    return companyRepo.ofIdentity(c.companyIataCode())
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Company not found for IATA code: " + c.companyIataCode()));
                 })
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for authenticated user."));
 

@@ -50,7 +50,9 @@ public class CreateFlightPlanFromFileController {
             throw new IllegalArgumentException(buildErrorMessage(result.errors()));
         }
 
-        final FlightPlanAst ast = result.ast().orElseThrow();
+        final FlightPlanAst ast = result.ast()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Parse succeeded but produced no AST — this is a parser bug."));
 
         if (repository.ofIdentity(FlightPlanDesignator.valueOf(ast.identifier())).isPresent()) {
             throw new IllegalStateException(

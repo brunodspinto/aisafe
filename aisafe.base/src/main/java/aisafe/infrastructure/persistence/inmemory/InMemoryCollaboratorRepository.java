@@ -37,7 +37,7 @@ public class InMemoryCollaboratorRepository
     public Iterable<Collaborator> findByAirTransportCompany(final AirTransportCompany company) {
         final List<Collaborator> result = new ArrayList<>();
         for (final Collaborator c : findAll()) {
-            if (c.isCompanyCollaborator() && c.airTransportCompany().equals(company))
+            if (c.companyIataCode() != null && c.companyIataCode().equals(company.identity()))
                 result.add(c);
         }
         return result;
@@ -47,7 +47,7 @@ public class InMemoryCollaboratorRepository
     public Iterable<Collaborator> findByAirControlArea(final AirControlArea area) {
         final List<Collaborator> result = new ArrayList<>();
         for (final Collaborator c : findAll()) {
-            if (c.isAreaCollaborator() && c.airControlArea().equals(area))
+            if (c.areaCode() != null && c.areaCode().equals(area.identity()))
                 result.add(c);
         }
         return result;

@@ -67,11 +67,7 @@ public class User implements AggregateRoot<MecanographicNumber> {
                 final LocalDate skillsAssessmentDate) {
         if (mecanographicNumber == null || systemUser == null)
             throw new IllegalArgumentException("SystemUser and MecanographicNumber are required");
-        if (phoneNumber == null || phoneNumber.isBlank())
-            throw new IllegalArgumentException("Phone number is required");
-        final String digits = phoneNumber.replaceAll("[+\\s]", "");
-        if (!digits.matches("\\d{9,15}"))
-            throw new IllegalArgumentException("Phone number must have 9 to 15 digits (optionally starting with '+')");
+        validatePhoneNumber(phoneNumber);
         this.systemUser = systemUser;
         this.mecanographicNumber = mecanographicNumber;
         this.phoneNumber = phoneNumber;
@@ -121,12 +117,17 @@ public class User implements AggregateRoot<MecanographicNumber> {
     public void updateContact(final Email email, final String phoneNumber) {
         if (email == null)
             throw new IllegalArgumentException("Email cannot be null.");
-        if (phoneNumber == null || phoneNumber.isBlank())
-            throw new IllegalArgumentException("Phone number cannot be null or empty.");
-        final String digits = phoneNumber.replaceAll("[+\\s]", "");
-        if (!digits.matches("\\d{9,15}"))
-            throw new IllegalArgumentException("Phone number must have 9 to 15 digits (optionally starting with '+')");
+        validatePhoneNumber(phoneNumber);
         this.email = email;
         this.phoneNumber = phoneNumber;
+    }
+
+    private static void validatePhoneNumber(final String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.isBlank())
+            throw new IllegalArgumentException("Phone number is required");
+        final String digits = phoneNumber.replaceAll("[+\\s]", "");
+        if (!digits.matches("\\d{9,15}"))
+            throw new IllegalArgumentException(
+                    "Phone number must have 9 to 15 digits (optionally starting with '+')");
     }
 }

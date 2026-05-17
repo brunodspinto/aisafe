@@ -17,6 +17,8 @@ public class AppSettings {
                 throw new FileNotFoundException("application.properties not found in classpath");
             properties.load(stream);
         } catch (final IOException ex) {
+            System.err.println("[AppSettings] WARNING: Could not load " + PROPERTIES_RESOURCE
+                    + " – " + ex.getMessage() + ". Falling back to InMemory factory.");
             properties.setProperty(REPOSITORY_FACTORY_KEY,
                     "aisafe.infrastructure.persistence.inmemory.InMemoryRepositoryFactory");
         }

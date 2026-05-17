@@ -4,6 +4,7 @@ import aisafe.aircraft.domain.Aircraft;
 import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.aircraft.repositories.AircraftRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
+import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
 import aisafe.collaborator.repositories.CollaboratorRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
@@ -24,6 +25,7 @@ public class ListFleetController {
 
     private final AuthorizationService authz = AuthzRegistry.authorizationService();
     private final AircraftRepository aircraftRepo = PersistenceContext.repositories().aircraft();
+    private final AirTransportCompanyRepository companyRepo = PersistenceContext.repositories().airTransportCompanies();
     private final CollaboratorRepository collaboratorRepo = PersistenceContext.repositories().collaborators();
 
     /**
@@ -41,7 +43,9 @@ public class ListFleetController {
                 .map(c -> {
                     if (!c.isCompanyCollaborator())
                         throw new IllegalStateException("Authenticated user is not an Air Transport Company collaborator.");
-                    return c.airTransportCompany();
+                    return companyRepo.ofIdentity(c.companyIataCode())
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Company not found for IATA code: " + c.companyIataCode()));
                 })
                 .orElseThrow(() -> new IllegalStateException("No collaborator found for the authenticated user."));
     }

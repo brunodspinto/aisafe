@@ -188,7 +188,7 @@ public final class AiSafeBootstrap {
 
             areaRepo.ofIdentity(AirControlAreaCode.valueOf("PT-N")).ifPresent(area -> {
                 collaboratorRepo.save(
-                        new aisafe.collaborator.domain.Collaborator(savedUser, area));
+                        new aisafe.collaborator.domain.Collaborator(savedUser, area.identity()));
                 System.out.println("Collaborator created: " + username + " for area PT-N");
             });
 
@@ -309,7 +309,7 @@ public final class AiSafeBootstrap {
             final var savedUser = userRepo.save(user);
 
             companyRepo.ofIdentity(IATACode.valueOf("TP")).ifPresent(company -> {
-                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(savedUser, company));
+                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(savedUser, company.identity()));
                 System.out.println("ATCC collaborator created: " + username + " for company TAP");
             });
 
