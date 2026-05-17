@@ -1,5 +1,6 @@
 package aisafe.enginemodel.domain;
 
+import aisafe.maker.domain.MakerName;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class EngineModelTest {
 
     private static final String VALID_NAME = "CFM56";
-    private static final String VALID_MAKER = "CFM International";
+    private static final MakerName VALID_MAKER = MakerName.valueOf("CFM International");
     private static final EngineType VALID_TYPE = EngineType.TURBOFAN;
     private static final double VALID_THRUST_STANDSTILL = 120.0;
     private static final double VALID_THRUST_CRUISE = 115.0;
@@ -21,7 +22,7 @@ class EngineModelTest {
         final EngineModel model = new EngineModel(VALID_NAME, VALID_MAKER, VALID_TYPE,
                 VALID_THRUST_STANDSTILL, VALID_THRUST_CRUISE, VALID_TSFC);
         assertEquals(VALID_NAME, model.name());
-        assertEquals(VALID_MAKER, model.makerName());
+        assertEquals("CFM International", model.makerName());
         assertEquals(VALID_TYPE, model.engineType());
         assertEquals(VALID_THRUST_STANDSTILL, model.thrustAtStandstill());
         assertEquals(VALID_THRUST_CRUISE, model.thrustAtCruiseSpeed());
@@ -45,14 +46,7 @@ class EngineModelTest {
     @Test
     void ensureMakerNameCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
-                () -> new EngineModel(VALID_NAME, null, VALID_TYPE,
-                        VALID_THRUST_STANDSTILL, VALID_THRUST_CRUISE, VALID_TSFC));
-    }
-
-    @Test
-    void ensureMakerNameCannotBeBlank() {
-        assertThrows(IllegalArgumentException.class,
-                () -> new EngineModel(VALID_NAME, "   ", VALID_TYPE,
+                () -> new EngineModel(VALID_NAME, (MakerName) null, VALID_TYPE,
                         VALID_THRUST_STANDSTILL, VALID_THRUST_CRUISE, VALID_TSFC));
     }
 
@@ -114,7 +108,7 @@ class EngineModelTest {
 
     @Test
     void ensureMakerNameIsTrimmedOnConstruction() {
-        final EngineModel model = new EngineModel(VALID_NAME, "  CFM International  ", VALID_TYPE,
+        final EngineModel model = new EngineModel(VALID_NAME, MakerName.valueOf("  CFM International  "), VALID_TYPE,
                 VALID_THRUST_STANDSTILL, VALID_THRUST_CRUISE, VALID_TSFC);
         assertEquals("CFM International", model.makerName());
     }
@@ -124,7 +118,7 @@ class EngineModelTest {
         final EngineModel model = new EngineModel(VALID_NAME, VALID_MAKER, VALID_TYPE, VALID_THRUST_STANDSTILL, VALID_THRUST_CRUISE, VALID_TSFC);
         final String result = model.toString();
         assertTrue(result.contains(VALID_NAME));
-        assertTrue(result.contains(VALID_MAKER));
+        assertTrue(result.contains(VALID_MAKER.toString()));
     }
 
     @Test

@@ -45,7 +45,7 @@ class AirportTest {
         assertEquals(38.7756, airport.location().latitude());
         assertEquals(-9.1354, airport.location().longitude());
         assertEquals(113.0, airport.altitude());
-        assertEquals("PT-N", airport.airControlArea().areaCode());
+        assertEquals("PT-N", airport.airControlArea().areaCode().toString());
     }
 
     @Test

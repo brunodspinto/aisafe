@@ -107,7 +107,7 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
     }
 
     /** @return unique registration number (always upper-case) */
-    public String registrationNumber() { return registrationNumber.toString(); }
+    public RegistrationNumber registrationNumber() { return registrationNumber; }
 
     /** @return country where the aircraft is registered */
     public String registeredCountry() { return registeredCountry; }
@@ -122,7 +122,6 @@ public class Aircraft implements AggregateRoot<RegistrationNumber> {
      * @return cabin seat distribution, or {@code null} for CARGO aircraft
      */
     public CabinConfiguration cabinConfiguration() {
-        if (aircraftModel.aircraftType() == AircraftType.CARGO) return null;
         return cabinConfiguration;
     }
 

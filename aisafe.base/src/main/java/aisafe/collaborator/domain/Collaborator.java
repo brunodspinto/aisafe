@@ -100,17 +100,19 @@ public class Collaborator implements AggregateRoot<Long> {
     /** @return {@code true} if this collaborator belongs to an air control area */
     public boolean isAreaCollaborator() { return areaCode != null; }
 
-    /** @return {@code true} if the associated system user account is active */
-    public boolean isActive() { return user.systemUser().isActive(); }
+    /** @return {@code true} if the associated system user account is active and holds a valid security clearance */
+    public boolean isActive() {
+        return user.systemUser().isActive()
+                && user.securityClearance() != null
+                && user.securityClearance().isActive();
+    }
 
     /**
-     * @return the identity code (IATA or area code) of the customer this collaborator belongs to,
-     *         or {@code "Unknown"} if neither is set
+     * @return the identity code (IATA or area code) of the customer this collaborator belongs to
      */
     public String customerName() {
         if (isCompanyCollaborator()) return companyIataCode.toString();
-        if (isAreaCollaborator()) return areaCode.toString();
-        return "Unknown";
+        return areaCode.toString();
     }
 
     @Override

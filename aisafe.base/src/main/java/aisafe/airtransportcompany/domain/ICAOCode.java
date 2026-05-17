@@ -7,7 +7,7 @@ import jakarta.persistence.Embeddable;
  * Value object representing a 2–3 letter ICAO airline designator code (e.g. "TAP").
  */
 @Embeddable
-public class ICAOCode implements ValueObject {
+public class ICAOCode implements ValueObject, Comparable<ICAOCode> {
 
     private static final long serialVersionUID = 1L;
 
@@ -62,5 +62,10 @@ public class ICAOCode implements ValueObject {
     @Override
     public String toString() {
         return icaoCode;
+    }
+
+    @Override
+    public int compareTo(final ICAOCode other) {
+        return icaoCode.compareTo(other.icaoCode);
     }
 }

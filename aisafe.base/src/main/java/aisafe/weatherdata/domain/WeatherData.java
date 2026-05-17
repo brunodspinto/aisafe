@@ -1,7 +1,9 @@
 package aisafe.weatherdata.domain;
 
+import aisafe.aircontrolarea.domain.AirControlAreaCode;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -38,8 +40,9 @@ public class WeatherData implements AggregateRoot<Long> {
     @Version
     private Long version;
 
-    @Column(nullable = false)
-    private String areaCode;
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "area_code", nullable = false))
+    private AirControlAreaCode areaCode;
 
     @Embedded
     private WeatherSource source;
@@ -72,11 +75,11 @@ public class WeatherData implements AggregateRoot<Long> {
     /**
      * Creates a valid WeatherData record linked to an existing Air Control Area.
      */
-    public WeatherData(final String areaCode, final WeatherSource source, final LocalDateTime date,
+    public WeatherData(final AirControlAreaCode areaCode, final WeatherSource source, final LocalDateTime date,
                        final double temperature, final double windSpeed, final String windDirection,
                        final double pressure, final double visibility) {
-        if (areaCode == null || areaCode.isBlank()) {
-            throw new IllegalArgumentException("Area code cannot be null or blank.");
+        if (areaCode == null) {
+            throw new IllegalArgumentException("Area code cannot be null.");
         }
         if (source == null) {
             throw new IllegalArgumentException("Weather source cannot be null.");
@@ -96,7 +99,7 @@ public class WeatherData implements AggregateRoot<Long> {
         if (visibility < 0) {
             throw new IllegalArgumentException("Visibility cannot be negative.");
         }
-        this.areaCode = areaCode.trim().toUpperCase();
+        this.areaCode = areaCode;
         this.source = source;
         this.date = date;
         this.temperature = temperature;
@@ -107,7 +110,7 @@ public class WeatherData implements AggregateRoot<Long> {
     }
 
     public String areaCode() {
-        return areaCode;
+        return areaCode.toString();
     }
 
     public WeatherSource source() {

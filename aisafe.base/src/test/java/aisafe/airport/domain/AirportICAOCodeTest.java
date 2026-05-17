@@ -92,4 +92,13 @@ class AirportICAOCodeTest {
         final AirportICAOCode code = new AirportICAOCode("LPPT");
         assertEquals("LPPT", code.code());
     }
+
+    @Test
+    void ensureCompareToWorks() {
+        final AirportICAOCode a = new AirportICAOCode("LPPR");
+        final AirportICAOCode b = new AirportICAOCode("LPPT");
+        assertTrue(a.compareTo(b) < 0);
+        assertTrue(b.compareTo(a) > 0);
+        assertEquals(0, a.compareTo(a));
+    }
 }

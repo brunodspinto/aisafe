@@ -7,7 +7,7 @@ import jakarta.persistence.Embeddable;
  * Value object representing a 4-letter ICAO airport code (e.g. "LPPT").
  */
 @Embeddable
-public class AirportICAOCode implements ValueObject {
+public class AirportICAOCode implements ValueObject, Comparable<AirportICAOCode> {
 
     private static final long serialVersionUID = 1L;
     private String icaoCode;
@@ -54,4 +54,9 @@ public class AirportICAOCode implements ValueObject {
 
     @Override
     public String toString() { return icaoCode; }
+
+    @Override
+    public int compareTo(final AirportICAOCode other) {
+        return icaoCode.compareTo(other.icaoCode);
+    }
 }

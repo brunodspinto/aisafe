@@ -4,6 +4,7 @@ import aisafe.enginemodel.domain.EngineModel;
 import aisafe.enginemodel.domain.EngineType;
 import aisafe.enginemodel.repositories.EngineModelRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
+import aisafe.maker.domain.MakerName;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
@@ -54,7 +55,7 @@ public class RegisterEngineModelController {
                     "An engine model with name '" + trimmedName + "' and maker '" + trimmedMaker + "' already exists.");
         }
 
-        final EngineModel model = new EngineModel(trimmedName, trimmedMaker, engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc);
+        final EngineModel model = new EngineModel(trimmedName, MakerName.valueOf(trimmedMaker), engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc);
         return repository.save(model);
     }
 }

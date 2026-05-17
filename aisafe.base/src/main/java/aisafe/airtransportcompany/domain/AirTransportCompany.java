@@ -85,7 +85,7 @@ public class AirTransportCompany implements AggregateRoot<IATACode> {
     public void addAircraftToFleet(final Aircraft aircraft) {
         if (aircraft == null)
             throw new IllegalArgumentException("Aircraft cannot be null.");
-        fleet.add(aircraft.registrationNumber());
+        fleet.add(aircraft.registrationNumber().toString());
     }
 
     /** @return unmodifiable set of aircraft registration numbers in this company's fleet */

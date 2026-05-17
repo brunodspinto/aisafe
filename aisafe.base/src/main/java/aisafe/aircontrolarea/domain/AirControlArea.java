@@ -74,9 +74,9 @@ public class AirControlArea implements AggregateRoot<AirControlAreaCode> {
         this.boundaries = boundaries;
     }
 
-    /** @return unique area code string (primary key) */
-    public String areaCode() {
-        return areaCode.toString();
+    /** @return unique area code (primary key) */
+    public AirControlAreaCode areaCode() {
+        return areaCode;
     }
 
     /** @return descriptive name of this area */

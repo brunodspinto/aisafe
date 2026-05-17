@@ -140,7 +140,7 @@ public final class AiSafeBootstrap {
             final String name, final String makerName, final EngineType engineType,
             final double thrustAtStandstill, final double thrustAtCruiseSpeed, final double tsfc) {
         if (repo.findByNameAndMaker(name, makerName).isEmpty()) {
-            repo.save(new EngineModel(name, makerName, engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc));
+            repo.save(new EngineModel(name, MakerName.valueOf(makerName), engineType, thrustAtStandstill, thrustAtCruiseSpeed, tsfc));
             System.out.println("Engine model created: " + name + " by " + makerName);
         } else {
             System.out.println("Engine model already exists: " + name + " by " + makerName);

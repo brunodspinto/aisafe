@@ -78,7 +78,7 @@ public class ListCollaboratorsByCustomerUI extends AbstractUI {
 
         final String areaCode = Console.readLine("Area Code: ");
         final AirControlArea selected = areas.stream()
-                .filter(a -> a.areaCode().equalsIgnoreCase(areaCode))
+                .filter(a -> a.areaCode().toString().equalsIgnoreCase(areaCode))
                 .findFirst()
                 .orElse(null);
 

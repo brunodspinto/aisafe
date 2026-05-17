@@ -28,7 +28,7 @@ class AirControlAreaTest {
     void ensureValidAirControlAreaCanBeCreated() {
         final AirControlArea area = new AirControlArea(AirControlAreaCode.valueOf("PT-N"), "Northern Portugal", 1200.0, validBoundary());
 
-        assertEquals("PT-N", area.areaCode());
+        assertEquals("PT-N", area.areaCode().toString());
         assertEquals("Northern Portugal", area.name());
         assertEquals(1200.0, area.minimumFuelRequired());
         assertEquals(validBoundary(), area.boundaries());

@@ -101,4 +101,13 @@ class ICAOCodeTest {
         final ICAOCode code = new ICAOCode("TAP");
         assertEquals("TAP", code.toString());
     }
+
+    @Test
+    void ensureCompareToWorks() {
+        final ICAOCode a = new ICAOCode("BAW");
+        final ICAOCode b = new ICAOCode("TAP");
+        assertTrue(a.compareTo(b) < 0);
+        assertTrue(b.compareTo(a) > 0);
+        assertEquals(0, a.compareTo(a));
+    }
 }
