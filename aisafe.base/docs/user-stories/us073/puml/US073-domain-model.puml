@@ -1,0 +1,59 @@
+@startuml US073_DomainModel
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model - US073 Create a Flight Route
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+
+    class FlightRoute <<entity, aggregate root>> {
+        activeUntil: LocalDate
+    }
+
+    class RouteName <<value object, identity>> {
+        name: String
+    }
+
+    enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
+    }
+}
+
+package "Airport Aggregate" <<Rectangle>> {
+
+    class Airport <<entity, aggregate root>> {
+        name
+        town
+        country
+        altitude
+    }
+
+    class AirportIATACode <<value object, identity>> {
+        iataCode: String
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name: String
+    }
+
+    class IATACode <<value object, identity>> {
+        code: String
+    }
+}
+
+FlightRoute "1" *-- "1" RouteName         : "identified by >"
+FlightRoute "1" *-- "1" FlightRouteStatus : "has >"
+FlightRoute "0..*" --> "1" AirTransportCompany : "operated by >"
+FlightRoute "1" --> "1" AirportIATACode   : "origin >"
+FlightRoute "1" --> "1" AirportIATACode   : "destination >"
+
+Airport "1" *-- "1" AirportIATACode       : "identified by >"
+AirTransportCompany "1" *-- "1" IATACode  : "identified by >"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates >"
+
+@enduml

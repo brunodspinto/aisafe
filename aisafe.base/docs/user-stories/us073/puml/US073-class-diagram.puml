@@ -1,0 +1,98 @@
+@startuml US073_ClassDiagram
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram - US073 Create a Flight Route
+
+package "Presentation" {
+    class CreateFlightRouteUI {
+        +show()
+    }
+}
+
+package "Application" {
+    class CreateFlightRouteController <<UseCaseController>> {
+        -authz: AuthorizationService
+        -flightRouteRepository: FlightRouteRepository
+        -airportRepository: AirportRepository
+        -airTransportCompanyRepository: AirTransportCompanyRepository
+        +createFlightRoute(routeName: String, originCode: String, destinationCode: String) : FlightRoute
+    }
+}
+
+package "Domain" {
+
+    class FlightRoute <<entity, aggregate root>> {
+        -activeUntil: LocalDate
+        +FlightRoute(name: RouteName, origin: AirportIATACode, destination: AirportIATACode, company: AirTransportCompany)
+        +deactivate(fromDate: LocalDate)
+        +isActive() : boolean
+        +routeName() : RouteName
+        +originAirport() : AirportIATACode
+        +destinationAirport() : AirportIATACode
+        +company() : AirTransportCompany
+        +status() : FlightRouteStatus
+        +identity() : RouteName
+    }
+
+    class RouteName <<value object, identity>> {
+        -name: String
+        +RouteName(name: String)
+        +toString() : String
+        +equals(other: Object) : boolean
+        +hashCode() : int
+    }
+
+    enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
+    }
+
+    class AirportIATACode <<value object>> {
+        -iataCode: String
+        +AirportIATACode(code: String)
+        +code() : String
+    }
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        -name: String
+        -iataCode: IATACode
+        -icaoCode: ICAOCode
+        +identity() : IATACode
+        +name() : String
+    }
+}
+
+package "Repository" {
+    interface FlightRouteRepository <<interface>> {
+        +save(route: FlightRoute) : FlightRoute
+        +existsByName(name: RouteName) : boolean
+        +ofIdentity(name: RouteName) : Optional<FlightRoute>
+        +findAllByCompany(companyIataCode: IATACode) : Iterable<FlightRoute>
+    }
+
+    interface AirportRepository <<interface>> {
+        +ofIdentity(code: AirportIATACode) : Optional<Airport>
+    }
+
+    interface AirTransportCompanyRepository <<interface>> {
+        +ofIdentity(code: IATACode) : Optional<AirTransportCompany>
+        +findByCollaborator(user: SystemUser) : Optional<AirTransportCompany>
+    }
+}
+
+CreateFlightRouteUI ..> CreateFlightRouteController : uses
+CreateFlightRouteController ..> FlightRouteRepository : uses
+CreateFlightRouteController ..> AirportRepository : uses
+CreateFlightRouteController ..> AirTransportCompanyRepository : uses
+CreateFlightRouteController ..> FlightRoute : creates
+
+FlightRoute "1" *-- "1" RouteName          : "identified by >"
+FlightRoute "1" *-- "1" FlightRouteStatus  : "has >"
+FlightRoute "1" --> "1" AirportIATACode    : "origin >"
+FlightRoute "1" --> "1" AirportIATACode    : "destination >"
+FlightRoute "1" --> "1" AirTransportCompany : "operated by >"
+
+@enduml
