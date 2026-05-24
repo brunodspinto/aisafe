@@ -21,12 +21,12 @@
 #include "config.h"
 #include "ipc.h"
 #include "aca_filter.h"
-#include "flight_data.h"
+#include "flight_parser.h"
 #include "flight_process.h"
 #include "safety_monitor.h"
 #include "report.h"
 
-#define N_FLIGHTS_COLLISION 4   /* adds FLIGHT_04 (~2km from FLIGHT_01) */
+#define FLIGHT_PLANS_FILE "flight_plans.json"
 #define CONFIG_FILE "simulation.conf"
 
 typedef struct {
