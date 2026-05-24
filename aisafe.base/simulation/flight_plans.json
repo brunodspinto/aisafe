@@ -1,0 +1,50 @@
+[
+  {
+    "identifier": "UX1144",
+    "type": "REGULAR",
+    "legs": [
+      {
+        "departure_airport": "OPO",
+        "arrival_airport": "MAD",
+        "departure_time": "2026-05-27T07:35:00Z",
+        "arrival_time": "2026-05-27T09:35:00Z",
+        "route": "OPO -> MAD",
+        "fuel_kg": 50000,
+        "segments": [
+          {
+            "start_coord": [41.24, -8.68],
+            "end_coord": [40.47, -3.56],
+            "altitude_m": 10000,
+            "width_m": 1000,
+            "wind_dir_deg": 45,
+            "wind_speed_mps": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "identifier": "FR9441",
+    "type": "REGULAR",
+    "legs": [
+      {
+        "departure_airport": "LIS",
+        "arrival_airport": "MAD",
+        "departure_time": "2026-05-27T07:25:00Z",
+        "arrival_time": "2026-05-27T09:45:00Z",
+        "route": "LIS -> MAD",
+        "fuel_kg": 50000,
+        "segments": [
+          {
+            "start_coord": [38.77, -9.13],
+            "end_coord": [40.47, -3.56],
+            "altitude_m": 11000,
+            "width_m": 1000,
+            "wind_dir_deg": 50,
+            "wind_speed_mps": 20
+          }
+        ]
+      }
+    ]
+  }
+]
