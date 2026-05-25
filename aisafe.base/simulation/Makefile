@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -O2 -I.
 LDFLAGS = -lm
 
-SRCS = main.c ipc.c flight_process.c config.c flight_data.c report.c safety_monitor.c aca_filter.c cJSON.c flight_parser.c
+SRCS = main.c ipc.c flight_process.c config.c report.c safety_monitor.c aca_filter.c cJSON.c flight_parser.c
 OBJS = $(SRCS:.c=.o)
 EXECUTABLE = flight_simulator
 

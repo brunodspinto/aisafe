@@ -28,6 +28,7 @@
 
 #define FLIGHT_PLANS_FILE "flight_plans.json"
 #define CONFIG_FILE "simulation.conf"
+#define N_FLIGHTS_COLLISION 2
 
 typedef struct {
     int pos_read_fd;   /* parent reads positions from child */
@@ -51,17 +52,33 @@ int main(int argc, char *argv[]) {
     if (validate_config(&params) != 0)
         return 1;
 
-    int n_flights = params.n_flights;
+    int n_flights_from_json = 0;
+    flight_plan_t *plans = NULL;
+    if (parse_flight_plans_from_json(FLIGHT_PLANS_FILE, &plans, &n_flights_from_json) != 0) {
+        fprintf(stderr, "Error: could not load or parse flight plans from '%s'\n", FLIGHT_PLANS_FILE);
+        return 1;
+    }
+
+    int n_flights = n_flights_from_json;
     for (int a = 1; a < argc; a++) {
-        if (strcmp(argv[a], "--collision") == 0)
+        if (strcmp(argv[a], "--collision") == 0) {
             n_flights = N_FLIGHTS_COLLISION;
+            printf("Collision test mode enabled, using first %d flight plans.\n", n_flights);
+        }
+    }
+    if (n_flights > n_flights_from_json) {
+        fprintf(stderr, "Warning: requested %d flights, but only %d are available in '%s'.\n", n_flights, n_flights_from_json, FLIGHT_PLANS_FILE);
+        n_flights = n_flights_from_json;
+    }
+    if (n_flights > MAX_FLIGHTS) {
+        fprintf(stderr, "Warning: cannot simulate more than %d flights. Capping at %d.\n", MAX_FLIGHTS, MAX_FLIGHTS);
+        n_flights = MAX_FLIGHTS;
     }
 
     signal(SIGPIPE, SIG_IGN);
 
     pid_t          pids[MAX_FLIGHTS];
     flight_pipes_t pipes[MAX_FLIGHTS];
-    flight_plan_t *plans[MAX_FLIGHTS];
     flight_history_t histories[MAX_FLIGHTS];
     int i, status;
 
@@ -73,16 +90,11 @@ int main(int argc, char *argv[]) {
     };
 
     printf("=== AISafe Flight Simulation ===\n");
-    printf("Mode: %s\n", n_flights == N_FLIGHTS_COLLISION ? "COLLISION TEST" : "normal");
+    printf("Mode: %s\n", (argc > 1 && strcmp(argv[1], "--collision") == 0) ? "COLLISION TEST" : "normal");
     print_config(&params);
 
     for (i = 0; i < n_flights; i++) {
-        plans[i] = create_flight_plan(i);
-        if (!plans[i]) {
-            fprintf(stderr, "Error: could not create flight plan %d\n", i);
-            exit(1);
-        }
-        printf("Flight loaded: %s\n", plans[i]->identifier);
+        printf("Flight loaded: %s\n", plans[i].identifier);
     }
     fflush(stdout);
 
@@ -111,9 +123,9 @@ int main(int argc, char *argv[]) {
                     close(pipes[j].ctrl_read_fd);
                 }
             }
-            execute_flight_process(pipes[i].pos_write_fd,
+            flight_process_main(i, &plans[i], pipes[i].pos_write_fd,
                                    pipes[i].ctrl_read_fd,
-                                   plans[i]);
+                                   &params);
             /* never reached */
         }
     }
@@ -200,7 +212,7 @@ int main(int argc, char *argv[]) {
                 close(pipes[i].ctrl_write_fd);
                 active[i] = 0;
                 n_active--;
-                printf("[%s] flight completed.\n", plans[i]->identifier);
+                printf("[%s] flight completed.\n", plans[i].identifier);
             }
         }
 
@@ -209,6 +221,11 @@ int main(int argc, char *argv[]) {
         /* All active flights reported — run US102 and decide GO/STOP */
 
         /* Future segment prediction advisory (once per pair, log only) */
+        flight_plan_t *plan_pointers[MAX_FLIGHTS];
+        for(int k=0; k < n_flights; k++) {
+            plan_pointers[k] = &plans[k];
+        }
+
         for (i = 0; i < n_flights; i++) {
             if (!active[i] || has_position[i] < 1) continue;
             for (int j = i + 1; j < n_flights; j++) {
@@ -216,7 +233,7 @@ int main(int argc, char *argv[]) {
                 if (!prediction_done[i][j]) {
                     prediction_done[i][j] = 1;
                     predict_future_collisions(
-                        (flight_plan_t *const *)plans, i, 0, j, 0,
+                        (flight_plan_t *const *)plan_pointers, i, 0, j, 0,
                         params.safe_dist_horiz_m, params.safe_dist_vert_m);
                 }
             }
@@ -272,8 +289,7 @@ int main(int argc, char *argv[]) {
     printf("\n[SYSTEM] Simulation concluded. Spawning report generation process...\n");
     generate_final_report(histories, n_flights, total_violations, sim_aborted);
 
-    for (i = 0; i < n_flights; i++)
-        free_flight_plan(plans[i]);
+    free(plans);
 
     return 0;
 }

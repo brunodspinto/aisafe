@@ -78,8 +78,8 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
 
         cJSON *legs_json = cJSON_GetObjectItemCaseSensitive(flight_plan_json, "legs");
         if (cJSON_IsArray(legs_json)) {
-            current_plan->num_legs = cJSON_GetArraySize(legs_json);
-            current_plan->legs = (leg_t *)malloc(current_plan->num_legs * sizeof(leg_t));
+            current_plan->leg_count = cJSON_GetArraySize(legs_json);
+            current_plan->legs = (leg_t *)malloc(current_plan->leg_count * sizeof(leg_t));
             if (!current_plan->legs) {
                 fprintf(stderr, "Failed to allocate memory for legs.\n");
                 // Cleanup previously allocated memory
@@ -98,8 +98,8 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
 
                 cJSON *segments_json = cJSON_GetObjectItemCaseSensitive(leg_json, "segments");
                 if (cJSON_IsArray(segments_json)) {
-                    current_leg->num_segments = cJSON_GetArraySize(segments_json);
-                    current_leg->segments = (segment_t *)malloc(current_leg->num_segments * sizeof(segment_t));
+                    current_leg->segment_count = cJSON_GetArraySize(segments_json);
+                    current_leg->segments = (segment_t *)malloc(current_leg->segment_count * sizeof(segment_t));
                      if (!current_leg->segments) {
                         fprintf(stderr, "Failed to allocate memory for segments.\n");
                         // Complex cleanup needed here, simplified for brevity
@@ -114,18 +114,21 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
                         
                         cJSON *start_coord = cJSON_GetObjectItemCaseSensitive(segment_json, "start_coord");
                         if (cJSON_IsArray(start_coord) && cJSON_GetArraySize(start_coord) == 2) {
-                            current_segment->start.lat = cJSON_GetArrayItem(start_coord, 0)->valuedouble;
-                            current_segment->start.lon = cJSON_GetArrayItem(start_coord, 1)->valuedouble;
+                            current_segment->from.latitude = cJSON_GetArrayItem(start_coord, 0)->valuedouble;
+                            current_segment->from.longitude = cJSON_GetArrayItem(start_coord, 1)->valuedouble;
                         }
 
                         cJSON *end_coord = cJSON_GetObjectItemCaseSensitive(segment_json, "end_coord");
                         if (cJSON_IsArray(end_coord) && cJSON_GetArraySize(end_coord) == 2) {
-                            current_segment->end.lat = cJSON_GetArrayItem(end_coord, 0)->valuedouble;
-                            current_segment->end.lon = cJSON_GetArrayItem(end_coord, 1)->valuedouble;
+                            current_segment->to.latitude = cJSON_GetArrayItem(end_coord, 0)->valuedouble;
+                            current_segment->to.longitude = cJSON_GetArrayItem(end_coord, 1)->valuedouble;
                         }
 
                         cJSON *altitude = cJSON_GetObjectItemCaseSensitive(segment_json, "altitude_m");
-                        if(cJSON_IsNumber(altitude)) current_segment->altitude = altitude->valuedouble;
+                        if(cJSON_IsNumber(altitude)) {
+                            current_segment->alt_from_meters = altitude->valuedouble;
+                            current_segment->alt_to_meters = altitude->valuedouble;
+                        }
 
                         k++;
                     }
