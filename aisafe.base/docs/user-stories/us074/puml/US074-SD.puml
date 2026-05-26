@@ -1,0 +1,93 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+
+actor "Air Transport Company\nCollaborator" as ATCC
+
+participant ":DeactivateFlightRouteUI" as UI
+participant ":DeactivateFlightRouteController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "companyRepo\n:AirTransportCompanyRepository" as CREPO
+participant "routeRepo\n:FlightRouteRepository" as RREPO
+participant "flightRepo\n:FlightRepository" as FREPO
+participant "selectedRoute\n:FlightRoute" as ROUTE
+
+activate ATCC
+ATCC -> UI : requests to deactivate a flight route
+activate UI
+
+UI -> CTRL** : create()
+
+' Step 1: List active routes belonging to the ATCC's company
+UI -> CTRL : activeRoutesByCompany()
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AUTHZ : session().authenticatedUser()
+activate AUTHZ
+AUTHZ --> CTRL : currentUser
+deactivate AUTHZ
+
+CTRL -> CREPO : findByCollaborator(currentUser)
+activate CREPO
+CREPO --> CTRL : company
+deactivate CREPO
+
+CTRL -> RREPO : findActiveByCompany(company.identity())
+activate RREPO
+RREPO --> CTRL : activeRoutesList
+deactivate RREPO
+
+CTRL --> UI : activeRoutesList
+deactivate CTRL
+
+UI --> ATCC : displays active routes and requests selection and deactivation date
+deactivate UI
+
+' Step 2: User selects route and enters deactivation date
+ATCC -> UI : selects route and enters deactivation date
+activate UI
+
+UI -> CTRL : deactivateRoute(selectedRoute, deactivationDate)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+' Step 3: Check for planned flights after the given date (AC074.3)
+CTRL -> FREPO : hasFlightsAfter(selectedRoute, deactivationDate)
+activate FREPO
+note right of FREPO : SELECT COUNT(f) FROM Flight f\nWHERE f.flightRoute = :route\nAND f.departureDateTime >= :date
+FREPO --> CTRL : false
+deactivate FREPO
+
+' Step 4: Delegate deactivation to the domain object
+CTRL -> ROUTE : deactivate(deactivationDate)
+activate ROUTE
+note right of ROUTE : Sets activeUntil = deactivationDate\nand transitions status to INACTIVE\n(AC074.1)
+ROUTE --> CTRL : (ok)
+deactivate ROUTE
+
+' Step 5: Persist the updated route
+CTRL -> RREPO : save(selectedRoute)
+activate RREPO
+RREPO --> CTRL : updatedRoute
+deactivate RREPO
+
+CTRL --> UI : updatedRoute
+deactivate CTRL
+
+UI --> ATCC : "Route '...' deactivated from [date] onwards."
+deactivate UI
+deactivate ATCC
+
+@enduml
