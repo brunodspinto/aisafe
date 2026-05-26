@@ -2,8 +2,8 @@
 // Expected: ACCEPTED - keywords like 'flight', 'leg', 'departure', etc. are all valid
 flight TP501 type regular {
   leg {
-    departure: OPO 2026-11-01 06:00;
-    arrival: LIS 2026-11-01 06:45;
+    departure: 2026-11-01 06:00;
+    arrival: 2026-11-01 06:45;
     route: OPO -> LIS;
     segment {
       start: (+41.15, -8.61);

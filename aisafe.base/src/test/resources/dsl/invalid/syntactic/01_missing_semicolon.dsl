@@ -3,8 +3,8 @@
 // Expected: REJECTED - syntax error at line 6, token 'ARRIVAL'
 FLIGHT TP123 TYPE REGULAR {
   LEG {
-    DEPARTURE: OPO 2026-06-01 10:00
-    ARRIVAL: LIS 2026-06-01 10:45;
+    DEPARTURE: 2026-06-01 10:00
+    ARRIVAL: 2026-06-01 10:45;
     ROUTE: OPO -> LIS;
     SEGMENT {
       START: (+41.15, -8.61);

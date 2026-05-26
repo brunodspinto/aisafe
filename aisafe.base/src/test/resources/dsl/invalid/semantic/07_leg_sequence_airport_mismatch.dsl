@@ -4,8 +4,8 @@
 // Expected: REJECTED with message "Leg 1 arrival airport (LIS) must match leg 2 departure airport (FAO)"
 FLIGHT TP200 TYPE REGULAR {
   LEG {
-    DEPARTURE: OPO 2026-08-01 09:00;
-    ARRIVAL: LIS 2026-08-01 09:50;
+    DEPARTURE: 2026-08-01 09:00;
+    ARRIVAL: 2026-08-01 09:50;
     ROUTE: OPO -> LIS;
     SEGMENT {
       START: (+41.15, -8.61);
@@ -16,8 +16,8 @@ FLIGHT TP200 TYPE REGULAR {
     FUEL: 3000 KG;
   }
   LEG {
-    DEPARTURE: FAO 2026-08-01 11:00;
-    ARRIVAL: MAD 2026-08-01 12:30;
+    DEPARTURE: 2026-08-01 11:00;
+    ARRIVAL: 2026-08-01 12:30;
     ROUTE: FAO -> MAD;
     SEGMENT {
       START: (+37.01, -7.96);

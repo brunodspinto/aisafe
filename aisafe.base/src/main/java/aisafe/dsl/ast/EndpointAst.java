@@ -1,4 +1,4 @@
 package aisafe.dsl.ast;
 
-public record EndpointAst(String airportCode, String date, String time) {
+public record EndpointAst(String date, String time) {
 }
