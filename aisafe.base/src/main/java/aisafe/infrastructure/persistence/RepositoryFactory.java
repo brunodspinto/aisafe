@@ -11,6 +11,7 @@ import aisafe.airport.repositories.AirportRepository;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.collaborator.repositories.CollaboratorRepository;
+import aisafe.pilot.repositories.PilotRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 
 public interface RepositoryFactory {
@@ -64,4 +65,8 @@ public interface RepositoryFactory {
     AircraftRepository aircraft(TransactionalContext tx);
 
     AircraftRepository aircraft();
+
+    PilotRepository pilots(TransactionalContext tx);
+
+    PilotRepository pilots();
 }

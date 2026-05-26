@@ -22,6 +22,7 @@ import aisafe.app.console.presentation.collaborator.ListCollaboratorsByCustomerU
 import aisafe.app.console.presentation.collaborator.EditCollaboratorUI;
 import aisafe.app.console.presentation.aircraft.DecommissionAircraftUI;
 import aisafe.app.console.presentation.aircraft.ListFleetUI;
+import aisafe.app.console.presentation.pilot.AddPilotUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -86,6 +87,9 @@ public class MainMenu extends AbstractUI {
         }
         if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.ATCC)) {
             menu.addSubMenu(option++, buildFleetMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+
+            menu.addSubMenu(option++, buildPilotMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
@@ -174,6 +178,13 @@ public class MainMenu extends AbstractUI {
         menu.addItem(1, "Add Aircraft to Fleet", new AddAircraftUI()::show);
         menu.addItem(2, "Decommission Aircraft", new DecommissionAircraftUI()::show);
         menu.addItem(3, "List Fleet", new ListFleetUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildPilotMenu() {
+        final var menu = new Menu("Pilots >");
+        menu.addItem(1, "Add Pilot", new AddPilotUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

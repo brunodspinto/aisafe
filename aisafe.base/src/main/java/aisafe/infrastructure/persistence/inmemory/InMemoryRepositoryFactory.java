@@ -13,6 +13,7 @@ import aisafe.airport.repositories.AirportRepository;
 import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.collaborator.repositories.CollaboratorRepository;
+import aisafe.pilot.repositories.PilotRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryTransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
@@ -38,6 +39,7 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     private AircraftModelRepository aircraftModelsRepo;
     private CollaboratorRepository collaboratorsRepo;
     private AircraftRepository aircraftRepo;
+    private PilotRepository pilotsRepo;
 
     @Override
     public synchronized eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUsers(
@@ -184,5 +186,16 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public AircraftRepository aircraft() {
         return aircraft(null);
+    }
+
+    @Override
+    public synchronized PilotRepository pilots(final TransactionalContext tx) {
+        if (pilotsRepo == null) pilotsRepo = new InMemoryPilotRepository();
+        return pilotsRepo;
+    }
+
+    @Override
+    public PilotRepository pilots() {
+        return pilots(null);
     }
 }

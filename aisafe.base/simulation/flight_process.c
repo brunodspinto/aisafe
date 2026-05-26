@@ -76,8 +76,9 @@ static void lookup_perf(const perf_point_t *table, int count, double alt_m,
     *vz_out       = table[count - 1].vertical_rate_mps;
 }
 
-void execute_flight_process(int pos_write_fd, int ctrl_read_fd,
-                            const flight_plan_t *plan) {
+void flight_process_main(int flight_idx, const flight_plan_t *plan, int pos_write_fd, int ctrl_read_fd, const simulation_params_t *params) {
+    (void)flight_idx; // Unused for now
+    (void)params; // Unused for now
     int leg, seg;
     time_t sim_time;
     aircraft_position_t pos;
