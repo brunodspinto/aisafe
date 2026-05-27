@@ -148,19 +148,6 @@ void ensurePilotCertificationSetCannotBeNull() {
 
 ---
 
-**AC075.4 — Aircraft models must exist in the system**
-
-Validated by the controller before creating the pilot:
-```java
-for (final Long modelId : certifiedAircraftModelIds) {
-    modelRepo.ofIdentity(modelId).orElseThrow(() ->
-            new IllegalArgumentException("Aircraft model not found: " + modelId));
-}
-```
-
-This is an infrastructure concern validated through manual integration testing.
-
----
 
 **AC075.5 — Newly added pilot is active by default**
 
