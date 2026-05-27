@@ -1,0 +1,48 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US076 - Domain Model Excerpt
+
+package "Air Transport Company" {
+    class AirTransportCompany <<aggregate root>> {
+        - iataCode : IATACode
+        - name : String
+    }
+
+    class IATACode <<value object>> {
+        - code : String
+    }
+}
+
+package "Pilot" {
+    class Pilot <<aggregate root>> {
+        - certifiedAircraftModelIds : Set<Long>
+        - active : boolean
+        + isActive() : boolean
+        + isCertifiedFor(id: Long) : boolean
+    }
+}
+
+package "Aircraft Model" {
+    class AircraftModel <<aggregate root>> {
+        - modelName : String
+        - maxCapacity : int
+        + modelName() : String
+        + identity() : Long
+    }
+}
+
+AirTransportCompany "1" --> "1" IATACode : "identified by >"
+Pilot "1" --> "1" IATACode : "belongs to company >"
+Pilot "1" ..> "*" AircraftModel : "certified for\n(references by Long id) >"
+
+note bottom of Pilot
+  certifiedAircraftModelIds: Set<Long>
+  stores AircraftModel.identity() values.
+  No direct object reference — cross-aggregate
+  reference by identity (DDD).
+end note
+
+@enduml

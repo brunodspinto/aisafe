@@ -1,0 +1,101 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US076 - Class Diagram (List Company Pilot Roster)
+
+package "Presentation" {
+    class ListPilotRosterUI {
+        # doShow() : boolean
+        - printRoster(pilots: List<Pilot>) : void
+    }
+}
+
+package "Application" {
+    class ListPilotRosterController {
+        - authenticatedCollaboratorCompany() : AirTransportCompany
+        + allPilots() : List<Pilot>
+        + activePilots() : List<Pilot>
+        + pilotsByCertifiedModel(modelName: String) : List<Pilot>
+    }
+}
+
+package "Domain" {
+    class Pilot <<entity>> <<aggregate root>> {
+        - certifiedAircraftModelIds : Set<Long>
+        - active : boolean
+        + isActive() : boolean
+        + isCertifiedFor(id: Long) : boolean
+        + companyIataCode() : IATACode
+        + certifiedAircraftModelIds() : Set<Long>
+    }
+
+    class IATACode <<value object>> {
+        - code : String
+    }
+
+    class AircraftModel <<entity>> <<aggregate root>> {
+        - modelName : String
+        + modelName() : String
+        + identity() : Long
+    }
+
+    class AirTransportCompany <<entity>> <<aggregate root>> {
+        - iataCode : IATACode
+        - name : String
+    }
+
+    class Collaborator <<entity>> <<aggregate root>> {
+        + isCompanyCollaborator() : boolean
+        + companyIataCode() : IATACode
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+        + session() : UserSession
+    }
+    class SystemUser { }
+}
+
+package "Persistence" {
+    interface PilotRepository <<repository>> {
+        + findByAirTransportCompany(company: AirTransportCompany) : Iterable<Pilot>
+    }
+    interface AircraftModelRepository <<repository>> {
+        + findAll() : Iterable<AircraftModel>
+    }
+    interface CollaboratorRepository <<repository>> {
+        + findBySystemUser(user: SystemUser) : Optional<Collaborator>
+    }
+    interface AirTransportCompanyRepository <<repository>> {
+        + ofIdentity(iataCode: IATACode) : Optional<AirTransportCompany>
+    }
+    class JpaPilotRepository { }
+    class JpaAircraftModelRepository { }
+    class JpaCollaboratorRepository { }
+    class JpaAirTransportCompanyRepository { }
+}
+
+ListPilotRosterUI .down.> ListPilotRosterController
+ListPilotRosterController .down.> PilotRepository
+ListPilotRosterController .down.> AircraftModelRepository
+ListPilotRosterController .down.> CollaboratorRepository
+ListPilotRosterController .down.> AirTransportCompanyRepository
+ListPilotRosterController .down.> AuthorizationService
+ListPilotRosterController .down.> Pilot
+ListPilotRosterController .down.> AircraftModel
+
+Pilot "1" --> "1" IATACode : "belongs to company >"
+Pilot "1" ..> "*" AircraftModel : "references by id >"
+Collaborator "1" --> "1" IATACode : "has >"
+AirTransportCompany "1" --> "1" IATACode : "identified by >"
+
+JpaPilotRepository .up.|> PilotRepository
+JpaAircraftModelRepository .up.|> AircraftModelRepository
+JpaCollaboratorRepository .up.|> CollaboratorRepository
+JpaAirTransportCompanyRepository .up.|> AirTransportCompanyRepository
+
+@enduml
