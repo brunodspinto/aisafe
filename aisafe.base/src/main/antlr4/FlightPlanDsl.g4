@@ -33,11 +33,11 @@ leg
     ;
 
 departure
-    : DEPARTURE COLON airportCode dateTime SEMI
+    : DEPARTURE COLON dateTime SEMI
     ;
 
 arrival
-    : ARRIVAL COLON airportCode dateTime SEMI
+    : ARRIVAL COLON dateTime SEMI
     ;
 
 // ── Route ────────────────────────────────────────────────────────────────────

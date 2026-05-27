@@ -40,6 +40,7 @@ public final class AiSafeBootstrap {
         System.out.println("=====================================");
 
         bootstrapAdmin();
+        bootstrapBackofficeOperator();
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
         bootstrapEngineModels();
@@ -49,6 +50,7 @@ public final class AiSafeBootstrap {
         bootstrapAirTransportCompanies();
         bootstrapCollaborators();
         bootstrapAtccUser();
+        bootstrapAtccAirEuropa();
         bootstrapAircrafts();
 
 
@@ -76,6 +78,30 @@ public final class AiSafeBootstrap {
             System.out.println("Admin user created.");
         } else {
             System.out.println("Admin user already exists.");
+        }
+    }
+
+    /** Creates the default backoffice operator account if absent. */
+    private static void bootstrapBackofficeOperator() {
+        final var userRepo = PersistenceContext.repositories().systemUsers();
+        final String username = "backoffice1";
+
+        if (userRepo.ofIdentity(
+                eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username))
+                .isEmpty()) {
+
+            final var builder = new SystemUserBuilder(
+                    new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                    .withPassword("Password1")
+                    .withName("Backoffice", "Operator")
+                    .withEmail("backoffice1@aisafe.com")
+                    .withRoles(AiSafeRoles.BACKOFFICE_OPERATOR);
+
+            userRepo.save(builder.build());
+            System.out.println("Backoffice operator created.");
+        } else {
+            System.out.println("Backoffice operator already exists.");
         }
     }
 
@@ -130,6 +156,8 @@ public final class AiSafeBootstrap {
         bootstrapEngineModel(engineRepo, "CFM56", "CFM International", EngineType.TURBOFAN, 120.0, 115.0, 0.372);
         bootstrapEngineModel(engineRepo, "PW4000", "Pratt & Whitney", EngineType.TURBOFAN, 252.0, 240.0, 0.330);
         bootstrapEngineModel(engineRepo, "PT6A-65B", "Pratt & Whitney Canada", EngineType.TURBOPROP, 17.0, 14.0, 0.290);
+        // GE90-115B: motor turbofan da Boeing 777-300ER; TSFC em lb/(lbf·h)
+        bootstrapEngineModel(engineRepo, "GE90-115B", "GE Aviation", EngineType.TURBOFAN, 513.0, 490.0, 0.312);
     }
 
     /**
@@ -205,6 +233,7 @@ public final class AiSafeBootstrap {
         bootstrapAirTransportCompany(repo, "TAP Air Portugal", "TP", "TAP");
         bootstrapAirTransportCompany(repo, "Ryanair", "FR", "RYR");
         bootstrapAirTransportCompany(repo, "Lufthansa", "LH", "DLH");
+        bootstrapAirTransportCompany(repo, "Air Europa", "UX", "AEA");
     }
 
     /**
@@ -325,8 +354,8 @@ public final class AiSafeBootstrap {
         final var companyRepo = PersistenceContext.repositories().airTransportCompanies();
         final var modelRepo = PersistenceContext.repositories().aircraftModels();
 
+        // CS-TUA — Boeing 737-800 / TAP Air Portugal
         final String registration = "CS-TUA";
-
         if (aircraftRepo.ofIdentity(RegistrationNumber.valueOf(registration)).isEmpty()) {
             final var models = modelRepo.findAll();
             if (!models.iterator().hasNext()) {
@@ -348,6 +377,41 @@ public final class AiSafeBootstrap {
         } else {
             System.out.println("Aircraft already exists: " + registration);
         }
+
+        // EI-GEX — Boeing 777-300ER / Ryanair (FR9441 LIS-MAD)
+        bootstrapAircraft777(aircraftRepo, companyRepo, modelRepo,
+                "EI-GEX", "Ireland", 14, 2020,
+                new aisafe.aircraft.domain.CabinConfiguration(8, 40, 348), "FR");
+    }
+
+    /**
+     * Bootstraps one Boeing 777-300ER aircraft and adds it to the specified company's fleet.
+     */
+    private static void bootstrapAircraft777(
+            final aisafe.aircraft.repositories.AircraftRepository aircraftRepo,
+            final aisafe.airtransportcompany.repositories.AirTransportCompanyRepository companyRepo,
+            final aisafe.aircraftmodel.repositories.AircraftModelRepository modelRepo,
+            final String registration, final String country, final int crew, final int year,
+            final aisafe.aircraft.domain.CabinConfiguration cabin, final String companyIata) {
+
+        if (aircraftRepo.ofIdentity(RegistrationNumber.valueOf(registration)).isPresent()) {
+            System.out.println("Aircraft already exists: " + registration);
+            return;
+        }
+        final var modelOpt = modelRepo.findByModelNameAndMaker("777-300ER", "Boeing");
+        if (modelOpt.isEmpty()) {
+            System.out.println("Boeing 777-300ER model not found — skipping " + registration);
+            return;
+        }
+        companyRepo.ofIdentity(IATACode.valueOf(companyIata)).ifPresent(company -> {
+            final aisafe.aircraft.domain.Aircraft aircraft =
+                    new aisafe.aircraft.domain.Aircraft(
+                            RegistrationNumber.valueOf(registration), country, crew, year, cabin, modelOpt.get());
+            aircraftRepo.save(aircraft);
+            company.addAircraftToFleet(aircraft);
+            companyRepo.save(company);
+            System.out.println("Aircraft bootstrapped: " + registration + " added to " + companyIata + " fleet.");
+        });
     }
 
     /** Seeds reference aircraft makers. */
@@ -366,6 +430,13 @@ public final class AiSafeBootstrap {
             System.out.println("Maker created: Airbus");
         } else {
             System.out.println("Maker already exists: Airbus");
+        }
+
+        if (makerRepo.ofIdentity(MakerName.valueOf("GE Aviation")).isEmpty()) {
+            makerRepo.save(new aisafe.maker.domain.Maker(MakerName.valueOf("GE Aviation"), "USA"));
+            System.out.println("Maker created: GE Aviation");
+        } else {
+            System.out.println("Maker already exists: GE Aviation");
         }
     }
 
@@ -390,6 +461,22 @@ public final class AiSafeBootstrap {
                     System.out.println("Aircraft model already exists: 737-800 by Boeing");
                 }
             });
+
+            // Boeing 777-300ER com motores GE90-115B
+            engineRepo.findByNameAndMaker("GE90-115B", "GE Aviation").ifPresent(engine -> {
+                if (aircraftModelRepo.findByModelNameAndMaker("777-300ER", "Boeing").isEmpty()) {
+                    final var model = new aisafe.aircraftmodel.domain.AircraftModel(
+                            "777-300ER", boeingName, aisafe.aircraftmodel.domain.AircraftType.PASSENGER,
+                            167800, 351500, 224530, 145538,
+                            13100, 251, 64.8, 427.8,
+                            0.0215, 1.6, 13649.0, engine);
+                    model.withMaxCapacity(396);
+                    aircraftModelRepo.save(model);
+                    System.out.println("Aircraft model created: 777-300ER by Boeing");
+                } else {
+                    System.out.println("Aircraft model already exists: 777-300ER by Boeing");
+                }
+            });
         }
     }
 
@@ -398,6 +485,7 @@ public final class AiSafeBootstrap {
      */
     public static void runBootstrap() {
         bootstrapAdmin();
+        bootstrapBackofficeOperator();
         bootstrapWeatherPerson();
         bootstrapAirControlAreas();
         if (!Boolean.getBoolean("skip.bootstrap.engineModels")) {
@@ -415,7 +503,55 @@ public final class AiSafeBootstrap {
         bootstrapAirTransportCompanies();
         bootstrapCollaborators();
         bootstrapAtccUser();
+        bootstrapAtccAirEuropa();
         bootstrapAircrafts();
+    }
+
+    /** Seeds an ATCC user linked to Air Europa (UX) for demo of US070/US072. */
+    private static void bootstrapAtccAirEuropa() {
+        final var checkRepo = PersistenceContext.repositories().systemUsers();
+        final String username = "atcc2";
+
+        if (checkRepo.ofIdentity(
+                eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username)).isEmpty()) {
+
+            final var tx = PersistenceContext.repositories().newTransactionalContext();
+            final var systemUserRepo = PersistenceContext.repositories().systemUsers(tx);
+            final var userRepo = PersistenceContext.repositories().users(tx);
+            final var collaboratorRepo = PersistenceContext.repositories().collaborators(tx);
+            final var companyRepo = PersistenceContext.repositories().airTransportCompanies(tx);
+
+            tx.beginTransaction();
+
+            final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+            builder.withUsername(username)
+                    .withPassword("Password1")
+                    .withName("Air", "Europa")
+                    .withEmail("atcc2@aisafe.com")
+                    .withRoles(AiSafeRoles.ATCC);
+            final var savedSystemUser = systemUserRepo.save(builder.build());
+
+            final var user = new aisafe.usermanagement.domain.User(
+                    savedSystemUser,
+                    aisafe.usermanagement.domain.MecanographicNumber.valueOf("ATC002"),
+                    "920000002",
+                    new aisafe.usermanagement.domain.Email("atcc2@aisafe.com"),
+                    "Air Europa Collaborator",
+                    new aisafe.usermanagement.domain.SecurityClearance(
+                            aisafe.usermanagement.domain.SecurityLevel.GUARDED,
+                            java.time.LocalDate.of(2030, 1, 1)),
+                    java.time.LocalDate.of(2025, 1, 1));
+            final var savedUser = userRepo.save(user);
+
+            companyRepo.ofIdentity(IATACode.valueOf("UX")).ifPresent(company -> {
+                collaboratorRepo.save(new aisafe.collaborator.domain.Collaborator(savedUser, company.identity()));
+                System.out.println("ATCC collaborator created: " + username + " for company Air Europa");
+            });
+
+            tx.commit();
+        } else {
+            System.out.println("ATCC collaborator already exists: " + username);
+        }
     }
 
 }

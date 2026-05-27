@@ -9,8 +9,8 @@ class FlightPlanAstBuilderVisitorTest {
     private static final String DSL_TEMPLATE =
             "FLIGHT %s TYPE REGULAR {\n" +
             "  LEG {\n" +
-            "    DEPARTURE: OPO 2026-06-01 10:00;\n" +
-            "    ARRIVAL: LIS 2026-06-01 10:45;\n" +
+            "    DEPARTURE: 2026-06-01 10:00;\n" +
+            "    ARRIVAL: 2026-06-01 10:45;\n" +
             "    ROUTE: OPO -> LIS;\n" +
             "    SEGMENT {\n" +
             "      START: (+41.15, -8.61);\n" +

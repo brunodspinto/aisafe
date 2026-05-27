@@ -81,7 +81,6 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
     @Override
     public EndpointAst visitDeparture(final FlightPlanDslParser.DepartureContext ctx) {
         return new EndpointAst(
-                ctx.airportCode().getText(),
                 ctx.dateTime().DATE().getText(),
                 ctx.dateTime().TIME().getText()
         );
@@ -90,7 +89,6 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
     @Override
     public EndpointAst visitArrival(final FlightPlanDslParser.ArrivalContext ctx) {
         return new EndpointAst(
-                ctx.airportCode().getText(),
                 ctx.dateTime().DATE().getText(),
                 ctx.dateTime().TIME().getText()
         );

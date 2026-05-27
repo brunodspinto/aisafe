@@ -1,5 +1,6 @@
 package aisafe.dsl.parser;
 
+import aisafe.dsl.ast.CoordinateAst;
 import aisafe.dsl.ast.FlightPlanAst;
 import aisafe.dsl.ast.LegAst;
 import aisafe.dsl.ast.SegmentAst;
@@ -23,7 +24,6 @@ public final class FlightPlanSemanticValidator {
         final List<ParseError> errors = new ArrayList<>();
 
         validateLegs(plan, errors);
-        validateRouteCoherence(plan, errors);
         validateNoAirportVisitedTwice(plan, errors);
 
         return errors;
@@ -61,16 +61,40 @@ public final class FlightPlanSemanticValidator {
             // Validate date/time values
             validateDateTime(leg.departure().date(), leg.departure().time(), "Leg " + legNumber + " departure", errors);
             validateDateTime(leg.arrival().date(), leg.arrival().time(), "Leg " + legNumber + " arrival", errors);
+
+            // Departure must precede arrival within the leg
+            try {
+                final LocalDate depDate = LocalDate.parse(leg.departure().date());
+                final LocalTime depTime = LocalTime.parse(leg.departure().time());
+                final LocalDate arrDate = LocalDate.parse(leg.arrival().date());
+                final LocalTime arrTime = LocalTime.parse(leg.arrival().time());
+
+                final boolean depBeforeArr = depDate.isBefore(arrDate)
+                        || (depDate.isEqual(arrDate) && depTime.isBefore(arrTime));
+
+                if (!depBeforeArr) {
+                    errors.add(new ParseError(0, 0,
+                            String.format("Leg %d: departure (%s %s) must be before arrival (%s %s).",
+                                    legNumber, leg.departure().date(), leg.departure().time(),
+                                    leg.arrival().date(), leg.arrival().time()),
+                            "<datetime>"));
+                }
+            } catch (final DateTimeParseException ignored) {
+                // already reported by validateDateTime
+            }
+
+            // Validate segment path continuity within the leg
+            validateSegmentContinuity(leg, legNumber, errors);
         }
 
-        // Leg sequence coherence: arrival of leg N must match departure of leg N+1
+        // Leg sequence coherence: route destination of leg N must match route origin of leg N+1
         for (int i = 0; i < legs.size() - 1; i++) {
             final LegAst current = legs.get(i);
             final LegAst next = legs.get(i + 1);
             final int legNumber = i + 1;
 
-            final String arrivalAirport = current.arrival().airportCode();
-            final String nextDepartureAirport = next.departure().airportCode();
+            final String arrivalAirport = current.route().toAirportCode();
+            final String nextDepartureAirport = next.route().fromAirportCode();
 
             if (!arrivalAirport.equalsIgnoreCase(nextDepartureAirport)) {
                 errors.add(new ParseError(0, 0,
@@ -138,32 +162,21 @@ public final class FlightPlanSemanticValidator {
         }
     }
 
-    // ── Route coherence ──────────────────────────────────────────────────────
+    // ── Segment path continuity ──────────────────────────────────────────────
 
-    private void validateRouteCoherence(final FlightPlanAst plan, final List<ParseError> errors) {
-        if (plan.legs().isEmpty()) return;
-
-        final LegAst firstLeg = plan.legs().get(0);
-        final LegAst lastLeg = plan.legs().get(plan.legs().size() - 1);
-
-        // Route origin must match first leg departure
-        final String routeOrigin = firstLeg.route().fromAirportCode();
-        final String firstDeparture = firstLeg.departure().airportCode();
-        if (!routeOrigin.equalsIgnoreCase(firstDeparture)) {
-            errors.add(new ParseError(0, 0,
-                    String.format("Route origin (%s) must match first leg departure airport (%s).",
-                            routeOrigin, firstDeparture),
-                    "<route>"));
-        }
-
-        // Route destination must match last leg arrival
-        final String routeDestination = lastLeg.route().toAirportCode();
-        final String lastArrival = lastLeg.arrival().airportCode();
-        if (!routeDestination.equalsIgnoreCase(lastArrival)) {
-            errors.add(new ParseError(0, 0,
-                    String.format("Route destination (%s) must match last leg arrival airport (%s).",
-                            routeDestination, lastArrival),
-                    "<route>"));
+    private void validateSegmentContinuity(final LegAst leg, final int legNumber,
+                                           final List<ParseError> errors) {
+        final List<SegmentAst> segs = leg.segments();
+        for (int i = 0; i < segs.size() - 1; i++) {
+            final CoordinateAst end   = segs.get(i).to();
+            final CoordinateAst start = segs.get(i + 1).from();
+            if (end.latitude() != start.latitude() || end.longitude() != start.longitude()) {
+                errors.add(new ParseError(0, 0,
+                        String.format("Leg %d: end of segment %d (%.4f, %.4f) does not match start of segment %d (%.4f, %.4f).",
+                                legNumber, i + 1, end.latitude(), end.longitude(),
+                                i + 2, start.latitude(), start.longitude()),
+                        "<coordinate>"));
+            }
         }
     }
 
@@ -174,7 +187,7 @@ public final class FlightPlanSemanticValidator {
 
         for (int i = 0; i < plan.legs().size(); i++) {
             final LegAst leg = plan.legs().get(i);
-            final String dep = leg.departure().airportCode().toUpperCase();
+            final String dep = leg.route().fromAirportCode().toUpperCase();
 
             if (!visited.add(dep)) {
                 errors.add(new ParseError(0, 0,
@@ -186,7 +199,7 @@ public final class FlightPlanSemanticValidator {
         // Also check the final arrival
         if (!plan.legs().isEmpty()) {
             final String lastArrival = plan.legs().get(plan.legs().size() - 1)
-                    .arrival().airportCode().toUpperCase();
+                    .route().toAirportCode().toUpperCase();
             if (!visited.add(lastArrival)) {
                 errors.add(new ParseError(0, 0,
                         String.format("Airport %s is visited more than once in the flight plan.", lastArrival),
