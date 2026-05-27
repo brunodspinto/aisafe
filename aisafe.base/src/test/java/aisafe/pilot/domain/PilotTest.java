@@ -58,6 +58,12 @@ class PilotTest {
     }
 
     @Test
+    void ensurePilotIsActiveByDefault() {
+        final Pilot pilot = new Pilot(validUser("pilot-active"), validCompany(), Set.of(1L));
+        assertTrue(pilot.isActive());
+    }
+
+    @Test
     void ensureUserCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Pilot(null, validCompany(), Set.of(1L)));
@@ -70,13 +76,13 @@ class PilotTest {
     }
 
     @Test
-    void ensureCertificationsCannotBeNull() {
+    void ensurePilotCertificationSetCannotBeNull() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Pilot(validUser("pilot3"), validCompany(), null));
     }
 
     @Test
-    void ensureCertificationsCannotBeEmpty() {
+    void ensurePilotMustHaveAtLeastOneCertification() {
         assertThrows(IllegalArgumentException.class,
                 () -> new Pilot(validUser("pilot4"), validCompany(), Set.of()));
     }
@@ -90,10 +96,10 @@ class PilotTest {
     }
 
     @Test
-    void ensureIsCertifiedForReportsMembership() {
-        final Pilot pilot = new Pilot(validUser("pilot6"), validCompany(), Set.of(7L));
-        assertTrue(pilot.isCertifiedFor(7L));
-        assertFalse(pilot.isCertifiedFor(8L));
+    void ensureIsCertifiedForReturnsTrueForCertifiedModel() {
+        final Pilot pilot = new Pilot(validUser("pilot6"), validCompany(), Set.of(1L));
+        assertTrue(pilot.isCertifiedFor(1L));
+        assertFalse(pilot.isCertifiedFor(99L));
     }
 
     @Test
@@ -106,7 +112,7 @@ class PilotTest {
     }
 
     @Test
-    void ensureReturnedCertificationsAreUnmodifiable() {
+    void ensureCertificationsAreUnmodifiable() {
         final Pilot pilot = new Pilot(validUser("pilot8"), validCompany(), Set.of(1L));
         assertThrows(UnsupportedOperationException.class,
                 () -> pilot.certifiedAircraftModelIds().add(2L));

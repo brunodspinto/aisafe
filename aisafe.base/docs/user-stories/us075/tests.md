@@ -24,6 +24,16 @@ void ensureValidPilotCanBeCreated() {
 }
 ```
 
+**Test:** `ensurePilotIsActiveByDefault`
+
+```java
+@Test
+void ensurePilotIsActiveByDefault() {
+    final Pilot pilot = new Pilot(validUser("pilot-active"), validCompany(), Set.of(1L));
+    assertTrue(pilot.isActive());
+}
+```
+
 **Test:** `ensureUserCannotBeNull`
 
 ```java
@@ -44,21 +54,21 @@ void ensureCompanyCannotBeNull() {
 }
 ```
 
-**Test:** `ensureCertificationsCannotBeNull`
+**Test:** `ensurePilotCertificationSetCannotBeNull`
 
 ```java
 @Test
-void ensureCertificationsCannotBeNull() {
+void ensurePilotCertificationSetCannotBeNull() {
     assertThrows(IllegalArgumentException.class,
             () -> new Pilot(validUser("pilot3"), validCompany(), null));
 }
 ```
 
-**Test:** `ensureCertificationsCannotBeEmpty`
+**Test:** `ensurePilotMustHaveAtLeastOneCertification`
 
 ```java
 @Test
-void ensureCertificationsCannotBeEmpty() {
+void ensurePilotMustHaveAtLeastOneCertification() {
     assertThrows(IllegalArgumentException.class,
             () -> new Pilot(validUser("pilot4"), validCompany(), Set.of()));
 }
@@ -76,14 +86,14 @@ void ensureCertificationsCannotContainNull() {
 }
 ```
 
-**Test:** `ensureIsCertifiedForReportsMembership`
+**Test:** `ensureIsCertifiedForReturnsTrueForCertifiedModel`
 
 ```java
 @Test
-void ensureIsCertifiedForReportsMembership() {
-    final Pilot pilot = new Pilot(validUser("pilot6"), validCompany(), Set.of(7L));
-    assertTrue(pilot.isCertifiedFor(7L));
-    assertFalse(pilot.isCertifiedFor(8L));
+void ensureIsCertifiedForReturnsTrueForCertifiedModel() {
+    final Pilot pilot = new Pilot(validUser("pilot6"), validCompany(), Set.of(1L));
+    assertTrue(pilot.isCertifiedFor(1L));
+    assertFalse(pilot.isCertifiedFor(99L));
 }
 ```
 
@@ -100,11 +110,11 @@ void ensureCertificationsAreDefensivelyCopied() {
 }
 ```
 
-**Test:** `ensureReturnedCertificationsAreUnmodifiable`
+**Test:** `ensureCertificationsAreUnmodifiable`
 
 ```java
 @Test
-void ensureReturnedCertificationsAreUnmodifiable() {
+void ensureCertificationsAreUnmodifiable() {
     final Pilot pilot = new Pilot(validUser("pilot8"), validCompany(), Set.of(1L));
     assertThrows(UnsupportedOperationException.class,
             () -> pilot.certifiedAircraftModelIds().add(2L));
@@ -252,12 +262,14 @@ void ensureUnknownAircraftModelIsRejected() {
 ## Coverage by Acceptance Criterion
 
 - **AC075.1** (pilot is a registered system user with the `PILOT` role): `ensurePilotIsAddedToAuthenticatedCollaboratorCompany` asserts `pilot.user().systemUser().hasAny(PILOT)`.
-- **AC075.2** (certified for one or more existing aircraft models): `ensureCertificationsCannotBeEmpty`, `ensureCertificationsCannotBeNull`, `ensureCertificationsCannotContainNull`, `ensureIsCertifiedForReportsMembership` (domain invariant); `ensurePilotRequiresAtLeastOneCertification` and `ensureUnknownAircraftModelIsRejected` (controller validation).
-- **AC075.3** (associated with the authenticated collaborator's company): `ensurePilotIsAddedToAuthenticatedCollaboratorCompany` asserts `pilot.companyIataCode()` equals the ATCC's company; the company is never passed by the caller — it is resolved from the session.
-- **AC075.4** (only an authenticated ATCC may perform this action): the controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`; in the tests the caller is authenticated as an ATCC collaborator, and a non-ATCC caller is rejected by the authorization service (also validated manually — the menu option is not shown).
-- Identity / value semantics: `ensureValidPilotCanBeCreated`, `ensurePilotHasCorrectUser`, `ensureCertificationsAreDefensivelyCopied`, `ensureReturnedCertificationsAreUnmodifiable`, `ensureToStringContainsCompany`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`.
+- **AC075.1** (pilot is a registered system user with the `PILOT` role): `ensurePilotIsAddedToAuthenticatedCollaboratorCompany` asserts `pilot.user().systemUser().hasAny(PILOT)`.
+- **AC075.3** (certified for at least one aircraft model): `ensurePilotMustHaveAtLeastOneCertification`, `ensurePilotCertificationSetCannotBeNull`, `ensureCertificationsCannotContainNull`, `ensureIsCertifiedForReturnsTrueForCertifiedModel` (domain invariant); `ensurePilotRequiresAtLeastOneCertification` (controller validation).
+- **AC075.4** (all referenced aircraft models must exist): `ensureUnknownAircraftModelIsRejected` (controller validation).
+- **AC075.2** (associated with the authenticated collaborator's company): `ensurePilotIsAddedToAuthenticatedCollaboratorCompany` asserts `pilot.companyIataCode()` equals the ATCC's company; the company is never passed by the caller — it is resolved from the session. Only an authenticated ATCC may perform this action (`authz.ensureAuthenticatedUserHasAnyOf(ATCC)`).
+- **AC075.5** (newly added pilot is active by default): `ensurePilotIsActiveByDefault`, also asserted in `ensureValidPilotCanBeCreated`.
+- Identity / value semantics: `ensurePilotHasCorrectUser`, `ensureCertificationsAreDefensivelyCopied`, `ensureCertificationsAreUnmodifiable`, `ensureToStringContainsCompany`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`.
 
-Total: 15 domain tests + 3 controller tests = 18 automated tests for US075. The full `aisafe.base` suite (483 tests) passes with these additions.
+Total: 16 domain tests + 3 controller tests = 19 automated tests for US075. The full `aisafe.base` suite passes with these additions.
 
 ---
 
