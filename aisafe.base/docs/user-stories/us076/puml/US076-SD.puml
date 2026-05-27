@@ -1,0 +1,79 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Air Transport Company Collaborator" as ATCC
+
+participant ":ListPilotRosterUI" as UI
+participant ":ListPilotRosterController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "collaboratorRepo\n:CollaboratorRepository" as CREPO
+participant "companyRepo\n:AirTransportCompanyRepository" as COREPO
+participant "pilotRepo\n:PilotRepository" as PREPO
+participant "modelRepo\n:AircraftModelRepository" as MREPO
+
+activate ATCC
+ATCC -> UI : requests to list pilot roster
+activate UI
+
+UI -> CTRL** : create()
+
+UI --> ATCC : displays filter menu\n(all / active only / by aircraft model name)
+deactivate UI
+
+ATCC -> UI : selects filter and provides criteria
+activate UI
+
+UI -> CTRL : allPilots() [or activePilots() / pilotsByCertifiedModel(name)]
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AUTHZ : session().authenticatedUser()
+activate AUTHZ
+AUTHZ --> CTRL : currentUser : SystemUser
+deactivate AUTHZ
+
+CTRL -> CREPO : findBySystemUser(currentUser)
+activate CREPO
+CREPO --> CTRL : collaborator : Collaborator
+deactivate CREPO
+
+CTRL -> COREPO : ofIdentity(collaborator.companyIataCode())
+activate COREPO
+COREPO --> CTRL : company : AirTransportCompany
+deactivate COREPO
+
+CTRL -> PREPO : findByAirTransportCompany(company)
+activate PREPO
+PREPO --> CTRL : Iterable<Pilot>
+deactivate PREPO
+
+alt filter = active only
+    note right of CTRL : Applies in-memory filter:\npilot.isActive()
+else filter = by aircraft model name
+    CTRL -> MREPO : findAll()
+    activate MREPO
+    MREPO --> CTRL : Iterable<AircraftModel>
+    deactivate MREPO
+    note right of CTRL : Matches modelName (case-insensitive)\n→ collects matching Long ids\n→ pilot.isCertifiedFor(id)
+end
+
+CTRL --> UI : List<Pilot>
+deactivate CTRL
+
+alt list is empty
+    UI --> ATCC : informs that no pilots match the filter
+else list is non-empty
+    UI --> ATCC : displays formatted roster table\n(username, status, company IATA, certifications count)
+end
+
+deactivate UI
+deactivate ATCC
+
+@enduml
