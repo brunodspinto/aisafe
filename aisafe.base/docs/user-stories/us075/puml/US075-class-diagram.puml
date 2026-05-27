@@ -1,0 +1,81 @@
+@startuml US075_ClassDiagram
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram - US075 Add a Pilot
+
+package "Presentation" {
+    class AddPilotUI {
+        +doShow()
+        +headline() : String
+    }
+}
+
+package "Application" {
+    class AddPilotController {
+        -authz: AuthorizationService
+        -pilotRepo: PilotRepository
+        -userRepo: UserRepository
+        -modelRepo: AircraftModelRepository
+        -companyRepo: AirTransportCompanyRepository
+        -collaboratorRepo: CollaboratorRepository
+        +allAircraftModels() : Iterable<AircraftModel>
+        +addPilot(username, password, firstName, lastName,\nemailStr, phoneNumber, position, email,\nsecurityClearance, skillsAssessmentDate,\ncertifiedAircraftModelIds) : Pilot
+        -authenticatedCollaboratorCompany() : AirTransportCompany
+        -createPilotUser(...) : User
+    }
+}
+
+package "Domain" {
+
+    class Pilot <<entity, aggregate root>> {
+        -id: Long
+        -active: boolean
+        +Pilot(user, companyIataCode, certifiedAircraftModelIds)
+        +isActive() : boolean
+        +isCertifiedFor(aircraftModelId: Long) : boolean
+        +certifiedAircraftModelIds() : Set<Long>
+        +companyIataCode() : IATACode
+        +user() : User
+    }
+
+    class User <<entity, aggregate root>> {
+        -phoneNumber: String
+        -position: String
+        +updateContact(email, phoneNumber)
+    }
+
+    class IATACode <<value object>> {
+        -code: String
+    }
+
+    class AircraftModel <<entity, aggregate root>> {
+        -modelName: String
+    }
+}
+
+package "Repository" {
+    interface PilotRepository <<interface>> {
+        +save(pilot: Pilot) : Pilot
+        +findAll() : Iterable<Pilot>
+        +ofIdentity(id: Long) : Optional<Pilot>
+    }
+
+    interface AircraftModelRepository <<interface>> {
+        +ofIdentity(id: Long) : Optional<AircraftModel>
+        +findAll() : Iterable<AircraftModel>
+    }
+}
+
+AddPilotUI ..> AddPilotController : uses
+AddPilotController ..> PilotRepository : uses
+AddPilotController ..> AircraftModelRepository : uses
+AddPilotController ..> Pilot : creates
+
+Pilot "1" --> "1" User : "is a"
+Pilot "1" --> "1" IATACode : "belongs to company"
+Pilot "1" --> "1..*" AircraftModel : "certified for\n(by id)"
+
+@enduml
