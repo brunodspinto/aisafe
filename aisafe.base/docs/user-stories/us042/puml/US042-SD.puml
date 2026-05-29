@@ -1,0 +1,68 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Weather Person" as WP
+
+participant ":ImportBulkWeatherDataUI" as UI
+participant ":ImportBulkWeatherDataController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant ":CsvWeatherDataParser" as PARSER
+participant "areaRepo\n:AirControlAreaRepository" as AREAREPO
+participant "source\n:WeatherSource" as WSOURCE
+participant "newWeatherData\n:WeatherData" as WDATA
+participant "weatherRepo\n:WeatherDataRepository" as WREPO
+
+activate WP
+WP -> UI : requests to import bulk weather data
+activate UI
+
+UI -> CTRL** : create()
+UI -> CTRL : importWeatherData(filePath)
+activate CTRL
+
+' Security — validate role
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(RoleType.WEATHER_PERSON)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+' Parsing
+CTRL -> PARSER** : create()
+CTRL -> PARSER : parse(filePath)
+activate PARSER
+PARSER --> CTRL : List<ParsedWeatherRecord>
+deactivate PARSER
+
+' Process each record
+loop for each ParsedWeatherRecord
+
+    CTRL -> AREAREPO : ofIdentity(record.areaCode())
+    activate AREAREPO
+    AREAREPO --> CTRL : Optional<AirControlArea>
+    deactivate AREAREPO
+
+    alt area not found or record fields invalid
+        note over CTRL : record added to failures list;\ncontinue to next record
+    else valid record
+        CTRL -> WSOURCE** : create(record.provider(), record.format())
+        CTRL -> WDATA** : create(areaCode, source, date, temperature,\nwindSpeed, windDirection, pressure, visibility)
+        CTRL -> WREPO : save(newWeatherData)
+        activate WREPO
+        WREPO --> CTRL : savedWeatherData
+        deactivate WREPO
+        note over CTRL : saved counter incremented
+    end
+
+end
+
+CTRL --> UI : ImportResult(saved, failures)
+deactivate CTRL
+
+UI --> WP : "Import complete: X record(s) saved."\n+ failure messages (if any)
+deactivate UI
+deactivate WP
+
+@enduml
