@@ -35,3 +35,37 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 - **US060** — Register an Air Transport Company. The company must exist before a route can be created.
 
 ---
+
+## 3. Analysis
+
+A flight route represents a named connection between two airports operated by a specific air transport company.
+
+The main design decisions taken were:
+
+**`RouteName` as a Value Object** — The project document specifies that a route name consists of the company's 2-letter initials followed by up to 4 numeric digits (e.g. `TP123`). A `RouteName` Value Object was created to encapsulate and enforce this format via regex validation (`[A-Z]{2}[0-9]{1,4}`). The `RouteName` is the natural business identity of the `FlightRoute` aggregate — consistent with how other business identities are modelled in the domain (e.g. `AirportIATACode`, `MecanographicNumber`, `RegistrationNumber`). This satisfies the DDD principle "business identity as Value Objects" (CO3).
+
+**Route status** — A route can be `ACTIVE` or `INACTIVE`. A route is always created as `ACTIVE`. Deactivation is handled by US074. The `FlightRouteStatus` enum enables soft deactivation without deleting the aggregate — past references from flight plans remain valid.
+
+**Airport references by identity** — The route references airports via `AirportIATACode` value objects rather than full `Airport` object references. This keeps the coupling between `FlightRoute` and `Airport` aggregates low — a DDD Low Coupling principle.
+
+**Uniqueness** — Route name uniqueness is enforced at the controller level via a pre-check through the repository, and also at the database level with a unique constraint, to prevent race conditions.
+
+**Company binding** — The company is not an input: it is resolved from the currently authenticated user's `ATCC` session. This guarantees AC073.6 structurally.
+
+The main classes identified are:
+
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `FlightRoute` | Entity / Aggregate Root | Holds route data and enforces invariants |
+| `RouteName` | Value Object / Identity | Route name format validation (`[A-Z]{2}[0-9]{1,4}`) |
+| `FlightRouteStatus` | Enum | `ACTIVE` / `INACTIVE` |
+| `FlightRouteRepository` | Repository Interface | Persistence contract |
+| `CreateFlightRouteController` | Application Controller | Orchestrates the use case; enforces `ATCC` role |
+| `CreateFlightRouteUI` | UI | Collects route name, origin and destination from the user |
+
+The following diagram shows the domain model excerpt relevant to this US:
+
+![Domain Model](svg/US073-domain-model.svg)
+
+---
+
