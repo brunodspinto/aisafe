@@ -1,0 +1,39 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US042 - Sub-Domain Model (Import Bulk Weather Data)
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+    }
+}
+
+package "WeatherData Aggregate" <<Rectangle>> {
+
+    class WeatherData <<entity, aggregate root>> {
+        date
+        temperature
+        windSpeed
+        windDirection
+        pressure
+        visibility
+    }
+
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+}
+
+WeatherData "1" *-- "1" WeatherSource : "imported from"
+WeatherData "1" ..> "1" AirControlArea : "recorded for\n(by areaCode: String)"
+
+note bottom of WeatherData
+  Unchanged from US041.
+  Created once per valid CSV line
+  during bulk import.
+end note
+
+@enduml
