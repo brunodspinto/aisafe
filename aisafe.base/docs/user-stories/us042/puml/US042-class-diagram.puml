@@ -1,0 +1,107 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US042 - Class Diagram
+
+package "Presentation" {
+    class ImportBulkWeatherDataUI {
+        # doShow() : boolean
+        + headline() : String
+    }
+}
+
+package "Application" {
+    interface WeatherDataParser <<interface>> {
+        + parse(filePath: String) : List<ParsedWeatherRecord>
+    }
+
+    class CsvWeatherDataParser {
+        + parse(filePath: String) : List<ParsedWeatherRecord>
+    }
+
+    class ParsedWeatherRecord {
+        - areaCode : String
+        - provider : String
+        - format : String
+        - date : LocalDateTime
+        - temperature : double
+        - windSpeed : double
+        - windDirection : String
+        - pressure : double
+        - visibility : double
+    }
+
+    class ImportResult {
+        - saved : int
+        - failures : List<String>
+        + saved() : int
+        + failures() : List<String>
+    }
+
+    class ImportBulkWeatherDataController {
+        + importWeatherData(filePath: String) : ImportResult
+    }
+}
+
+package "Domain" {
+    class WeatherData <<entity>> <<aggregate root>> {
+        - id : Long
+        - areaCode : String
+        - source : WeatherSource
+        - date : LocalDateTime
+        - temperature : double
+        - windSpeed : double
+        - windDirection : String
+        - pressure : double
+        - visibility : double
+    }
+
+    class WeatherSource <<value object>> {
+        - provider : String
+        - format : String
+    }
+
+    class AirControlArea <<entity>> <<aggregate root>> {
+        - areaCode : String
+    }
+}
+
+package "Persistence" {
+    interface WeatherDataRepository <<interface>> {
+        + save(weatherData: WeatherData) : WeatherData
+    }
+
+    interface AirControlAreaRepository <<interface>> {
+        + ofIdentity(code: AirControlAreaCode) : Optional<AirControlArea>
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: RoleType...)
+    }
+}
+
+' Presentation
+ImportBulkWeatherDataUI ..> ImportBulkWeatherDataController
+
+' Application
+ImportBulkWeatherDataController ..> AuthorizationService
+ImportBulkWeatherDataController ..> WeatherDataParser
+ImportBulkWeatherDataController ..> ParsedWeatherRecord
+ImportBulkWeatherDataController ..> ImportResult
+ImportBulkWeatherDataController ..> WeatherDataRepository
+ImportBulkWeatherDataController ..> AirControlAreaRepository
+ImportBulkWeatherDataController ..> WeatherData
+ImportBulkWeatherDataController ..> WeatherSource
+
+CsvWeatherDataParser ..|> WeatherDataParser
+CsvWeatherDataParser ..> ParsedWeatherRecord
+
+' Domain
+WeatherData "1" *-- "1" WeatherSource : contains >
+WeatherData ..> AirControlArea : refers via areaCode >
+
+@enduml

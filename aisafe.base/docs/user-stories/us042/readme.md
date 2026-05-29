@@ -62,3 +62,42 @@ The following domain model excerpt shows the aggregate structure:
 ![Domain Model](svg/US042-domain-model.svg)
 
 ---
+
+## 4. Design
+
+### 4.1. Realization
+
+1. The UI (`ImportBulkWeatherDataUI`) prompts the Weather Person for the path to the import file.
+2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(WEATHER_PERSON)`.
+3. The controller instantiates a `CsvWeatherDataParser` and calls `parse(filePath)`, obtaining a `List<ParsedWeatherRecord>`.
+4. For each `ParsedWeatherRecord` the controller:
+   - Calls `AirControlAreaRepository.ofIdentity(areaCode)` — if the area is not found, the record is added to the failure list with a descriptive message and processing continues with the next record.
+   - Constructs a `WeatherSource` value object from the record's provider and format fields.
+   - Constructs a `WeatherData` aggregate — if the constructor throws `IllegalArgumentException` (invalid field values), the record is added to the failure list.
+   - Calls `WeatherDataRepository.save(weatherData)` and increments the saved counter.
+5. The controller returns an `ImportResult` containing the saved count and the list of failure messages.
+6. The UI displays: `Import complete: X record(s) saved.` followed by any failure messages.
+
+The following sequence diagram illustrates the flow:
+
+![Sequence Diagram](svg/US042-SD.svg)
+> Source: [puml/US042-SD.puml](puml/US042-SD.puml)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US042-class-diagram.svg)
+> Source: [puml/US042-class-diagram.puml](puml/US042-class-diagram.puml)
+
+---
+
+### 4.2. Acceptance Tests
+
+| Test ID | Description | Expected Result |
+|---------|-------------|-----------------|
+| AC042.1 | CSV file with 2 valid records | Both persisted; `result.saved() == 2` |
+| AC042.2 | CSV file with 1 valid + 1 unknown area code | 1 saved, 1 failure with area code message |
+| AC042.3 | Non-WEATHER_PERSON user calls controller | `IllegalStateException` thrown |
+| AC042.4 | CSV file with 1 malformed line + 1 valid | 1 saved, 1 failure with parse error message |
+| AC042.5 | Empty CSV file (header only) | `result.saved() == 0`, `result.failures()` is empty |
+
+---
