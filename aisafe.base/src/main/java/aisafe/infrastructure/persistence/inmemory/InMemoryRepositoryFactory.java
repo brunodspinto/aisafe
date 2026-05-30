@@ -14,6 +14,7 @@ import aisafe.maker.repositories.MakerRepository;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.collaborator.repositories.CollaboratorRepository;
 import aisafe.pilot.repositories.PilotRepository;
+import aisafe.flightroute.repositories.FlightRouteRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
 import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryTransactionalContext;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
@@ -40,6 +41,7 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     private CollaboratorRepository collaboratorsRepo;
     private AircraftRepository aircraftRepo;
     private PilotRepository pilotsRepo;
+    private FlightRouteRepository flightRoutesRepo;
 
     @Override
     public synchronized eapli.framework.infrastructure.authz.domain.repositories.UserRepository systemUsers(
@@ -197,5 +199,16 @@ public class InMemoryRepositoryFactory implements RepositoryFactory {
     @Override
     public PilotRepository pilots() {
         return pilots(null);
+    }
+
+    @Override
+    public synchronized FlightRouteRepository flightRoutes(final TransactionalContext tx) {
+        if (flightRoutesRepo == null) flightRoutesRepo = new InMemoryFlightRouteRepository();
+        return flightRoutesRepo;
+    }
+
+    @Override
+    public FlightRouteRepository flightRoutes() {
+        return flightRoutes(null);
     }
 }

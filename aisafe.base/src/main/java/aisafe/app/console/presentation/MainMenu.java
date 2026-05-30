@@ -23,6 +23,7 @@ import aisafe.app.console.presentation.collaborator.EditCollaboratorUI;
 import aisafe.app.console.presentation.aircraft.DecommissionAircraftUI;
 import aisafe.app.console.presentation.aircraft.ListFleetUI;
 import aisafe.app.console.presentation.pilot.AddPilotUI;
+import aisafe.app.console.presentation.flightroute.CreateFlightRouteUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -90,6 +91,9 @@ public class MainMenu extends AbstractUI {
             menu.addItem(MenuItem.separator(SEPARATOR));
 
             menu.addSubMenu(option++, buildPilotMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+
+            menu.addSubMenu(option++, buildFlightRouteMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
@@ -185,6 +189,13 @@ public class MainMenu extends AbstractUI {
     private Menu buildPilotMenu() {
         final var menu = new Menu("Pilots >");
         menu.addItem(1, "Add Pilot", new AddPilotUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildFlightRouteMenu() {
+        final var menu = new Menu("Flight Routes >");
+        menu.addItem(1, "Create Flight Route", new CreateFlightRouteUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
