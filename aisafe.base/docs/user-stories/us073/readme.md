@@ -9,7 +9,7 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 ### 1.1 List of issues
 
 - **Analysis:** Define the domain rules for `FlightRoute`, including route name format and uniqueness constraints.
-- **Design:** Define the architecture for flight route creation — domain model, persistence, and layers.
+- **Design:** Define the architecture for flight route creation — sequence diagram and class diagram.
 - **Implement:** Implement the `FlightRoute` aggregate, `RouteName` value object, repository, controller, and UI.
 - **Test:** Unit tests for `FlightRoute` and `RouteName` (domain package coverage above 90%).
 
@@ -257,4 +257,77 @@ void ensureRouteNameCannotBeNull() {
 ```
 
 ---
+
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.flightroute.domain` | `FlightRoute` | Aggregate root |
+| `aisafe.flightroute.domain` | `RouteName` | Route name value object and identity |
+| `aisafe.flightroute.domain` | `FlightRouteStatus` | Status enum: ACTIVE / INACTIVE |
+| `aisafe.flightroute.repositories` | `FlightRouteRepository` | Repository interface |
+| `aisafe.flightroute.application` | `CreateFlightRouteController` | Use case orchestrator |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightRouteRepository` | In-memory persistence |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightRouteRepository` | JPA persistence |
+| `aisafe.app.console.presentation.flightroute` | `CreateFlightRouteUI` | Console UI |
+
+**Design decisions:**
+
+`RouteName` was created as a `@EmbeddedId` Value Object — the natural business identity of `FlightRoute`. This is consistent with how other business identities are handled in the domain (e.g. `AirportIATACode` as `@EmbeddedId` in `Airport`, `RegistrationNumber` in `Aircraft`). This satisfies CO3 — "business identity as VOs".
+
+`FlightRouteStatus` supports soft deactivation (US074) without deleting the aggregate — historical references from flight plans remain valid.
+
+Airport references are stored as `AirportIATACode` value objects — not as `@ManyToOne Airport` references. This keeps Low Coupling between `FlightRoute` and `Airport` aggregates.
+
+The test suite comprises **16 tests** for `FlightRoute` and **19 tests** for `RouteName` — **35 automated tests in total**, all passing. Total project test suite: **518 tests, 0 failures**.
+
+---
+
+## 6. Integration/Demonstration
+
+This US integrates with:
+
+- **US052** — airports must exist before a route can be created (validated via `AirportRepository`).
+- **US060** — the company must be registered and the authenticated user must be a collaborator of it.
+- **US061** — the authenticated user must be an ATCC collaborator.
+- **US074** — a route created here can be deactivated from a given date onwards.
+- **US080** — a flight plan is always created from a route.
+
+**To compile and run all tests:**
+```bash
+mvn clean test
+```
+
+**To run the application:**
+```bash
+# For development and quick testing (data is lost on exit)
+./run-inmemory.sh
+
+# For demonstration with persistent data
+./start-h2.sh       # Terminal 1 — keep running
+./run-bootstrap.sh  # Terminal 2 — first time only
+./run-jpa.sh        # Terminal 2 — every time
+```
+
+**To create a flight route:**
+
+1. Login with Air Transport Company Collaborator (ATCC) credentials.
+2. Select **Flight Routes >** from the main menu.
+3. Select **Create Flight Route**.
+4. Enter route name (e.g. `TP123`), origin airport IATA code (e.g. `OPO`) and destination airport IATA code (e.g. `LIS`).
+5. The system confirms: `Flight route successfully created!` with all details.
+
+---
+
+## 7. Observations
+
+- Route name uniqueness is enforced system-wide (not per company) to avoid ambiguity in flight designators. This aligns with real-world IATA conventions.
+- An alternative design would have been to enforce uniqueness only per company. This was not adopted because the project document states the route name must be unique without scope qualification.
+- `RouteName` could potentially be reused by other aggregates that reference routes by name. The Value Object approach keeps validation centralised and the domain expressive.
+- The `FlightRouteStatus` enum was designed with future extensibility in mind — additional statuses (e.g. `SUSPENDED`) could be added without breaking existing logic.
+- Airport references cross aggregate boundaries using `AirportIATACode` — a value object owned by the `Airport` aggregate. This is a deliberate DDD decision — value objects can be referenced across aggregates without violating aggregate boundaries.
+
 
