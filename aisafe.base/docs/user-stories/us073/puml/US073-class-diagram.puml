@@ -1,0 +1,109 @@
+@startuml class-diagram-us073
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "UI Layer" {
+    class CreateFlightRouteUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application Layer" {
+    class CreateFlightRouteController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -flightRouteRepository : FlightRouteRepository
+        -airportRepository : AirportRepository
+        -collaboratorRepository : CollaboratorRepository
+        -companyRepository : AirTransportCompanyRepository
+        +allAirports() : Iterable<Airport>
+        +createFlightRoute(routeName, originCode, destinationCode) : FlightRoute
+        -authenticatedCompany() : AirTransportCompany
+    }
+}
+
+package "Domain Layer" {
+    class FlightRoute <<entity, aggregate root>> {
+        -activeUntil : LocalDate
+        +routeName() : RouteName
+        +originAirport() : AirportIATACode
+        +destinationAirport() : AirportIATACode
+        +companyIataCode() : IATACode
+        +status() : FlightRouteStatus
+        +isActive() : boolean
+        +identity() : RouteName
+        +sameAs(other) : boolean
+    }
+
+    class RouteName <<identity, value object>> {
+        -name : String
+        +RouteName(name : String)
+        +toString() : String
+        +equals(other) : boolean
+        +hashCode() : int
+    }
+
+    enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
+    }
+
+    class AirportIATACode <<value object>> {
+        -iataCode : String
+        +valueOf(code) : AirportIATACode
+        +code() : String
+    }
+
+    class IATACode <<value object>> {
+        -code : String
+        +valueOf(code) : IATACode
+        +code() : String
+    }
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        -name : String
+        +identity() : IATACode
+    }
+}
+
+package "Repository Layer" {
+    interface FlightRouteRepository {
+        +existsByName(name : RouteName) : boolean
+        +findByCompany(companyCode : IATACode) : Iterable<FlightRoute>
+    }
+
+    interface AirportRepository {
+        +ofIdentity(code : AirportIATACode) : Optional<Airport>
+        +findAll() : Iterable<Airport>
+    }
+
+    class InMemoryFlightRouteRepository {
+    }
+
+    class JpaFlightRouteRepository {
+        +JpaFlightRouteRepository(puName)
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
+
+CreateFlightRouteUI ..> CreateFlightRouteController : uses
+CreateFlightRouteController ..> AuthorizationService : checks role
+CreateFlightRouteController ..> FlightRouteRepository : saves FlightRoute
+CreateFlightRouteController ..> AirportRepository : fetches airports
+CreateFlightRouteController ..> FlightRoute : creates
+CreateFlightRouteController ..> RouteName : creates
+
+FlightRoute *-- RouteName : identity
+FlightRoute --> FlightRouteStatus : has
+FlightRoute --> AirportIATACode : connects
+FlightRoute --> IATACode : operated by
+
+AirTransportCompany *-- IATACode : identity
+
+FlightRouteRepository <|.. InMemoryFlightRouteRepository
+FlightRouteRepository <|.. JpaFlightRouteRepository
+
+@enduml

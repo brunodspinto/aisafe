@@ -1,0 +1,145 @@
+@startuml sd073
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "ATCC" as ATCC
+participant ":CreateFlightRouteUI" as UI
+participant ":CreateFlightRouteController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthzRegistry" as AUTHZR
+participant "AuthorizationService" as AUTHZ
+participant "FlightRouteRepository" as ROUTE_REPO
+participant "AirportRepository" as AIRPORT_REPO
+participant "CollaboratorRepository" as COLLAB_REPO
+participant "AirTransportCompanyRepository" as COMPANY_REPO
+participant "RouteName" as RNAME
+participant "FlightRoute" as ROUTE
+
+activate ATCC
+
+ATCC -> UI : asks to create a new Flight Route
+activate UI
+
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> AUTHZR : authorizationService()
+activate AUTHZR
+AUTHZR --> CTRL : authz
+deactivate AUTHZR
+CTRL -> PC : repositories()
+activate PC
+PC --> CTRL : repositoryFactory
+deactivate PC
+CTRL -> FACT : flightRoutes()
+activate FACT
+FACT --> CTRL : flightRouteRepository
+deactivate FACT
+CTRL -> FACT : airports()
+activate FACT
+FACT --> CTRL : airportRepository
+deactivate FACT
+CTRL -> FACT : collaborators()
+activate FACT
+FACT --> CTRL : collaboratorRepository
+deactivate FACT
+CTRL -> FACT : airTransportCompanies()
+activate FACT
+FACT --> CTRL : companyRepository
+deactivate FACT
+deactivate CTRL
+
+UI -> CTRL : allAirports()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> AIRPORT_REPO : findAll()
+activate AIRPORT_REPO
+AIRPORT_REPO --> CTRL : airports
+deactivate AIRPORT_REPO
+CTRL --> UI : airports
+deactivate CTRL
+
+UI --> ATCC : displays airports, requests route data
+deactivate UI
+
+ATCC -> UI : inputs route name, origin and destination airport codes
+activate UI
+
+UI -> CTRL : createFlightRoute(routeName, originCode, destinationCode)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> COLLAB_REPO : findBySystemUser(authenticatedUser)
+activate COLLAB_REPO
+COLLAB_REPO --> CTRL : collaborator
+deactivate COLLAB_REPO
+
+CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company
+deactivate COMPANY_REPO
+
+CTRL -> RNAME** : create(routeName)
+
+CTRL -> ROUTE_REPO : existsByName(routeName)
+activate ROUTE_REPO
+ROUTE_REPO --> CTRL : exists
+deactivate ROUTE_REPO
+
+alt route name already exists
+    CTRL --> UI : throws IllegalArgumentException
+    UI --> ATCC : displays error (route name already in use)
+else route name is unique
+
+    CTRL -> AIRPORT_REPO : ofIdentity(originCode)
+    activate AIRPORT_REPO
+    AIRPORT_REPO --> CTRL : optOrigin
+    deactivate AIRPORT_REPO
+
+    alt origin airport not found
+        CTRL --> UI : throws IllegalArgumentException
+        UI --> ATCC : displays error (origin airport not found)
+    else origin airport found
+
+        CTRL -> AIRPORT_REPO : ofIdentity(destinationCode)
+        activate AIRPORT_REPO
+        AIRPORT_REPO --> CTRL : optDestination
+        deactivate AIRPORT_REPO
+
+        alt destination airport not found
+            CTRL --> UI : throws IllegalArgumentException
+            UI --> ATCC : displays error (destination airport not found)
+        else destination airport found
+
+            alt origin equals destination
+                CTRL --> UI : throws IllegalArgumentException
+                UI --> ATCC : displays error (origin and destination must be different)
+            else origin and destination are different
+
+                CTRL -> ROUTE** : create(routeName, originCode, destinationCode, company.identity())
+
+                CTRL -> ROUTE_REPO : save(newRoute)
+                activate ROUTE_REPO
+                ROUTE_REPO --> CTRL : savedRoute
+                deactivate ROUTE_REPO
+
+                CTRL --> UI : savedRoute
+                deactivate CTRL
+
+                UI --> ATCC : displays operation success message
+            end
+        end
+    end
+end
+deactivate UI
+deactivate ATCC
+
+@enduml
