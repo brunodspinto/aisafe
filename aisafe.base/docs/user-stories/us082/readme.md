@@ -25,36 +25,62 @@ This user story allows authorized users (Weather Person, Pilot, Flight Control O
 
 ## 3. Analysis
 
-This feature is a query-based capability that allows users to retrieve specific weather information based on filters.
+This feature is a query-based capability that allows users to retrieve specific weather information based on filters. The `WeatherDataRepository` will be extended to support querying by date and `AirControlArea`.
 
-**Domain Model Impact:**
+The main classes involved are:
 
-The feature relies on the following domain entities:
-
-*   **`WeatherData`**: An entity that encapsulates meteorological information for a specific time and location. It should contain attributes such as:
-    *   `temperature`
-    *   `windSpeed`
-    *   `windDirection`
-    *   `precipitation`
-    *   `visibility`
-    *   `timestamp` (or `date`)
-    *   An association with an `AirControlArea`.
-
-*   **`AirControlArea`**: Represents a defined geographical region for air traffic management. This entity is used as a primary filter for the query.
-
-*   **`SystemUser` Roles**: The system must be able to identify the role of the authenticated user to grant or deny access to this feature.
-
-**Business Rules:**
-
-*   **BR01**: Access to the weather consultation feature is strictly limited to users holding one of the following roles: `WEATHER_PERSON`, `PILOT`, or `FLIGHT_CONTROL_OPERATOR`.
-*   **BR02**: The user must provide both a valid date and a valid air control area to perform a query.
-*   **BR03**: If no weather data is found for the specified date and area, the system should inform the user clearly.
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `WeatherData` | Aggregate Root | Represents meteorological data for a specific time and area. |
+| `AirControlArea` | Aggregate Root | Represents a geographical area for which weather data is recorded. |
+| `WeatherDataRepository` | Repository | **New Method**: `findByDateAndAirControlArea(date, area)`. |
+| `ConsultWeatherDataController` | Application Controller | Orchestrates the query, including role validation. |
+| `ConsultWeatherDataUI` | UI | Presents the query form and displays the results. |
 
 ---
 
 ## 4. Design
 
-*(To be detailed in the next phase)*
+### 4.1. Realization
+
+1.  The `ConsultWeatherDataUI` will first call the controller to get a list of all available `AirControlArea`s to present to the user.
+2.  The user selects an area and provides a date.
+3.  The controller validates that the authenticated user has one of the required roles (`WEATHER_PERSON`, `PILOT`, `FLIGHT_CONTROL_OPERATOR`).
+4.  The controller then calls a new method in the `WeatherDataRepository` to fetch the data.
+5.  The UI renders the results in a formatted table.
+
+The following sequence diagram illustrates the flow:
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI
+    participant ConsultWeatherDataController
+    participant WeatherDataRepository
+
+    User->>UI: Selects "Consult Weather Data"
+    UI->>ConsultWeatherDataController: getAirControlAreas()
+    ConsultWeatherDataController->>WeatherDataRepository: findAllAirControlAreas()
+    WeatherDataRepository-->>ConsultWeatherDataController: returns List<AirControlArea>
+    ConsultWeatherDataController-->>UI: returns List<AirControlArea>
+    UI->>User: Shows list of areas and asks for date
+    User->>UI: Selects area and provides date
+    UI->>ConsultWeatherDataController: getWeatherData(date, area)
+    ConsultWeatherDataController->>ConsultWeatherDataController: Authorize user role
+    ConsultWeatherDataController->>WeatherDataRepository: findByDateAndAirControlArea(date, area)
+    WeatherDataRepository-->>ConsultWeatherDataController: Returns List<WeatherData>
+    ConsultWeatherDataController-->>UI: Displays weather data
+    UI-->>User: Shows formatted weather information
+```
+
+### 4.2. Acceptance Tests
+
+| Test ID | Description | Expected Result |
+|---------|-------------|-----------------|
+| AC082.1 | Query with a valid date and area with existing data. | Weather data for that day and area is displayed. |
+| AC082.1b| Query for a date/area with no data. | "No weather data found" message is shown. |
+| AC082.3 | A user without the required role attempts to access. | Access is denied with an authorization error. |
+
 
 ---
 
