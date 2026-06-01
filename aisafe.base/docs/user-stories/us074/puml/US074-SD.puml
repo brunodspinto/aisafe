@@ -1,0 +1,136 @@
+@startuml sd074
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "ATCC" as ATCC
+participant ":DeactivateFlightRouteUI" as UI
+participant ":DeactivateFlightRouteController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthzRegistry" as AUTHZR
+participant "AuthorizationService" as AUTHZ
+participant "FlightRouteRepository" as ROUTE_REPO
+participant "FlightRepository" as FLIGHT_REPO
+participant "CollaboratorRepository" as COLLAB_REPO
+participant "AirTransportCompanyRepository" as COMPANY_REPO
+participant ":FlightRoute" as ROUTE
+
+activate ATCC
+
+ATCC -> UI : asks to deactivate a Flight Route
+activate UI
+
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> AUTHZR : authorizationService()
+activate AUTHZR
+AUTHZR --> CTRL : authz
+deactivate AUTHZR
+CTRL -> PC : repositories()
+activate PC
+PC --> CTRL : repositoryFactory
+deactivate PC
+CTRL -> FACT : flightRoutes()
+activate FACT
+FACT --> CTRL : flightRouteRepository
+deactivate FACT
+CTRL -> FACT : flights()
+activate FACT
+FACT --> CTRL : flightRepository
+deactivate FACT
+CTRL -> FACT : collaborators()
+activate FACT
+FACT --> CTRL : collaboratorRepository
+deactivate FACT
+CTRL -> FACT : airTransportCompanies()
+activate FACT
+FACT --> CTRL : companyRepository
+deactivate FACT
+deactivate CTRL
+
+UI -> CTRL : activeRoutesByCompany()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> COLLAB_REPO : findBySystemUser(authenticatedUser)
+activate COLLAB_REPO
+COLLAB_REPO --> CTRL : collaborator
+deactivate COLLAB_REPO
+CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company
+deactivate COMPANY_REPO
+CTRL -> ROUTE_REPO : findActiveByCompany(company)
+activate ROUTE_REPO
+ROUTE_REPO --> CTRL : activeRoutes
+deactivate ROUTE_REPO
+CTRL --> UI : activeRoutes
+deactivate CTRL
+
+UI --> ATCC : displays active routes, requests selection and deactivation date
+deactivate UI
+
+ATCC -> UI : selects route, inputs deactivation date
+activate UI
+
+UI -> CTRL : deactivateFlightRoute(routeName, deactivationDate)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> COLLAB_REPO : findBySystemUser(authenticatedUser)
+activate COLLAB_REPO
+COLLAB_REPO --> CTRL : collaborator
+deactivate COLLAB_REPO
+
+CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company
+deactivate COMPANY_REPO
+
+CTRL -> ROUTE_REPO : ofIdentity(routeName)
+activate ROUTE_REPO
+ROUTE_REPO --> CTRL : optRoute
+deactivate ROUTE_REPO
+
+alt route not found or does not belong to company
+    CTRL --> UI : throws IllegalArgumentException
+    UI --> ATCC : displays error (route not found)
+else route belongs to company
+
+    CTRL -> FLIGHT_REPO : hasFlightsAfter(route, deactivationDate)
+    activate FLIGHT_REPO
+    FLIGHT_REPO --> CTRL : hasConflicts
+    deactivate FLIGHT_REPO
+
+    alt planned flights exist on or after deactivation date
+        CTRL --> UI : throws IllegalArgumentException
+        UI --> ATCC : displays error (cannot deactivate: planned flights exist)
+    else no planned flights conflict
+
+        CTRL -> ROUTE : deactivate(deactivationDate)
+        activate ROUTE
+        ROUTE --> CTRL : (activeUntil set, status = INACTIVE)
+        deactivate ROUTE
+
+        CTRL -> ROUTE_REPO : save(route)
+        activate ROUTE_REPO
+        ROUTE_REPO --> CTRL : savedRoute
+        deactivate ROUTE_REPO
+
+        CTRL --> UI : savedRoute
+        deactivate CTRL
+
+        UI --> ATCC : displays success message
+    end
+end
+deactivate UI
+deactivate ATCC
+
+@enduml

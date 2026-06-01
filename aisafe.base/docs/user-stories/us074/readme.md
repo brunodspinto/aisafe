@@ -52,3 +52,31 @@ The following domain model excerpt shows the aggregate structure:
 
 ![Domain Model](svg/US074-domain-model.svg)
 
+---
+
+## 4. Design
+
+### 4.1. Realization
+
+1. The UI (`DeactivateFlightRouteUI`) requests the list of active routes belonging to the logged-in ATCC's company from the controller.
+2. The routes are displayed and the user selects one and enters the deactivation date.
+3. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`.
+4. The controller resolves the authenticated ATCC's `AirTransportCompany` via `CollaboratorRepository`.
+5. The controller verifies that the selected `FlightRoute` belongs to that company (AC074.4).
+6. The controller queries `FlightRepository.hasFlightsAfter(route, date)` — a JPQL count query that returns `true` if any `Flight` on this route has `departureDateTime >= deactivationDate` (AC074.3).
+7. If planned flights are found, the controller returns an error; the UI informs the user that the deactivation was rejected.
+8. If no planned flights exist, the controller calls `flightRoute.deactivate(date)`, which sets `activeUntil = date` and transitions `FlightRouteStatus` to `INACTIVE`.
+9. The updated `FlightRoute` is persisted via `FlightRouteRepository.save(flightRoute)`.
+10. The UI confirms success: `Route '...' deactivated from [date] onwards.`
+
+The following sequence diagram illustrates the flow:
+
+![Sequence Diagram](svg/US074-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US074-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
