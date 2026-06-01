@@ -80,3 +80,77 @@ The following class diagram shows the classes involved:
 ### 4.2. Acceptance Tests
 
 All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
+
+---
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.flightroute.domain` | `FlightRoute` | Aggregate root, table `T_FLIGHT_ROUTE`; exposes `deactivate(date)` |
+| `aisafe.flightroute.repositories` | `FlightRouteRepository` | Repository interface; provides `findActiveByCompany()` |
+| `aisafe.flightroute.application` | `DeactivateFlightRouteController` | Use case orchestrator |
+| `aisafe.flight.repositories` | `FlightRepository` | Used to verify AC074.3 via `hasFlightsAfter(route, date)` |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightRouteRepository` | JPA persistence for `FlightRoute` |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightRepository` | Implements `hasFlightsAfter()` via a JPQL count query |
+| `aisafe.app.console.presentation.flightroute` | `DeactivateFlightRouteUI` | Console UI |
+
+The `FlightRepository` must expose a dedicated query method to avoid loading all flights into memory:
+
+```java
+// FlightRepository interface
+boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate);
+
+// JpaFlightRepository implementation
+@Override
+public boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate) {
+    return entityManager()
+        .createQuery(
+            "SELECT COUNT(f) FROM Flight f " +
+            "WHERE f.flightRoute = :route AND f.departureDateTime >= :date", Long.class)
+        .setParameter("route", route)
+        .setParameter("date", deactivationDate)
+        .getSingleResult() > 0;
+}
+```
+
+---
+
+## 6. Integration/Demonstration
+
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap must have been executed first so that at least one Flight Route and its associated company exist.
+
+**To deactivate a Flight Route:**
+
+1. Login with Air Transport Company Collaborator (ATCC) credentials (e.g., username: `atcc1`, password: `Password1`).
+2. Select **Flight Routes > Deactivate Flight Route** from the main menu.
+3. The system lists the active routes of the ATCC's company, e.g.:
+   ```
+   [1] LIS → OPO  (TAP Air Portugal)  — ACTIVE
+   [2] LIS → CDG  (TAP Air Portugal)  — ACTIVE
+   ```
+4. Enter the number of the route to deactivate (e.g., `1`).
+5. Enter the deactivation date (e.g., `2025-08-01`).
+6. The system confirms:
+   ```
+   Route 'LIS → OPO' deactivated from 2025-08-01 onwards.
+   ```
+
+**Rejection scenario:**
+
+- If planned flights exist for `LIS → OPO` on or after `2025-08-01`, the system displays:
+  ```
+  Cannot deactivate: there are planned flights on this route from 2025-08-01 onwards.
+  ```
+
+---
+
+## 7. Observations
+
+- The `activeUntil` field and `FlightRouteStatus` enum (`ACTIVE` / `INACTIVE`) are already defined in the Domain Model V7. This use case sets `activeUntil` to the chosen date and transitions the status to `INACTIVE` — no new domain fields are introduced.
+- The planned-flight check (AC074.3) is intentionally placed in the controller and not inside `FlightRoute.deactivate()`. The route aggregate does not hold references to its flights, so it cannot enforce this rule itself. The controller acts as the orchestrator, keeping each aggregate within its own boundary.
+- The JPQL count query in `JpaFlightRepository.hasFlightsAfter()` is preferred over loading all flights into memory — this follows the `FetchType.LAZY` and query-efficiency guidelines taught in the course.
+- The ownership check (AC074.4) is enforced in the controller by comparing the route's company with the ATCC's company resolved from `CollaboratorRepository`. A route that does not belong to the ATCC's company is treated as not found.
+- US080 (Create a Flight Plan) must be updated to verify, when scheduling a new flight on a given route, that either the route is `ACTIVE` or the planned departure date is strictly before the route's `activeUntil` date.
