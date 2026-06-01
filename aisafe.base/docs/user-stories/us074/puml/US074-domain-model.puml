@@ -1,0 +1,69 @@
+@startuml US074_DomainModel
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt - US074 Deactivate a Flight Route
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+
+    class FlightRoute <<entity, aggregate root>> {
+        activeUntil
+    }
+
+    class RouteName <<value object>> {
+        name
+    }
+
+    Enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
+    }
+}
+
+package "Flight Aggregate" <<Rectangle>> {
+
+    class Flight <<entity, aggregate root>> {
+        flightDesignator
+        departureDateTime
+        scheduledArrival
+    }
+}
+
+package "Airport Aggregate" <<Rectangle>> {
+
+    class Airport <<entity, aggregate root>> {
+        name
+        town
+        country
+        altitude
+    }
+
+    class AirportIATACode <<value object>> {
+        iataCode
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+
+    class IATACode <<value object>> {
+        code
+    }
+}
+
+FlightRoute "1" *-- "1" RouteName : "identified by"
+FlightRoute "1" --> "1" FlightRouteStatus : "has"
+FlightRoute "0..*" --> "1" AirTransportCompany : "operated by"
+FlightRoute "1" --> "2" AirportIATACode : "connects"
+
+Flight "0..*" --> "1" FlightRoute : "instance of"
+
+Airport "1" *-- "1" AirportIATACode : "identified by"
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
+
+@enduml
