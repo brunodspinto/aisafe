@@ -4,6 +4,8 @@ import aisafe.airtransportcompany.domain.IATACode;
 import aisafe.airport.domain.AirportIATACode;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -93,6 +95,51 @@ class FlightRouteTest {
     @Test
     void ensureIsActiveReturnsTrueForNewRoute() {
         assertTrue(validFlightRoute().isActive());
+    }
+
+    @Test
+    void ensureActiveUntilIsNullForNewRoute() {
+        assertNull(validFlightRoute().activeUntil());
+    }
+
+    // -----------------------------------------------------------------------
+    // Deactivation (US074)
+    // -----------------------------------------------------------------------
+
+    @Test
+    void ensureDeactivateSetsStatusToInactive() {
+        final FlightRoute route = validFlightRoute();
+        route.deactivate(LocalDate.of(2025, 8, 1));
+        assertEquals(FlightRouteStatus.INACTIVE, route.status());
+    }
+
+    @Test
+    void ensureDeactivateSetsActiveUntilDate() {
+        final LocalDate date = LocalDate.of(2025, 8, 1);
+        final FlightRoute route = validFlightRoute();
+        route.deactivate(date);
+        assertEquals(date, route.activeUntil());
+    }
+
+    @Test
+    void ensureIsActiveReturnsFalseAfterDeactivation() {
+        final FlightRoute route = validFlightRoute();
+        route.deactivate(LocalDate.of(2025, 8, 1));
+        assertFalse(route.isActive());
+    }
+
+    @Test
+    void ensureDeactivateWithNullDateThrows() {
+        final FlightRoute route = validFlightRoute();
+        assertThrows(IllegalArgumentException.class, () -> route.deactivate(null));
+    }
+
+    @Test
+    void ensureCannotDeactivateAlreadyInactiveRoute() {
+        final FlightRoute route = validFlightRoute();
+        route.deactivate(LocalDate.of(2025, 8, 1));
+        assertThrows(IllegalStateException.class,
+                () -> route.deactivate(LocalDate.of(2025, 9, 1)));
     }
 
     // -----------------------------------------------------------------------

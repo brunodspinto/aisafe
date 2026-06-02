@@ -22,4 +22,9 @@ public class InMemoryFlightRouteRepository
     public Iterable<FlightRoute> findByCompany(final IATACode companyIataCode) {
         return match(r -> r.companyIataCode().equals(companyIataCode));
     }
+
+    @Override
+    public Iterable<FlightRoute> findActiveByCompany(final IATACode companyIataCode) {
+        return match(r -> r.companyIataCode().equals(companyIataCode) && r.isActive());
+    }
 }

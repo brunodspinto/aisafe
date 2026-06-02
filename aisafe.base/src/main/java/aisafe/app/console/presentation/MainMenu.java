@@ -26,6 +26,7 @@ import aisafe.app.console.presentation.aircraft.DecommissionAircraftUI;
 import aisafe.app.console.presentation.aircraft.ListFleetUI;
 import aisafe.app.console.presentation.pilot.AddPilotUI;
 import aisafe.app.console.presentation.flightroute.CreateFlightRouteUI;
+import aisafe.app.console.presentation.flightroute.DeactivateFlightRouteUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -200,6 +201,7 @@ public class MainMenu extends AbstractUI {
     private Menu buildFlightRouteMenu() {
         final var menu = new Menu("Flight Routes >");
         menu.addItem(1, "Create Flight Route", new CreateFlightRouteUI()::show);
+        menu.addItem(2, "Deactivate Flight Route", new DeactivateFlightRouteUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

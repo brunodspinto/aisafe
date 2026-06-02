@@ -2,6 +2,7 @@ package aisafe.infrastructure.persistence.jpa;
 
 import aisafe.airtransportcompany.domain.IATACode;
 import aisafe.flightroute.domain.FlightRoute;
+import aisafe.flightroute.domain.FlightRouteStatus;
 import aisafe.flightroute.domain.RouteName;
 import aisafe.flightroute.repositories.FlightRouteRepository;
 import eapli.framework.domain.repositories.TransactionalContext;
@@ -37,5 +38,13 @@ public class JpaFlightRouteRepository
         final Map<String, Object> params = new HashMap<>();
         params.put("code", companyIataCode.toString());
         return match("e.companyIataCode.code = :code", params);
+    }
+
+    @Override
+    public Iterable<FlightRoute> findActiveByCompany(final IATACode companyIataCode) {
+        final Map<String, Object> params = new HashMap<>();
+        params.put("code", companyIataCode.toString());
+        params.put("status", FlightRouteStatus.ACTIVE);
+        return match("e.companyIataCode.code = :code AND e.status = :status", params);
     }
 }

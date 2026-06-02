@@ -25,4 +25,12 @@ public interface FlightRouteRepository extends DomainRepository<RouteName, Fligh
      * @return all routes for that company
      */
     Iterable<FlightRoute> findByCompany(IATACode companyIataCode);
+
+    /**
+     * Returns all active flight routes operated by the given company.
+     *
+     * @param companyIataCode the IATA code of the company
+     * @return all active routes for that company
+     */
+    Iterable<FlightRoute> findActiveByCompany(IATACode companyIataCode);
 }
