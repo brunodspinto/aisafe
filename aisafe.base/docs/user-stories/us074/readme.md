@@ -63,7 +63,7 @@ The following domain model excerpt shows the aggregate structure:
 3. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`.
 4. The controller resolves the authenticated ATCC's `AirTransportCompany` via `CollaboratorRepository`.
 5. The controller verifies that the selected `FlightRoute` belongs to that company (AC074.4).
-6. The controller queries `FlightRepository.hasFlightsAfter(route, date)` — a JPQL count query that returns `true` if any `Flight` on this route has `departureDateTime >= deactivationDate` (AC074.3).
+6. The controller queries `FlightRepository.hasFlightsAfter(route, date)` — an existence query that returns `true` if any `FlightPlan` on this route has `departureDateTime >= deactivationDate` (AC074.3).
 7. If planned flights are found, the controller returns an error; the UI informs the user that the deactivation was rejected.
 8. If no planned flights exist, the controller calls `flightRoute.deactivate(date)`, which sets `activeUntil = date` and transitions `FlightRouteStatus` to `INACTIVE`.
 9. The updated `FlightRoute` is persisted via `FlightRouteRepository.save(flightRoute)`.
@@ -92,29 +92,38 @@ The implementation is distributed across the following packages in `aisafe.base`
 | `aisafe.flightroute.domain` | `FlightRoute` | Aggregate root, table `T_FLIGHT_ROUTE`; exposes `deactivate(date)` |
 | `aisafe.flightroute.repositories` | `FlightRouteRepository` | Repository interface; provides `findActiveByCompany()` |
 | `aisafe.flightroute.application` | `DeactivateFlightRouteController` | Use case orchestrator |
-| `aisafe.flight.repositories` | `FlightRepository` | Used to verify AC074.3 via `hasFlightsAfter(route, date)` |
+| `aisafe.flightroute.repositories` | `FlightRepository` | Used to verify AC074.3 via `hasFlightsAfter(route, date)` |
 | `aisafe.infrastructure.persistence.jpa` | `JpaFlightRouteRepository` | JPA persistence for `FlightRoute` |
-| `aisafe.infrastructure.persistence.jpa` | `JpaFlightRepository` | Implements `hasFlightsAfter()` via a JPQL count query |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightRepository` | Implements `hasFlightsAfter()` via an existence query over `FlightPlan` |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightRepository` | Implements `hasFlightsAfter()` by delegating to the `FlightPlanRepository` |
 | `aisafe.app.console.presentation.flightroute` | `DeactivateFlightRouteUI` | Console UI |
 
-The `FlightRepository` must expose a dedicated query method to avoid loading all flights into memory:
+A "planned flight" is a `FlightPlan` (introduced by US080) that references a route via its
+`routeName` and carries a concrete `departureDateTime`. The `FlightRepository` exposes a single
+focused query method (ISP) so that the controller does not load all flight plans into memory:
 
 ```java
-// FlightRepository interface
+// FlightRepository interface (aisafe.flightroute.repositories)
 boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate);
 
-// JpaFlightRepository implementation
+// JpaFlightRepository — existence query over the FlightPlan aggregate
 @Override
-public boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate) {
-    return entityManager()
-        .createQuery(
-            "SELECT COUNT(f) FROM Flight f " +
-            "WHERE f.flightRoute = :route AND f.departureDateTime >= :date", Long.class)
-        .setParameter("route", route)
-        .setParameter("date", deactivationDate)
-        .getSingleResult() > 0;
+public boolean hasFlightsAfter(final FlightRoute route, final LocalDate deactivationDate) {
+    final Map<String, Object> params = new HashMap<>();
+    params.put("route", route.identity().name());
+    params.put("date", deactivationDate.atStartOfDay());
+    return matchOne(
+            "e.routeName.name = :route AND e.departureDateTime >= :date", params).isPresent();
 }
 ```
+
+> **Design note.** Until US080 existed there was no domain concept able to answer
+> "are there planned flights on this route after date X?" — `FlightRoute` does not hold its flights,
+> and the early `FlightPlan` (DSL import) had neither a route reference nor a departure date.
+> The `FlightRepository` contract was therefore defined first and backed by a temporary stub
+> (returning `false`), acting as a deliberate extension point (Protected Variations / DIP).
+> Once US080 enriched `FlightPlan` with `routeName` and `departureDateTime`, the stub was replaced
+> by the real existence query **without any change to the controller or the UI**.
 
 ---
 
@@ -151,6 +160,6 @@ public boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate) {
 
 - The `activeUntil` field and `FlightRouteStatus` enum (`ACTIVE` / `INACTIVE`) are already defined in the Domain Model V7. This use case sets `activeUntil` to the chosen date and transitions the status to `INACTIVE` — no new domain fields are introduced.
 - The planned-flight check (AC074.3) is intentionally placed in the controller and not inside `FlightRoute.deactivate()`. The route aggregate does not hold references to its flights, so it cannot enforce this rule itself. The controller acts as the orchestrator, keeping each aggregate within its own boundary.
-- The JPQL count query in `JpaFlightRepository.hasFlightsAfter()` is preferred over loading all flights into memory — this follows the `FetchType.LAZY` and query-efficiency guidelines taught in the course.
+- The existence query in `JpaFlightRepository.hasFlightsAfter()` (over the `FlightPlan` aggregate) is preferred over loading all flight plans into memory — this follows the query-efficiency guidelines taught in the course. A "planned flight" is any `FlightPlan` referencing the route with a departure on or after the deactivation date; since flight plans have no cancelled state, all statuses (`DRAFT`, `VALIDATED`, `TESTED`) count.
 - The ownership check (AC074.4) is enforced in the controller by comparing the route's company with the ATCC's company resolved from `CollaboratorRepository`. A route that does not belong to the ATCC's company is treated as not found.
 - US080 (Create a Flight Plan) must be updated to verify, when scheduling a new flight on a given route, that either the route is `ACTIVE` or the planned departure date is strictly before the route's `activeUntil` date.
