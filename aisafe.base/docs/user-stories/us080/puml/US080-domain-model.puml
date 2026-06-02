@@ -1,0 +1,86 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model - US080 Create a Flight Plan
+
+package "FlightPlan Aggregate" <<Rectangle>> {
+
+    class FlightPlan <<entity, aggregate root>> {
+        departureDateTime
+        dslContent (optional)
+    }
+
+    class FlightPlanDesignator <<value object>> {
+        value
+    }
+
+    class FuelQuantity <<value object>> {
+        amount
+    }
+
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+}
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+
+    class FlightRoute <<entity, aggregate root>> {
+    }
+
+    class RouteName <<value object>> {
+        name
+    }
+}
+
+package "Aircraft Aggregate" <<Rectangle>> {
+
+    class Aircraft <<entity, aggregate root>> {
+    }
+
+    class RegistrationNumber <<value object>> {
+        code
+    }
+
+    Enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "Pilot Aggregate" <<Rectangle>> {
+
+    class Pilot <<entity, aggregate root>> {
+        id : Long
+        active
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class IATACode <<value object>> {
+        code
+    }
+}
+
+FlightPlan *-- FlightPlanDesignator : "identified by"
+FlightPlan *-- FuelQuantity : "has"
+FlightPlan --> FlightPlanStatus : "is in"
+
+FlightPlan ..> RouteName : "for route\n(by RouteName)"
+FlightPlan ..> RegistrationNumber : "uses aircraft\n(by RegistrationNumber)"
+FlightPlan ..> Pilot : "assigned to\n(by Long id)"
+
+FlightRoute *-- RouteName : "identified by"
+FlightRoute --> IATACode : "operated by\n(company)"
+
+Aircraft *-- RegistrationNumber : "identified by"
+Aircraft --> OperationalStatus : "has"
+
+Pilot --> IATACode : "belongs to company"
+
+@enduml
