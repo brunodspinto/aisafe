@@ -1,0 +1,99 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Sequence Diagram - US080 Create a Flight Plan
+
+actor "Pilot" as pilot
+participant "CreateFlightPlanUI" as ui
+participant "CreateFlightPlanController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "PilotRepository" as pilotRepo
+participant "FlightRouteRepository" as routeRepo
+participant "AirTransportCompanyRepository" as companyRepo
+participant "AircraftRepository" as aircraftRepo
+participant "FlightPlanRepository" as planRepo
+participant "newPlan : FlightPlan" as plan
+
+pilot -> ui : create flight plan
+activate ui
+
+' --- selection phase: scoped to the authenticated pilot's company ---
+ui -> ctrl : availableRoutes()
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+ctrl -> pilotRepo : findBySystemUser(authenticatedUser)
+activate pilotRepo
+pilotRepo --> ctrl : authenticatedPilot
+deactivate pilotRepo
+ctrl -> routeRepo : findByCompany(pilot.companyIataCode())
+activate routeRepo
+routeRepo --> ctrl : active routes
+deactivate routeRepo
+ctrl --> ui : routes
+deactivate ctrl
+ui --> pilot : show routes / aircraft / pilots and request inputs
+deactivate ui
+
+' --- creation phase ---
+pilot -> ui : route, aircraft, assignedPilot, flightType,\ndesignator, departureDateTime, fuelAmount
+activate ui
+ui -> ctrl : createFlightPlan(routeName, aircraftRegistration,\nassignedPilotId, flightType, designator,\ndepartureDateTime, fuelAmount)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+
+ctrl -> routeRepo : ofIdentity(routeName)
+activate routeRepo
+routeRepo --> ctrl : route
+deactivate routeRepo
+
+ctrl -> aircraftRepo : ofIdentity(aircraftRegistration)
+activate aircraftRepo
+aircraftRepo --> ctrl : aircraft
+deactivate aircraftRepo
+
+ctrl -> pilotRepo : ofIdentity(assignedPilotId)
+activate pilotRepo
+pilotRepo --> ctrl : assignedPilot
+deactivate pilotRepo
+
+ctrl -> ctrl : check assignedPilot.companyIataCode()\nequals route.companyIataCode()  (AC080.3)
+
+ctrl -> companyRepo : ofIdentity(route.companyIataCode())
+activate companyRepo
+companyRepo --> ctrl : company
+deactivate companyRepo
+
+ctrl -> ctrl : check company.fleet() contains\naircraftRegistration  (AC080.9)
+ctrl -> ctrl : check aircraft.isActive()  (AC080.10)
+
+ctrl -> planRepo : ofIdentity(designator)
+activate planRepo
+planRepo --> ctrl : empty (must not exist)  (AC080.8)
+deactivate planRepo
+
+ctrl -> plan ** : new FlightPlan(designator, flightType, routeName,\naircraftRegistration, assignedPilotId,\ndepartureDateTime, new FuelQuantity(fuelAmount))
+activate plan
+plan --> ctrl : newPlan
+deactivate plan
+
+ctrl -> planRepo : save(newPlan)
+activate planRepo
+planRepo --> ctrl : savedPlan
+deactivate planRepo
+
+ctrl --> ui : savedPlan
+deactivate ctrl
+ui --> pilot : "Flight plan created (DRAFT)!"
+deactivate ui
+
+@enduml

@@ -88,8 +88,6 @@ The main design decisions were:
 
 **Cross-aggregate invariants handled in the controller** — AC080.3 (pilot of route's company), AC080.9 (aircraft of route's company), and AC080.10 (aircraft ACTIVE) involve more than one aggregate. They are validated in the application controller before the aggregate is constructed. The aggregate itself owns only its own invariants (fuel > 0, departure in future, all required IDs non-null, status starts at `DRAFT`).
 
-**Authentication and authorization** — Only an authenticated user with the `PILOT` role may invoke this use case (AC080.1). This is enforced at the controller boundary via `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT)`.
-
 The main classes identified are:
 
 | Class | Type | Responsibility |
@@ -108,3 +106,48 @@ The main classes identified are:
 The following diagram shows the domain model excerpt relevant to this US:
 
 ![Domain Model](svg/US080-domain-model.svg)
+
+---
+
+## 4. Design
+
+### 4.1. Realization
+
+The use case follows the standard layered flow established in the project: `CreateFlightPlanUI` collects the inputs and delegates to `CreateFlightPlanController`, which orchestrates the lookups, enforces the cross-aggregate rules, builds the `FlightPlan` aggregate and persists it through `FlightPlanRepository`.
+
+To present the choices to the pilot, the controller first resolves the **authenticated pilot's company** (the session user is a `Pilot`, resolved via `PilotRepository.findBySystemUser`) and then offers only the data scoped to that company:
+
+- `availableRoutes()` — the active `FlightRoute`s of the pilot's company (`FlightRouteRepository.findByCompany`, filtered by `isActive`).
+- `availableAircraft()` — the active aircraft of the company's fleet (`company.fleet()` registration numbers resolved through `AircraftRepository.ofIdentity`, filtered by `Aircraft.isActive`).
+- `availablePilots()` — the active pilots of the company (`PilotRepository.findByAirTransportCompany`, filtered by `Pilot.isActive`).
+
+The creation step then performs:
+
+1. `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT)` — only a pilot may create a plan (AC080.1).
+2. Fetch the `FlightRoute` by `RouteName`; it must exist (AC080.2).
+3. Fetch the `Aircraft` by `RegistrationNumber`; it must exist (AC080.4).
+4. Fetch the assigned `Pilot` by id; it must exist.
+5. Validate that the assigned pilot belongs to the route's company — `pilot.companyIataCode()` equals `route.companyIataCode()` (AC080.3).
+6. Validate that the aircraft belongs to the route's company — the company's `fleet()` contains the aircraft registration (AC080.9).
+7. Validate that the aircraft is `ACTIVE` (AC080.10).
+8. Validate that the designator does not already exist (`FlightPlanRepository.ofIdentity` absent) — AC080.8. The designator format itself is validated by the `FlightPlanDesignator` value object.
+9. Instantiate the `FlightPlan` through the new form-based constructor — the constructor enforces the aggregate-owned invariants: fuel quantity is wrapped in a `FuelQuantity` value object (strictly positive, AC080.5), the departure date/time must be in the future (AC080.6), and the status is set to `DRAFT` (AC080.7).
+10. Persist the plan via `FlightPlanRepository.save()`.
+
+Unlike US075 (which creates two coordinated aggregates — `SystemUser` and `User`), US080 creates a **single** aggregate (`FlightPlan`) and therefore does not require an explicit transactional context — the single `save()` is atomic. The preceding repository calls are read-only lookups.
+
+> **Flight type input** — The existing `FlightPlan` entity has a non-null `flightType` attribute (REGULAR / CHARTER), defined as a flight characteristic in section 3.2 of the requirements. Although the US080 statement lists only "aircraft, departure date/time, fuel quantity, pilot", the flight type is a mandatory attribute of the flight domain, so it is also collected by the form. This keeps the form-based plan consistent with the DSL-based plan (US081), which obtains the flight type from the parsed file.
+
+> **Nullable fields to support both creation paths** — Because a single `FlightPlan` aggregate serves both creation paths, the columns specific to each path are nullable. The form-based fields (`routeName`, `aircraftRegistration`, `pilotId`, `departureDateTime`, `fuelQuantity`) are null for plans imported from a DSL file (US081), and the `dslContent` field is null for plans created via this form. Marking any of these `nullable = false` would break the other creation path. This nullability is the accepted trade-off of the single-aggregate decision taken in the Analysis; both constructors guarantee that the fields relevant to their own path are non-null, so a fully-formed plan is never observable with missing data for its creation path.
+
+The following sequence diagram illustrates the flow:
+
+![Sequence Diagram](svg/US080-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US080-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+The `FlightPlan` aggregate invariants (fuel positivity, future departure, status starts at `DRAFT`, required identifiers non-null) and the `FuelQuantity` and `FlightPlanDesignator` value objects are covered by automated unit tests. The cross-aggregate rules (AC080.3, AC080.9, AC080.10) and the authorization constraint (AC080.1) are validated end-to-end by manual acceptance tests. All tests are documented in [tests.md](tests.md).

@@ -1,8 +1,11 @@
 package aisafe.flightplan.domain;
 
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.dsl.ast.FlightPlanAst;
 import aisafe.dsl.ast.FlightType;
+import aisafe.flightroute.domain.RouteName;
 import org.junit.jupiter.api.Test;
+import java.time.LocalDateTime;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static aisafe.dsl.ast.FlightType.REGULAR;
@@ -129,5 +132,92 @@ class FlightPlanTest {
     void ensureEqualsReturnsFalseForDifferentType() {
         final FlightPlan plan = new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "content");
         assertNotEquals("TP1234", plan);
+    }
+
+    // --- Form-based creation (US080) ---
+
+    private static final RouteName ROUTE = new RouteName("TP123");
+    private static final RegistrationNumber AIRCRAFT = RegistrationNumber.valueOf("CS-TUA");
+    private static final Long PILOT_ID = 1L;
+
+    private static LocalDateTime futureDeparture() {
+        return LocalDateTime.now().plusDays(2);
+    }
+
+    private static FlightPlan validFormPlan() {
+        return new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                ROUTE, AIRCRAFT, PILOT_ID, futureDeparture(), FuelQuantity.valueOf(1500.0));
+    }
+
+    @Test
+    void ensureFormBasedFlightPlanCanBeCreated() {
+        final FlightPlan plan = validFormPlan();
+        assertEquals("TP1234", plan.designator());
+        assertEquals(REGULAR, plan.flightType());
+        assertEquals(FlightPlanStatus.DRAFT, plan.status());
+    }
+
+    @Test
+    void ensureFormBasedPlanStoresAllFields() {
+        final FlightPlan plan = validFormPlan();
+        assertEquals(ROUTE, plan.routeName());
+        assertEquals(AIRCRAFT, plan.aircraftRegistration());
+        assertEquals(PILOT_ID, plan.assignedPilotId());
+        assertEquals(FuelQuantity.valueOf(1500.0), plan.fuelQuantity());
+        assertNotNull(plan.departureDateTime());
+    }
+
+    @Test
+    void ensureFormBasedPlanHasNullDslContent() {
+        assertNull(validFormPlan().dslContent());
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullRoute() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        null, AIRCRAFT, PILOT_ID, futureDeparture(), FuelQuantity.valueOf(1500.0)));
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullAircraft() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        ROUTE, null, PILOT_ID, futureDeparture(), FuelQuantity.valueOf(1500.0)));
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullPilot() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        ROUTE, AIRCRAFT, null, futureDeparture(), FuelQuantity.valueOf(1500.0)));
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullDeparture() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        ROUTE, AIRCRAFT, PILOT_ID, null, FuelQuantity.valueOf(1500.0)));
+    }
+
+    @Test
+    void ensureFormPlanRejectsPastDeparture() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        ROUTE, AIRCRAFT, PILOT_ID, LocalDateTime.now().minusDays(1), FuelQuantity.valueOf(1500.0)));
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullFuel() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR,
+                        ROUTE, AIRCRAFT, PILOT_ID, futureDeparture(), null));
+    }
+
+    @Test
+    void ensureFormPlanRejectsNullFlightType() {
+        assertThrows(IllegalArgumentException.class, () ->
+                new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), (FlightType) null,
+                        ROUTE, AIRCRAFT, PILOT_ID, futureDeparture(), FuelQuantity.valueOf(1500.0)));
     }
 }
