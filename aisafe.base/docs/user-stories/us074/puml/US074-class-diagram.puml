@@ -1,47 +1,47 @@
-@startuml
-skinparam classAttributeIconSize 0
+@startuml class-diagram-us074
 skinparam shadowing false
-skinparam packageStyle rectangle
-skinparam linetype ortho
+skinparam classAttributeIconSize 0
 
-title US074 - Class Diagram (Deactivate a Flight Route)
-
-package "Presentation" {
+package "UI Layer" {
     class DeactivateFlightRouteUI {
-        # doShow() : boolean
-        + headline() : String
+        +doShow() : boolean
+        +headline() : String
     }
 }
 
-package "Application" {
+package "Application Layer" {
     class DeactivateFlightRouteController <<UseCaseController>> {
-        - authz : AuthorizationService
-        - flightRouteRepository : FlightRouteRepository
-        - flightRepository : FlightRepository
-        - companyRepository : AirTransportCompanyRepository
-        + activeRoutesByCompany() : Iterable<FlightRoute>
-        + deactivateRoute(route : FlightRoute, date : LocalDate) : FlightRoute
+        -authz : AuthorizationService
+        -flightRouteRepository : FlightRouteRepository
+        -flightRepository : FlightRepository
+        -collaboratorRepository : CollaboratorRepository
+        -companyRepository : AirTransportCompanyRepository
+        +activeRoutesByCompany() : Iterable<FlightRoute>
+        +deactivateFlightRoute(routeName : RouteName, date : LocalDate) : FlightRoute
+        -authenticatedCompany() : AirTransportCompany
     }
 }
 
-package "Domain" {
-
+package "Domain Layer" {
     class FlightRoute <<entity, aggregate root>> {
-        - name : RouteName
-        - activeUntil : LocalDate
-        - status : FlightRouteStatus
-        + deactivate(fromDate : LocalDate) : void
-        + isActive() : boolean
-        + identity() : RouteName
-        + status() : FlightRouteStatus
-        + activeUntil() : LocalDate
-        + company() : AirTransportCompany
+        -activeUntil : LocalDate
+        +routeName() : RouteName
+        +originAirport() : AirportIATACode
+        +destinationAirport() : AirportIATACode
+        +companyIataCode() : IATACode
+        +status() : FlightRouteStatus
+        +isActive() : boolean
+        +deactivate(date : LocalDate) : void
+        +identity() : RouteName
+        +sameAs(other) : boolean
     }
 
-    class RouteName <<value object, identity>> {
-        - name : String
-        + {static} valueOf(name : String) : RouteName
-        + toString() : String
+    class RouteName <<identity, value object>> {
+        -name : String
+        +RouteName(name : String)
+        +toString() : String
+        +equals(other) : boolean
+        +hashCode() : int
     }
 
     enum FlightRouteStatus {
@@ -50,72 +50,65 @@ package "Domain" {
     }
 
     class AirportIATACode <<value object>> {
-        - iataCode : String
-        + code() : String
+        -iataCode : String
+        +valueOf(code) : AirportIATACode
+        +code() : String
+    }
+
+    class IATACode <<value object>> {
+        -code : String
+        +valueOf(code) : IATACode
+        +code() : String
     }
 
     class AirTransportCompany <<entity, aggregate root>> {
-        - name : String
-        + identity() : IATACode
-        + name() : String
+        -name : String
+        +identity() : IATACode
     }
 }
 
-package "eapli.framework.infrastructure.authz" {
-    class AuthorizationService {
-        + ensureAuthenticatedUserHasAnyOf(roles : RoleType...)
-        + session() : UserSession
+package "Repository Layer" {
+    interface FlightRouteRepository {
+        +findActiveByCompany(company : AirTransportCompany) : Iterable<FlightRoute>
+        +ofIdentity(name : RouteName) : Optional<FlightRoute>
+        +save(route : FlightRoute) : FlightRoute
     }
 
-    class SystemUser {
-    }
-}
-
-package "Persistence" {
-    interface FlightRouteRepository <<repository>> {
-        + save(route : FlightRoute) : FlightRoute
-        + findActiveByCompany(companyIataCode : IATACode) : Iterable<FlightRoute>
-        + ofIdentity(name : RouteName) : Optional<FlightRoute>
+    interface FlightRepository {
+        +hasFlightsAfter(route : FlightRoute, date : LocalDate) : boolean
     }
 
-    interface FlightRepository <<repository>> {
-        + hasFlightsAfter(route : FlightRoute, date : LocalDate) : boolean
-    }
-
-    interface AirTransportCompanyRepository <<repository>> {
-        + findByCollaborator(user : SystemUser) : Optional<AirTransportCompany>
+    class InMemoryFlightRouteRepository {
     }
 
     class JpaFlightRouteRepository {
-        + save(route : FlightRoute) : FlightRoute
-        + findActiveByCompany(companyIataCode : IATACode) : Iterable<FlightRoute>
+        +JpaFlightRouteRepository(puName)
     }
 
     class JpaFlightRepository {
-        + hasFlightsAfter(route : FlightRoute, date : LocalDate) : boolean
-    }
-
-    class JpaAirTransportCompanyRepository {
-        + findByCollaborator(user : SystemUser) : Optional<AirTransportCompany>
+        +hasFlightsAfter(route : FlightRoute, date : LocalDate) : boolean
     }
 }
 
-DeactivateFlightRouteUI .down.> DeactivateFlightRouteController : uses
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
 
-DeactivateFlightRouteController .down.> AuthorizationService : uses
-DeactivateFlightRouteController .down.> FlightRouteRepository : uses
-DeactivateFlightRouteController .down.> FlightRepository : uses
-DeactivateFlightRouteController .down.> AirTransportCompanyRepository : uses
-DeactivateFlightRouteController .down.> FlightRoute : updates
+DeactivateFlightRouteUI ..> DeactivateFlightRouteController : uses
+DeactivateFlightRouteController ..> AuthorizationService : checks role
+DeactivateFlightRouteController ..> FlightRouteRepository : queries & saves
+DeactivateFlightRouteController ..> FlightRepository : checks planned flights
+DeactivateFlightRouteController ..> FlightRoute : calls deactivate()
 
-FlightRoute "1" *-- "1" RouteName         : "identified by >"
-FlightRoute "1" *-- "1" FlightRouteStatus : "has >"
-FlightRoute "1" --> "1" AirportIATACode   : "origin >"
-FlightRoute "1" --> "1" AirportIATACode   : "destination >"
-FlightRoute "1" --> "1" AirTransportCompany : "operated by >"
+FlightRoute *-- RouteName : identity
+FlightRoute --> FlightRouteStatus : has
+FlightRoute --> AirportIATACode : connects
+FlightRoute --> IATACode : operated by
 
-JpaFlightRouteRepository .up.|> FlightRouteRepository
-JpaFlightRepository .up.|> FlightRepository
-JpaAirTransportCompanyRepository .up.|> AirTransportCompanyRepository
+AirTransportCompany *-- IATACode : identity
+
+FlightRouteRepository <|.. InMemoryFlightRouteRepository
+FlightRouteRepository <|.. JpaFlightRouteRepository
+FlightRepository <|.. JpaFlightRepository
 
 @enduml

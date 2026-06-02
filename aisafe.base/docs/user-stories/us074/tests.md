@@ -10,7 +10,7 @@ US074 covers deactivating a flight route from a given date onwards (soft delete)
 
 Location: `src/test/java/aisafe/flightroute/domain/FlightRouteTest.java`
 
-> Note: tests use a helper method `validFlightRoute()` that builds a minimal `ACTIVE` `FlightRoute` with a sample `RouteName` and two `AirportIATACode` values.
+> Note: tests use a helper method `validFlightRoute()` that builds a minimal `ACTIVE` `FlightRoute` with `new RouteName("TP001")`, `AirportIATACode.valueOf("LIS")`, `AirportIATACode.valueOf("OPO")`, and `IATACode.valueOf("TP")`.
 
 **Test:** `ensureFlightRouteIsCreatedWithActiveStatus`
 
@@ -104,7 +104,7 @@ void ensureCannotDeactivateAlreadyInactiveRoute() {
 @Test
 void ensureIdentityReturnsRouteName() {
     final FlightRoute route = validFlightRoute();
-    assertEquals(RouteName.valueOf("LIS-OPO"), route.identity());
+    assertEquals(new RouteName("TP001"), route.identity());
 }
 ```
 
@@ -130,7 +130,7 @@ Location: `src/test/java/aisafe/flightroute/domain/RouteNameTest.java`
 ```java
 @Test
 void ensureRouteNameCannotBeNull() {
-    assertThrows(IllegalArgumentException.class, () -> RouteName.valueOf(null));
+    assertThrows(IllegalArgumentException.class, () -> new RouteName(null));
 }
 ```
 
@@ -139,7 +139,7 @@ void ensureRouteNameCannotBeNull() {
 ```java
 @Test
 void ensureRouteNameCannotBeBlank() {
-    assertThrows(IllegalArgumentException.class, () -> RouteName.valueOf("   "));
+    assertThrows(IllegalArgumentException.class, () -> new RouteName("   "));
 }
 ```
 
@@ -148,8 +148,44 @@ void ensureRouteNameCannotBeBlank() {
 ```java
 @Test
 void ensureValidRouteNameIsAccepted() {
-    final RouteName name = RouteName.valueOf("LIS-OPO");
-    assertEquals("LIS-OPO", name.toString());
+    final RouteName name = new RouteName("TP001");
+    assertEquals("TP001", name.toString());
+}
+```
+
+**Test:** `ensureRouteNameWithOnlyOneLetterIsRejected`
+
+```java
+@Test
+void ensureRouteNameWithOnlyOneLetterIsRejected() {
+    assertThrows(IllegalArgumentException.class, () -> new RouteName("T001"));
+}
+```
+
+**Test:** `ensureRouteNameWithMoreThanTwoLettersIsRejected`
+
+```java
+@Test
+void ensureRouteNameWithMoreThanTwoLettersIsRejected() {
+    assertThrows(IllegalArgumentException.class, () -> new RouteName("TAP001"));
+}
+```
+
+**Test:** `ensureRouteNameWithNoDigitsIsRejected`
+
+```java
+@Test
+void ensureRouteNameWithNoDigitsIsRejected() {
+    assertThrows(IllegalArgumentException.class, () -> new RouteName("TP"));
+}
+```
+
+**Test:** `ensureRouteNameWithMoreThanFourDigitsIsRejected`
+
+```java
+@Test
+void ensureRouteNameWithMoreThanFourDigitsIsRejected() {
+    assertThrows(IllegalArgumentException.class, () -> new RouteName("TP12345"));
 }
 ```
 
@@ -158,7 +194,7 @@ void ensureValidRouteNameIsAccepted() {
 ```java
 @Test
 void ensureRouteNamesWithSameValueAreEqual() {
-    assertEquals(RouteName.valueOf("LIS-OPO"), RouteName.valueOf("LIS-OPO"));
+    assertEquals(new RouteName("TP001"), new RouteName("TP001"));
 }
 ```
 
@@ -167,7 +203,7 @@ void ensureRouteNamesWithSameValueAreEqual() {
 ```java
 @Test
 void ensureRouteNamesWithDifferentValuesAreNotEqual() {
-    assertNotEquals(RouteName.valueOf("LIS-OPO"), RouteName.valueOf("LIS-CDG"));
+    assertNotEquals(new RouteName("TP001"), new RouteName("TP002"));
 }
 ```
 
@@ -180,7 +216,7 @@ void ensureRouteNamesWithDifferentValuesAreNotEqual() {
 - AC074.3: Planned-flight conflict check orchestrated by `DeactivateFlightRouteController` via `FlightRepository.hasFlightsAfter()`; validated by manual test
 - AC074.4: Controller checks `ATCC` role via `AuthorizationService` and verifies route ownership against the logged-in user's company; validated by manual test
 - Domain invariants (construction and state transitions): `ensureFlightRouteIsCreatedWithActiveStatus`, `ensureActiveUntilIsNullForNewRoute`, `ensureIsActiveReturnsTrueForActiveRoute`, `ensureDeactivateWithNullDateThrows`, `ensureCannotDeactivateAlreadyInactiveRoute`, `ensureIdentityReturnsRouteName`, `ensureTwoRoutesWithSameNameAreEqual`
-- `RouteName` value object: `ensureRouteNameCannotBeNull`, `ensureRouteNameCannotBeBlank`, `ensureValidRouteNameIsAccepted`, `ensureRouteNamesWithSameValueAreEqual`, `ensureRouteNamesWithDifferentValuesAreNotEqual`
+- `RouteName` value object: `ensureRouteNameCannotBeNull`, `ensureRouteNameCannotBeBlank`, `ensureValidRouteNameIsAccepted`, `ensureRouteNameWithOnlyOneLetterIsRejected`, `ensureRouteNameWithMoreThanTwoLettersIsRejected`, `ensureRouteNameWithNoDigitsIsRejected`, `ensureRouteNameWithMoreThanFourDigitsIsRejected`, `ensureRouteNamesWithSameValueAreEqual`, `ensureRouteNamesWithDifferentValuesAreNotEqual`
 
 ---
 

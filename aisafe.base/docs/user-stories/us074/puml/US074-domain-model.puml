@@ -3,26 +3,21 @@
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 
-title Domain Model - US074 Deactivate a Flight Route
+title Domain Model Excerpt - US074 Deactivate a Flight Route
 
 package "FlightRoute Aggregate" <<Rectangle>> {
 
     class FlightRoute <<entity, aggregate root>> {
-        name : RouteName
-        activeUntil : LocalDate
+        activeUntil
     }
 
-    class RouteName <<value object, identity>> {
-        name : String
+    class RouteName <<value object>> {
+        name
     }
 
-    enum FlightRouteStatus {
+    Enum FlightRouteStatus {
         ACTIVE
         INACTIVE
-    }
-
-    class AirportIATACode <<value object>> {
-        iataCode : String
     }
 }
 
@@ -35,39 +30,40 @@ package "Flight Aggregate" <<Rectangle>> {
     }
 }
 
-package "AirTransportCompany Aggregate" <<Rectangle>> {
+package "Airport Aggregate" <<Rectangle>> {
 
-    class AirTransportCompany <<entity, aggregate root>> {
-        name : String
+    class Airport <<entity, aggregate root>> {
+        name
+        town
+        country
+        altitude
     }
 
-    class IATACode <<value object, identity>> {
-        code : String
+    class AirportIATACode <<value object>> {
+        iataCode
     }
 }
 
-FlightRoute "1" *-- "1" RouteName            : "identified by >"
-FlightRoute "1" *-- "1" FlightRouteStatus    : "has >"
-FlightRoute "1" --> "1" AirportIATACode      : "origin >"
-FlightRoute "1" --> "1" AirportIATACode      : "destination >"
-FlightRoute "0..*" --> "1" AirTransportCompany : "operated by >"
+package "AirTransportCompany Aggregate" <<Rectangle>> {
 
-AirTransportCompany "1" *-- "1" IATACode     : "identified by >"
-AirTransportCompany "1" --> "0..*" FlightRoute : "operates >"
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
 
-Flight "1" --> "1" FlightRoute               : "instance of >"
+    class IATACode <<value object>> {
+        code
+    }
+}
 
-note right of FlightRoute
-  activeUntil is set when the route
-  is deactivated (AC074.1).
-  Status transitions ACTIVE → INACTIVE.
-end note
+FlightRoute "1" *-- "1" RouteName : "identified by"
+FlightRoute "1" --> "1" FlightRouteStatus : "has"
+FlightRoute "0..*" --> "1" AirTransportCompany : "operated by"
+FlightRoute "1" --> "2" AirportIATACode : "connects"
 
-note right of Flight
-  departureDateTime is checked against
-  activeUntil to enforce AC074.3:
-  no deactivation if planned flights exist
-  on or after the chosen date.
-end note
+Flight "0..*" --> "1" FlightRoute : "instance of"
+
+Airport "1" *-- "1" AirportIATACode : "identified by"
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
 
 @enduml

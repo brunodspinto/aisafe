@@ -1,0 +1,351 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model
+
+
+package "User Aggregate" <<Rectangle>> {
+
+    class User <<entity, aggregate root>> {
+        name
+        phoneNumber
+        position
+        status
+        skillsAssessmentDate
+    }
+
+    class Email <<value object>> {
+        address
+    }
+
+    class SecurityClearance <<value object>> {
+        expirationDate
+    }
+
+    Enum SecurityLevel {
+        LOW
+        GUARDED
+        ELEVATED
+        HIGH
+        CRITICAL
+    }
+
+    Enum RoleType {
+        ADMIN
+        BACKOFFICE_OPERATOR
+        ATCC
+        PILOT
+        FLIGHT_CONTROL_OPERATOR
+        WEATHER_PERSON
+    }
+}
+
+package "Collaborator Aggregate" <<Rectangle>> {
+
+    class Collaborator <<entity, aggregate root>>
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+
+    class IATACode <<value object>> {
+        code
+    }
+
+    class ICAOCode <<value object>> {
+        code
+    }
+}
+
+package "Maker Aggregate" <<Rectangle>> {
+
+    class Maker <<entity, aggregate root>> {
+        name
+        country
+    }
+}
+
+package "EngineModel Aggregate" <<Rectangle>> {
+
+    class EngineModel <<entity, aggregate root>> {
+        name
+        thrustAtStandstill
+        thrustAtCruiseSpeed
+        TSFC
+    }
+
+    Enum EngineType {
+        TURBOPROP
+        TURBOFAN
+        TURBOJET
+        RAMJET
+        ELECTRIC_PROPELLER
+    }
+}
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+
+    class AircraftModel <<entity, aggregate root>> {
+        modelName
+        emptyWeight
+        MTOW
+        MZFW
+        maxFuelCapacity
+        serviceCeiling
+        cruiseSpeed
+        wingSpan
+        wingArea
+        dragCoefficient
+        liftCoefficient
+        maxRange
+    }
+
+    Enum AircraftType {
+        PASSENGER
+        CARGO
+        MIXED
+    }
+}
+
+package "Aircraft Aggregate" <<Rectangle>> {
+
+    class Aircraft <<entity, aggregate root>> {
+        registrationNumber
+        registeredCountry
+        numberOfCrewElements
+        yearOfManufacture
+    }
+
+    class CabinConfiguration <<value object>> {
+        firstClassSeats
+        businessClassSeats
+        economyClassSeats
+    }
+
+    Enum OperationalStatus {
+        ACTIVE
+        DECOMMISSIONED
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+        minimumFuelRequired
+    }
+
+    class GeoBoundary <<value object>> {
+        northLatitude
+        southLatitude
+        eastLongitude
+        westLongitude
+    }
+}
+
+package "Airport Aggregate" <<Rectangle>> {
+
+    class Airport <<entity, aggregate root>> {
+        name
+        town
+        country
+        altitude
+    }
+
+    class AirportIATACode <<value object>> {
+        iataCode
+    }
+
+    class AirportICAOCode <<value object>> {
+        icaoCode
+    }
+
+    class GeoCoordinate <<value object>> {
+        latitude
+        longitude
+    }
+}
+
+package "FlightRoute Aggregate" <<Rectangle>> {
+
+    class FlightRoute <<entity, aggregate root>> {
+        activeUntil
+    }
+
+    class RouteName <<value object>> {
+        name
+    }
+
+    Enum FlightRouteStatus {
+        ACTIVE
+        INACTIVE
+    }
+}
+
+package "Flight Aggregate" <<Rectangle>> {
+
+    class Flight <<entity, aggregate root>> {
+        flightDesignator
+        departureDateTime
+        scheduledArrival
+    }
+
+    class FlightPlan <<entity>> {
+        totalFuelLoad
+        cargoWeight
+        passengerCount
+        crewCount
+        totalWeight
+        estimatedDuration
+    }
+
+    class FlightSegment <<value object>> {
+        allowedAltitudeSlots
+        widthPerAltitudeSlot
+        windDirection
+        windSpeed
+    }
+
+    class Node <<value object>> {
+        latitude
+        longitude
+        altitude
+    }
+
+    Enum FlightType {
+        REGULAR
+        CHARTER
+    }
+
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
+    }
+}
+
+package "WeatherData Aggregate" <<Rectangle>> {
+
+    class WeatherData <<entity, aggregate root>> {
+        date
+        windSpeed
+        windDirection
+        temperature
+        pressure
+        visibility
+    }
+
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+}
+
+package "Simulation Aggregate" <<Rectangle>> {
+
+    class Simulation <<entity, aggregate root>> {
+        timeRangeStart
+        timeRangeEnd
+        timeStep
+        safetyThreshold
+    }
+
+    class SimulationReport <<entity>> {
+        totalFlights
+        passed
+        generatedAt
+    }
+
+    class FlightExecutionStatus <<value object>> {
+        flightDesignator
+        status
+    }
+
+    class SafetyViolation <<value object>> {
+        description
+        flightDesignator
+        timestamp
+        speed
+        heading
+        latitude
+        longitude
+        altitude
+    }
+
+    Enum SimulationStatus {
+        PENDING
+        RUNNING
+        COMPLETED
+        FAILED
+    }
+}
+
+User "1" *-- "1" Email : "identified by"
+User "1" *-- "1" SecurityClearance : "holds"
+User "1" --> "1..*" RoleType : "has"
+User "0..*" --> "0..*" AircraftModel : "certified for"
+SecurityClearance "1" --> "1" SecurityLevel : "at level"
+
+Collaborator "0..*" --> "0..1" AirTransportCompany : "works for"
+Collaborator "0..*" --> "0..1" AirControlArea : "works for"
+Collaborator "1" --> "1" User : "is a"
+
+AirTransportCompany "1" --> "0..*" Aircraft : "owns"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
+AirTransportCompany "1" --> "1" IATACode : "identified by"
+AirTransportCompany "1" --> "1" ICAOCode : "identified by"
+
+Maker "1" --> "0..*" AircraftModel : "manufactures"
+Maker "1" --> "0..*" EngineModel : "manufactures"
+
+AircraftModel "1" --> "1" AircraftType : "classified as"
+AircraftModel "1" --> "1..*" EngineModel : "certified with"
+EngineModel "1" --> "1" EngineType : "classified as"
+
+Aircraft "1" *-- "0..1" CabinConfiguration : "has"
+Aircraft "1" --> "1" AircraftModel : "defined by"
+Aircraft "1" --> "1" OperationalStatus : "has"
+
+AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
+
+Airport "1" *-- "1" AirportIATACode : "identified by"
+Airport "1" *-- "1" AirportICAOCode : "has"
+Airport "1" *-- "1" GeoCoordinate : "located at"
+Airport "0..*" --> "1" AirControlArea : "belongs to"
+
+FlightRoute "1" *-- "1" RouteName : "identified by"
+FlightRoute "1" --> "1" FlightRouteStatus : "has"
+FlightRoute "0..*" --> "1" AirTransportCompany : "operated by"
+FlightRoute "1" --> "2" AirportIATACode : "connects"
+
+Flight "1" --> "1" FlightRoute : "instance of"
+Flight "1" --> "1" FlightType : "typed as"
+Flight "1" --> "2" AirportIATACode : "connects"
+Flight "1" *-- "1..*" FlightPlan : "has"
+Flight "1" --> "1" Aircraft : "uses"
+Flight "1" --> "1" User : "assigned to"
+
+FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
+FlightPlan "1" --> "1" FlightPlanStatus : "has"
+FlightPlan "1" --> "1" AirportIATACode : "alternate airport"
+FlightPlan "1" --> "0..1" User : "reviewed by"
+
+FlightSegment "1" *-- "2" Node : "has"
+
+WeatherData "1" --> "1" AirControlArea : "recorded for"
+WeatherData "1" *-- "1" WeatherSource : "imported from"
+
+Simulation "1" --> "1" AirControlArea : "covers"
+Simulation "1" --> "0..*" Flight : "references"
+Simulation "1" *-- "1" SimulationReport : "produces"
+Simulation "1" --> "1" SimulationStatus : "has"
+SimulationReport "1" *-- "0..*" SafetyViolation : "records"
+SimulationReport "1" *-- "0..*" FlightExecutionStatus : "details"
+
+@enduml

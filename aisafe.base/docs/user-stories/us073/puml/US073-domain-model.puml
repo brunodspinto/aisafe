@@ -3,19 +3,19 @@
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 
-title Domain Model - US073 Create a Flight Route
+title Domain Model Excerpt - US073 Create a Flight Route
 
 package "FlightRoute Aggregate" <<Rectangle>> {
 
     class FlightRoute <<entity, aggregate root>> {
-        activeUntil: LocalDate
+        activeUntil
     }
 
-    class RouteName <<value object, identity>> {
-        name: String
+    class RouteName <<value object>> {
+        name
     }
 
-    enum FlightRouteStatus {
+    Enum FlightRouteStatus {
         ACTIVE
         INACTIVE
     }
@@ -30,30 +30,29 @@ package "Airport Aggregate" <<Rectangle>> {
         altitude
     }
 
-    class AirportIATACode <<value object, identity>> {
-        iataCode: String
+    class AirportIATACode <<value object>> {
+        iataCode
     }
 }
 
 package "AirTransportCompany Aggregate" <<Rectangle>> {
 
     class AirTransportCompany <<entity, aggregate root>> {
-        name: String
+        name
     }
 
-    class IATACode <<value object, identity>> {
-        code: String
+    class IATACode <<value object>> {
+        code
     }
 }
 
-FlightRoute "1" *-- "1" RouteName         : "identified by >"
-FlightRoute "1" *-- "1" FlightRouteStatus : "has >"
-FlightRoute "0..*" --> "1" AirTransportCompany : "operated by >"
-FlightRoute "1" --> "1" AirportIATACode   : "origin >"
-FlightRoute "1" --> "1" AirportIATACode   : "destination >"
+FlightRoute "1" *-- "1" RouteName : "identified by"
+FlightRoute "1" --> "1" FlightRouteStatus : "has"
+FlightRoute "0..*" --> "1" AirTransportCompany : "operated by"
+FlightRoute "1" --> "2" AirportIATACode : "connects"
 
-Airport "1" *-- "1" AirportIATACode       : "identified by >"
-AirTransportCompany "1" *-- "1" IATACode  : "identified by >"
-AirTransportCompany "1" --> "0..*" FlightRoute : "operates >"
+Airport "1" *-- "1" AirportIATACode : "identified by"
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+AirTransportCompany "1" --> "0..*" FlightRoute : "operates"
 
 @enduml

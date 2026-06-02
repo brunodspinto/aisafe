@@ -37,15 +37,16 @@ The business rule in AC074.3 — "cannot deactivate if planned flights exist aft
 
 The main classes involved are:
 
-| Class | Type | Responsibility |
-|-------|------|----------------|
-| `FlightRoute` | Entity / Aggregate Root | Holds `name`, `activeUntil` (deactivation boundary), and `FlightRouteStatus`; exposes `deactivate(date)` |
-| `FlightRouteStatus` | Enum | `ACTIVE` / `INACTIVE` — represents the current operational state of the route |
-| `AirportIATACode` | Value Object | Identifies the origin and destination airports of the route |
-| `FlightRouteRepository` | Repository Interface | Persistence contract for the `FlightRoute` aggregate; provides routes filtered by company and status |
-| `FlightRepository` | Repository Interface | Used to check whether planned flights exist after the requested deactivation date (cross-aggregate query) |
-| `DeactivateFlightRouteController` | Application Controller | Orchestrates the use case; enforces ATCC role; resolves company ownership; coordinates the planned-flight check |
-| `DeactivateFlightRouteUI` | UI | Lists the ATCC's active routes and collects the deactivation date from the user |
+| Class                             | Type                    | Responsibility                                                                                                             |
+|-----------------------------------|-------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `FlightRoute`                     | Entity / Aggregate Root | Holds `activeUntil` (deactivation boundary) and `FlightRouteStatus`; identified by `RouteName`; exposes `deactivate(date)` |
+| `RouteName`                       | Value Object            | Business identity of `FlightRoute`; encapsulates the route name format (`[A-Z]{2}[0-9]{1,4}`)                              |
+| `FlightRouteStatus`               | Enum                    | `ACTIVE` / `INACTIVE` — represents the current operational state of the route                                              |
+| `AirportIATACode`                 | Value Object            | Identifies the origin and destination airports of the route                                                                |
+| `FlightRouteRepository`           | Repository Interface    | Persistence contract for the `FlightRoute` aggregate; provides routes filtered by company and status                       |
+| `FlightRepository`                | Repository Interface    | Used to check whether planned flights exist after the requested deactivation date (cross-aggregate query)                  |
+| `DeactivateFlightRouteController` | Application Controller  | Orchestrates the use case; enforces ATCC role; resolves company ownership; coordinates the planned-flight check            |
+| `DeactivateFlightRouteUI`         | UI                      | Lists the ATCC's active routes and collects the deactivation date from the user                                            |
 
 The following domain model excerpt shows the aggregate structure:
 
@@ -148,7 +149,7 @@ public boolean hasFlightsAfter(FlightRoute route, LocalDate deactivationDate) {
 
 ## 7. Observations
 
-- The `activeUntil` field and `FlightRouteStatus` enum (`ACTIVE` / `INACTIVE`) are already defined in the Domain Model V6. This use case sets `activeUntil` to the chosen date and transitions the status to `INACTIVE` — no new domain fields are introduced.
+- The `activeUntil` field and `FlightRouteStatus` enum (`ACTIVE` / `INACTIVE`) are already defined in the Domain Model V7. This use case sets `activeUntil` to the chosen date and transitions the status to `INACTIVE` — no new domain fields are introduced.
 - The planned-flight check (AC074.3) is intentionally placed in the controller and not inside `FlightRoute.deactivate()`. The route aggregate does not hold references to its flights, so it cannot enforce this rule itself. The controller acts as the orchestrator, keeping each aggregate within its own boundary.
 - The JPQL count query in `JpaFlightRepository.hasFlightsAfter()` is preferred over loading all flights into memory — this follows the `FetchType.LAZY` and query-efficiency guidelines taught in the course.
 - The ownership check (AC074.4) is enforced in the controller by comparing the route's company with the ATCC's company resolved from `CollaboratorRepository`. A route that does not belong to the ATCC's company is treated as not found.

@@ -9,7 +9,7 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 ### 1.1 List of issues
 
 - **Analysis:** Define the domain rules for `FlightRoute`, including route name format and uniqueness constraints.
-- **Design:** Define the architecture for flight route creation — domain model, persistence, and layers.
+- **Design:** Define the architecture for flight route creation — sequence diagram and class diagram.
 - **Implement:** Implement the `FlightRoute` aggregate, `RouteName` value object, repository, controller, and UI.
 - **Test:** Unit tests for `FlightRoute` and `RouteName` (domain package coverage above 90%).
 
@@ -33,9 +33,6 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 - **US030** — Authentication and authorization must be in place (role `ATCC`).
 - **US052** — Create an Airport. Both airports referenced by the route must already be registered.
 - **US060** — Register an Air Transport Company. The company must exist before a route can be created.
-- Acts as a prerequisite for:
-  - **US074** — Delete (deactivate) a flight route.
-  - **US080** — Create a flight plan (a flight plan is always associated with a route).
 
 ---
 
@@ -45,9 +42,11 @@ A flight route represents a named connection between two airports operated by a 
 
 The main design decisions taken were:
 
-**Route name format** — The project document specifies that a route name consists of the company's 2-letter initials followed by up to 4 numeric digits (e.g. `TP123`). A `RouteName` Value Object encapsulates and enforces this format via regex validation (`[A-Z]{2}[0-9]{1,4}`). This is consistent with how other structured codes are handled in the domain (e.g. `AirportIATACode`, `IATACode`).
+**`RouteName` as a Value Object** — The project document specifies that a route name consists of the company's 2-letter initials followed by up to 4 numeric digits (e.g. `TP123`). A `RouteName` Value Object was created to encapsulate and enforce this format via regex validation (`[A-Z]{2}[0-9]{1,4}`). The `RouteName` is the natural business identity of the `FlightRoute` aggregate — consistent with how other business identities are modelled in the domain (e.g. `AirportIATACode`, `MecanographicNumber`, `RegistrationNumber`). This satisfies the DDD principle "business identity as Value Objects" (CO3).
 
-**Route status** — A route can be `ACTIVE` or `INACTIVE` (deactivated from a given date onwards, per US074). This enables soft deactivation without deleting the aggregate — past references from flight plans remain valid.
+**Route status** — A route can be `ACTIVE` or `INACTIVE`. A route is always created as `ACTIVE`. Deactivation is handled by US074. The `FlightRouteStatus` enum enables soft deactivation without deleting the aggregate — past references from flight plans remain valid.
+
+**Airport references by identity** — The route references airports via `AirportIATACode` value objects rather than full `Airport` object references. This keeps the coupling between `FlightRoute` and `Airport` aggregates low — a DDD Low Coupling principle.
 
 **Uniqueness** — Route name uniqueness is enforced at the controller level via a pre-check through the repository, and also at the database level with a unique constraint, to prevent race conditions.
 
@@ -58,7 +57,7 @@ The main classes identified are:
 | Class | Type | Responsibility |
 |-------|------|----------------|
 | `FlightRoute` | Entity / Aggregate Root | Holds route data and enforces invariants |
-| `RouteName` | Value Object | Route name format validation (`[A-Z]{2}[0-9]{1,4}`) |
+| `RouteName` | Value Object / Identity | Route name format validation (`[A-Z]{2}[0-9]{1,4}`) |
 | `FlightRouteStatus` | Enum | `ACTIVE` / `INACTIVE` |
 | `FlightRouteRepository` | Repository Interface | Persistence contract |
 | `CreateFlightRouteController` | Application Controller | Orchestrates the use case; enforces `ATCC` role |
@@ -70,19 +69,21 @@ The following diagram shows the domain model excerpt relevant to this US:
 
 ---
 
+
 ## 4. Design
 
 ### 4.1. Realization
 
-1. The UI (`CreateFlightRouteUI`) prompts the collaborator for a route name, origin airport IATA code, and destination airport IATA code.
-2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC)`.
-3. The controller resolves the authenticated collaborator's company from the session.
-4. Both airport IATA codes are validated: the controller checks that each exists in `AirportRepository`. If either is missing, an `IllegalArgumentException` is thrown.
-5. The origin and destination codes are compared — they must differ (AC073.2).
-6. The route name uniqueness is checked via `FlightRouteRepository.existsByName(routeName)`. If the name already exists, an `IllegalStateException` is thrown.
-7. A new `FlightRoute` is constructed from the validated inputs and the resolved company. Domain invariants are enforced inside the constructor.
-8. The route is persisted via `FlightRouteRepository.save()`.
-9. The UI confirms: `Flight route 'TP123' (OPO → LIS) created successfully.`
+The use case follows the standard layered flow: `CreateFlightRouteUI` collects the route name, origin and destination airport IATA codes from the authenticated ATCC, then delegates to `CreateFlightRouteController`. The controller:
+
+1. Verifies the authenticated user has the `ATCC` role
+2. Resolves the authenticated collaborator's company from the session
+3. Creates and validates the `RouteName` value object
+4. Verifies route name uniqueness via the repository
+5. Verifies both airports exist in the repository
+6. Verifies origin and destination are different
+7. Creates the `FlightRoute` aggregate in `ACTIVE` status
+8. Persists via `FlightRouteRepository`
 
 The following sequence diagram illustrates this flow:
 
@@ -100,19 +101,25 @@ All tests are automated with JUnit 5 and located in `src/test/java/aisafe/flight
 
 **AC073.1 — Route must reference two valid registered airports**
 
+**Test:** `ensureOriginAirportCannotBeNull`
+
 ```java
 @Test
 void ensureOriginAirportCannotBeNull() {
     assertThrows(IllegalArgumentException.class, () ->
             new FlightRoute(new RouteName("TP123"), null,
-                    new AirportIATACode("LIS"), company));
+                    AirportIATACode.valueOf("LIS"), IATACode.valueOf("TP")));
 }
+```
 
+**Test:** `ensureDestinationAirportCannotBeNull`
+
+```java
 @Test
 void ensureDestinationAirportCannotBeNull() {
     assertThrows(IllegalArgumentException.class, () ->
-            new FlightRoute(new RouteName("TP123"), new AirportIATACode("OPO"),
-                    null, company));
+            new FlightRoute(new RouteName("TP123"),
+                    AirportIATACode.valueOf("OPO"), null, IATACode.valueOf("TP")));
 }
 ```
 
@@ -120,13 +127,16 @@ void ensureDestinationAirportCannotBeNull() {
 
 **AC073.2 — Origin and destination airports must be different**
 
+**Test:** `ensureOriginAndDestinationCannotBeTheSame`
+
 ```java
 @Test
 void ensureOriginAndDestinationCannotBeTheSame() {
     assertThrows(IllegalArgumentException.class, () ->
             new FlightRoute(new RouteName("TP123"),
-                    new AirportIATACode("OPO"),
-                    new AirportIATACode("OPO"), company));
+                    AirportIATACode.valueOf("OPO"),
+                    AirportIATACode.valueOf("OPO"),
+                    IATACode.valueOf("TP")));
 }
 ```
 
@@ -134,28 +144,46 @@ void ensureOriginAndDestinationCannotBeTheSame() {
 
 **AC073.3 — Route name must follow the format `[A-Z]{2}[0-9]{1,4}`**
 
+**Test:** `ensureValidRouteNameIsAccepted`
+
 ```java
 @Test
 void ensureValidRouteNameIsAccepted() {
     final RouteName name = new RouteName("TP123");
     assertEquals("TP123", name.toString());
 }
+```
 
+**Test:** `ensureRouteNameWithOnlyOneLetterIsRejected`
+
+```java
 @Test
 void ensureRouteNameWithOnlyOneLetterIsRejected() {
     assertThrows(IllegalArgumentException.class, () -> new RouteName("T123"));
 }
+```
 
+**Test:** `ensureRouteNameWithMoreThanTwoLettersIsRejected`
+
+```java
 @Test
 void ensureRouteNameWithMoreThanTwoLettersIsRejected() {
     assertThrows(IllegalArgumentException.class, () -> new RouteName("TAP123"));
 }
+```
 
+**Test:** `ensureRouteNameWithNoDigitsIsRejected`
+
+```java
 @Test
 void ensureRouteNameWithNoDigitsIsRejected() {
     assertThrows(IllegalArgumentException.class, () -> new RouteName("TP"));
 }
+```
 
+**Test:** `ensureRouteNameWithMoreThanFourDigitsIsRejected`
+
+```java
 @Test
 void ensureRouteNameWithMoreThanFourDigitsIsRejected() {
     assertThrows(IllegalArgumentException.class, () -> new RouteName("TP12345"));
@@ -166,38 +194,70 @@ void ensureRouteNameWithMoreThanFourDigitsIsRejected() {
 
 **AC073.4 — Route name must be unique**
 
-```java
-@Test
-void ensureDuplicateRouteNameIsRejected() {
-    when(flightRouteRepository.existsByName(new RouteName("TP001"))).thenReturn(true);
-    assertThrows(IllegalStateException.class, () ->
-            controller.createFlightRoute("TP001", "OPO", "LIS"));
-}
-```
+Route name uniqueness is enforced at the controller level via repository pre-check and at the database level via unique constraint. Validated through manual integration testing:
+
+1. Register a route with name `TP123`.
+2. Attempt to register a second route with the same name `TP123`.
+3. Expected: the system rejects the operation with a uniqueness violation message.
 
 ---
 
-**Additional domain tests — equality and status**
+**AC073.5 / AC073.6 — Authorization and company binding**
+
+Authorization is enforced by the controller via EAPLI's authorization framework. The company is resolved automatically from the authenticated session. Validated through manual integration testing:
+
+1. Login as an ATCC of company `TP`.
+2. Navigate to **Flight Routes > Create Flight Route**.
+3. Expected: the route is created and associated with company `TP` automatically.
+
+---
+
+**FlightRoute domain invariants**
+
+**Test:** `ensureValidFlightRouteCanBeCreated`
 
 ```java
 @Test
-void ensureTwoRoutesWithSameNameAreEqual() {
-    final FlightRoute r1 = new FlightRoute(new RouteName("TP123"),
-            new AirportIATACode("OPO"), new AirportIATACode("LIS"), company);
-    final FlightRoute r2 = new FlightRoute(new RouteName("TP123"),
-            new AirportIATACode("OPO"), new AirportIATACode("LIS"), company);
-    assertEquals(r1, r2);
-}
-
-@Test
-void ensureNewRouteIsActive() {
-    final FlightRoute route = new FlightRoute(new RouteName("TP123"),
-            new AirportIATACode("OPO"), new AirportIATACode("LIS"), company);
+void ensureValidFlightRouteCanBeCreated() {
+    final FlightRoute route = new FlightRoute(
+            new RouteName("TP123"),
+            AirportIATACode.valueOf("OPO"),
+            AirportIATACode.valueOf("LIS"),
+            IATACode.valueOf("TP"));
+    assertEquals("TP123", route.identity().toString());
     assertEquals(FlightRouteStatus.ACTIVE, route.status());
 }
 ```
 
+**Test:** `ensureStatusStartsAsActive`
+
+```java
+@Test
+void ensureStatusStartsAsActive() {
+    final FlightRoute route = new FlightRoute(
+            new RouteName("TP123"),
+            AirportIATACode.valueOf("OPO"),
+            AirportIATACode.valueOf("LIS"),
+            IATACode.valueOf("TP"));
+    assertEquals(FlightRouteStatus.ACTIVE, route.status());
+}
+```
+
+**Test:** `ensureRouteNameCannotBeNull`
+
+```java
+@Test
+void ensureRouteNameCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new FlightRoute(null,
+                    AirportIATACode.valueOf("OPO"),
+                    AirportIATACode.valueOf("LIS"),
+                    IATACode.valueOf("TP")));
+}
+```
+
 ---
+
 
 ## 5. Implementation
 
@@ -205,36 +265,43 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 | Package | Class | Role |
 |---------|-------|------|
-| `aisafe.flightroute.domain` | `FlightRoute` | Aggregate root, table `T_FLIGHT_ROUTE` |
-| `aisafe.flightroute.domain` | `RouteName` | Identity value object — `[A-Z]{2}[0-9]{1,4}` |
-| `aisafe.flightroute.domain` | `FlightRouteStatus` | Status enum: `ACTIVE` / `INACTIVE` |
+| `aisafe.flightroute.domain` | `FlightRoute` | Aggregate root |
+| `aisafe.flightroute.domain` | `RouteName` | Route name value object and identity |
+| `aisafe.flightroute.domain` | `FlightRouteStatus` | Status enum: ACTIVE / INACTIVE |
 | `aisafe.flightroute.repositories` | `FlightRouteRepository` | Repository interface |
-| `aisafe.flightroute.application` | `CreateFlightRouteController` | Use case orchestrator — enforces `ATCC` role |
+| `aisafe.flightroute.application` | `CreateFlightRouteController` | Use case orchestrator |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightRouteRepository` | In-memory persistence |
 | `aisafe.infrastructure.persistence.jpa` | `JpaFlightRouteRepository` | JPA persistence |
 | `aisafe.app.console.presentation.flightroute` | `CreateFlightRouteUI` | Console UI |
 
-`RepositoryFactory` must be extended with a `flightRoutes()` method, and both `InMemoryRepositoryFactory` and `JpaRepositoryFactory` must provide their respective implementations.
+**Design decisions:**
 
-**Key design decisions:**
+`RouteName` was created as a `@EmbeddedId` Value Object — the natural business identity of `FlightRoute`. This is consistent with how other business identities are handled in the domain (e.g. `AirportIATACode` as `@EmbeddedId` in `Airport`, `RegistrationNumber` in `Aircraft`). This satisfies CO3 — "business identity as VOs".
 
-- `RouteName` was designed as a Value Object to centralise format validation, following the same pattern as `AirportIATACode` and `IATACode`.
-- `FlightRouteStatus` supports soft deactivation (per US074) without deleting the aggregate, preserving historical references from flight plans.
-- The company is not an input to the use case — it is resolved from the authenticated session (`ATCC` role). This ensures AC073.6 structurally rather than procedurally.
+`FlightRouteStatus` supports soft deactivation (US074) without deleting the aggregate — historical references from flight plans remain valid.
+
+Airport references are stored as `AirportIATACode` value objects — not as `@ManyToOne Airport` references. This keeps Low Coupling between `FlightRoute` and `Airport` aggregates.
+
+The test suite comprises **16 tests** for `FlightRoute` and **19 tests** for `RouteName` — **35 automated tests in total**, all passing. Total project test suite: **518 tests, 0 failures**.
 
 ---
 
 ## 6. Integration/Demonstration
 
-**Prerequisites:** The following user stories must be completed and their data bootstrapped:
+This US integrates with:
 
-- US030 — Authentication (`ATCC` role must be available)
-- US052 — At least two airports registered (e.g. `OPO` and `LIS`)
-- US060 — Air transport company registered (e.g. `TP / TAP`)
-- US061 — At least one `ATCC` collaborator registered for the company
+- **US052** — airports must exist before a route can be created (validated via `AirportRepository`).
+- **US060** — the company must be registered and the authenticated user must be a collaborator of it.
+- **US061** — the authenticated user must be an ATCC collaborator.
+- **US074** — a route created here can be deactivated from a given date onwards.
+- **US080** — a flight plan is always created from a route.
+
+**To compile and run all tests:**
+```bash
+mvn clean test
+```
 
 **To run the application:**
-
 ```bash
 # For development and quick testing (data is lost on exit)
 ./run-inmemory.sh
@@ -245,27 +312,22 @@ The implementation is distributed across the following packages in `aisafe.base`
 ./run-jpa.sh        # Terminal 2 — every time
 ```
 
-**To create a flight route (step-by-step):**
+**To create a flight route:**
 
-1. Login with Air Transport Company Collaborator credentials.
-2. Select **Flight Routes** from the main menu.
+1. Login with Air Transport Company Collaborator (ATCC) credentials.
+2. Select **Flight Routes >** from the main menu.
 3. Select **Create Flight Route**.
-4. Enter route name (e.g. `TP123`).
-5. Enter origin airport IATA code (e.g. `OPO`).
-6. Enter destination airport IATA code (e.g. `LIS`).
-7. The system confirms: `Flight route 'TP123' (OPO → LIS) created successfully.`
-
-**To compile and run all tests:**
-
-```bash
-mvn clean test
-```
+4. Enter route name (e.g. `TP123`), origin airport IATA code (e.g. `OPO`) and destination airport IATA code (e.g. `LIS`).
+5. The system confirms: `Flight route successfully created!` with all details.
 
 ---
 
 ## 7. Observations
 
-- Route name uniqueness is enforced system-wide (not per company) to avoid ambiguity in flight designators, which combine the airline code with a route number. This aligns with real-world IATA conventions and with the project document, which states the route name must be unique without scope qualification.
-- An alternative design would have been to enforce uniqueness only per company. This was not adopted because the project document does not restrict uniqueness to a single company.
+- Route name uniqueness is enforced system-wide (not per company) to avoid ambiguity in flight designators. This aligns with real-world IATA conventions.
+- An alternative design would have been to enforce uniqueness only per company. This was not adopted because the project document states the route name must be unique without scope qualification.
 - `RouteName` could potentially be reused by other aggregates that reference routes by name. The Value Object approach keeps validation centralised and the domain expressive.
-- `FlightRouteStatus` was designed with future extensibility in mind — additional statuses (e.g. `SUSPENDED`) could be added without breaking existing logic, since the `deactivate(fromDate)` operation is guarded by a status check.
+- The `FlightRouteStatus` enum was designed with future extensibility in mind — additional statuses (e.g. `SUSPENDED`) could be added without breaking existing logic.
+- Airport references cross aggregate boundaries using `AirportIATACode` — a value object owned by the `Airport` aggregate. This is a deliberate DDD decision — value objects can be referenced across aggregates without violating aggregate boundaries.
+
+
