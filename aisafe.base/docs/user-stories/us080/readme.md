@@ -2,158 +2,62 @@
 
 ## 1. Context
 
-This user story enables a Pilot to create and submit a new flight plan. The plan is initially created in a "draft" state and must undergo further validation and scheduling steps before it becomes active. This is a core feature for the flight operations domain.
+This US is being developed in Sprint 3. It allows a Pilot to register a flight plan for an existing flight route, providing the aircraft, departure date/time and fuel quantity. The pilot assigned to the plan must belong to the route's company. The flight plan is created with status `DRAFT` and is the starting point of a multi-step validation process — semantic validation via the Flight DSL (US083) and flight testing in the simulator (US085).
+
+### 1.1 List of issues
+
+Analysis: Define the domain rules for `FlightPlan` form-based creation: the relation to `FlightRoute`, `Aircraft` and `Pilot`, the company-matching invariants, and the initial status.
+
+Design: Define the architecture for flight plan registration (UI, controller, repository) and align with the pre-existing `FlightPlan` aggregate already partially shaped by US081 (creation from DSL file) and US083 (DSL specification).
+
+Implement: Implement the form-based `FlightPlan` creation, the application controller, the console UI, and integrate with the Pilots' menu.
+
+Test: Unit tests for `FlightPlan` domain invariants (above 90% coverage) and manual acceptance tests for the end-to-end flow.
 
 ---
 
 ## 2. Requirements
 
-**US080** As a Pilot, I want to register a flight plan for a route so that the flight can be formally submitted for validation and scheduling.
+**US080** As a Pilot, I want to register a flight plan for a route.
+
+> *(Enunciado, p. 19, lines 9–12):* "I must add the aircraft, departure date/time, fuel quantity, pilot. The pilot must be of the route's company. Flight plan status is set to 'draft' when created and must undergo a multi-step validation process."
 
 **Acceptance Criteria:**
 
-- **AC080.1** The flight plan must include an aircraft, departure date and time, fuel quantity, and an assigned pilot.
-- **AC080.2** The assigned pilot must belong to the same company that operates the route.
-- **AC080.3** The flight plan status must be set to "draft" upon creation.
-- **AC080.4** The flight plan must undergo a multi-step validation process before it can be activated (covered in other user stories).
+- **AC080.1** Only an authenticated user with the `PILOT` role may register a flight plan.
+- **AC080.2** The flight plan must reference an existing `FlightRoute` already registered in the system.
+- **AC080.3** The pilot assigned to the flight plan must belong to the company of the flight route — i.e. `pilot.companyIataCode()` must equal `flightRoute.companyIataCode()`. *(Literal rule from the enunciado.)*
+- **AC080.4** The aircraft referenced in the flight plan must already exist in the system.
+- **AC080.5** The fuel quantity must be strictly positive.
+- **AC080.6** The departure date/time must be in the future (it is not allowed to plan a flight in the past).
+- **AC080.7** The flight plan is created with status `DRAFT`.
+- **AC080.8** The flight plan has a unique identifier (`FlightPlanDesignator`).
+- **AC080.9** The aircraft assigned to the flight plan must belong to the company of the flight route. *(Derived rule — a route is operated by one company's fleet; not explicitly stated in the enunciado but follows from the domain.)*
+- **AC080.10** The aircraft must be in `ACTIVE` operational status (not `DECOMMISSIONED`). *(Derived rule — by analogy with US071, a decommissioned aircraft cannot be assigned to new flight plans.)*
+
+**Notes on interpretation:**
+
+The enunciado does not provide an explicit "Acceptance Criteria" section for US080. The criteria above are derived from the user story statement and from the system specifications (sections 3.2 and 3.4 of the requirements document). Criteria literally stated in the enunciado are marked as *Literal*; criteria reasoned from the domain are marked as *Derived*.
+
+The user story is read with the interpretation that the **authenticated pilot is the pilot assigned to the flight plan** — the "I" of "I must add … pilot" is the authenticated user. The UI does not ask the operator to select a pilot from a list; the pilot of the plan is implicitly the session user. This is the most direct reading of "As a Pilot, I want to register a flight plan" and keeps the use case simple. The remaining inputs the pilot must provide are therefore: **flight route, aircraft, departure date/time, fuel quantity**.
 
 **Dependencies/References:**
 
-- This US depends on **US030** for user authentication and authorization, as only a user with the `PILOT` role can create a flight plan.
-- It also depends on the existence of `Aircraft`, `Route`, and `Company` entities.
+- **US030** — Authentication and Authorization (the user must be authenticated with the `PILOT` role).
+- **US055** — Create an Aircraft Model (the aircraft model must exist for the aircraft to exist).
+- **US060** — Register an Air Transport Company (the route belongs to a company; the pilot also belongs to a company).
+- **US070** — Add an Aircraft to Fleet (the aircraft must be registered).
+- **US073** — Create a flight route (the route must exist before a flight plan can reference it).
+- **US075** — Add a pilot (the pilot must be registered, with `companyIataCode` set).
+- Acts as a prerequisite for:
+  - **US082** — Insert weather data in a flight (operates on an existing flight plan).
+  - **US083** — Flight DSL specification and validation (LPROG — semantic validation of the plan).
+  - **US085** — Test/validate flight plan (LAPR4 — tests the plan in simulation).
 
----
+**Out of scope for this user story:**
 
-## 3. Analysis
-
-This user story introduces the `FlightPlan` as a central domain entity. It captures all the necessary details for a single flight instance.
-
-**Domain Model Impact:**
-
-*   **`FlightPlan`**: A new aggregate root that encapsulates the details of a flight.
-    *   `aircraft`: The specific aircraft assigned to the flight.
-    *   `departureDateTime`: The planned date and time of departure.
-    *   `fuelQuantity`: The planned amount of fuel.
-    *   `assignedPilot`: The pilot in command.
-    *   `route`: The intended route for the flight.
-    *   `status`: The lifecycle status of the plan (e.g., `DRAFT`, `VALIDATED`, `SCHEDULED`).
-
-**Business Rules:**
-
-*   **BR01**: A flight plan can only be created by an authenticated user with the `PILOT` role.
-*   **BR02**: The pilot assigned to the flight plan must be employed by the same company that owns the route. This ensures operational consistency.
-*   **BR03**: Upon creation, a flight plan's status is always initialized to `DRAFT`.
-*   **BR04**: The departure date and time must be in the future to be valid.
-*   **BR05**: The fuel quantity must be a positive value.
-
----
-
-## 4. Design
-
-### 4.1. Realization
-
-The implementation will follow a standard controller-service-repository pattern.
-
-1.  **UI Layer**: A new `CreateFlightPlanUI` will be added to the `exemplo.app.backoffice.console` module. It will be accessible from the main menu for users with the `PILOT` role.
-2.  **Controller Layer**: A `CreateFlightPlanController` will orchestrate the process, taking input from the UI and invoking the application service.
-3.  **Application Service**: The `FlightPlanService` will contain the core logic. It will validate the business rules (e.g., checking if the pilot belongs to the route's company) and, if valid, create a new `FlightPlan` entity.
-4.  **Repository**: The `FlightPlanRepository` will be responsible for persisting the new `FlightPlan` entity to the database.
-
-**Class Diagram:**
-
-```mermaid
-classDiagram
-    class CreateFlightPlanController {
-        +createFlightPlan(data)
-    }
-    class FlightPlanService {
-        +createFlightPlan(data) FlightPlan
-    }
-    class FlightPlanRepository {
-        +save(flightPlan) FlightPlan
-    }
-    class FlightPlan {
-        -aircraft: Aircraft
-        -departureDateTime: DateTime
-        -fuelQuantity: Fuel
-        -assignedPilot: Pilot
-        -route: Route
-        -status: FlightPlanStatus
-        +validate()
-    }
-    class Pilot {
-        -company: Company
-    }
-    class Route {
-        -company: Company
-    }
-
-    CreateFlightPlanController ..> FlightPlanService
-    FlightPlanService ..> FlightPlanRepository
-    FlightPlanService ..> FlightPlan
-    FlightPlan "1" -- "1" Pilot
-    FlightPlan "1" -- "1" Route
-```
-
-**Sequence Diagram:**
-
-This diagram illustrates the process of a pilot creating a flight plan.
-
-```mermaid
-sequenceDiagram
-    actor Pilot
-    participant UI
-    participant FlightPlanController
-    participant FlightPlanService
-    participant FlightPlanRepository
-
-    Pilot->>UI: Selects "Create Flight Plan"
-    UI->>Pilot: Shows form to input flight plan details
-    Pilot->>UI: Fills form and submits
-    UI->>FlightPlanController: createFlightPlan(data)
-    FlightPlanController->>FlightPlanService: createFlightPlan(data)
-    FlightPlanService->>FlightPlanService: Validate business rules (e.g., pilot belongs to company)
-    alt Validation Fails
-        FlightPlanService-->>FlightPlanController: Returns error
-        FlightPlanController-->>UI: Shows error message
-        UI-->>Pilot: Displays error
-    else Validation Succeeds
-        FlightPlanService->>FlightPlanRepository: save(new FlightPlan)
-        FlightPlanRepository-->>FlightPlanService: Returns saved FlightPlan
-        FlightPlanService-->>FlightPlanController: Returns success
-        FlightPlanController-->>UI: Shows success message
-        UI-->>Pilot: Displays success confirmation
-    end
-```
-
-### 4.2. Persistence
-
-A new table, `FLIGHT_PLAN`, will be created in the database.
-
-*   **`FLIGHT_PLAN` table:**
-    *   `ID` (Primary Key)
-    *   `AIRCRAFT_ID` (Foreign Key to `AIRCRAFT` table)
-    *   `DEPARTURE_DATETIME` (Timestamp)
-    *   `FUEL_QUANTITY` (Numeric)
-    *   `ASSIGNED_PILOT_ID` (Foreign Key to `SYSTEM_USER` table)
-    *   `ROUTE_ID` (Foreign Key to `ROUTE` table)
-    *   `STATUS` (Varchar, e.g., 'DRAFT')
-
----
-
-## 5. Implementation
-
-*Not yet implemented.*
-
----
-
-## 6. Integration/Demonstration
-
-*Not yet implemented.*
-
----
-
-## 7. Observations
-
-*Not yet implemented.*
-
+- Flight plan creation **from a DSL file** — covered by US081 (LPROG).
+- The **multi-step validation process** itself (lexical/syntactic/semantic validation, fuel calculations, collision detection) — covered by US083 (LPROG) and US085 (LAPR4). US080 only puts the plan in `DRAFT`; the subsequent validation states are the responsibility of those user stories.
+- **Creation of the flight route** — covered by US073.
+- **Multi-leg flight plans** with intermediate stops and segment definitions — relevant only for the DSL-based flight plans (US081) and consumed by the simulation (US100). The form-based creation in US080 registers a single-leg plan covering the route from its declared origin to its destination.
+- **Crew assignment and passenger/cargo load** — section 3.2 lists these as part of a flight's domain, but they are not in the explicit input list for US080 ("aircraft, departure date/time, fuel quantity, pilot") and are therefore not handled here.
