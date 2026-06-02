@@ -110,6 +110,15 @@ public class FlightRoute implements AggregateRoot<RouteName> {
     /** @return {@code true} if the route is currently active */
     public boolean isActive() { return status == FlightRouteStatus.ACTIVE; }
 
+    public void deactivate(final LocalDate date) {
+        if (date == null)
+            throw new IllegalArgumentException("Deactivation date cannot be null.");
+        if (this.status == FlightRouteStatus.INACTIVE)
+            throw new IllegalStateException("Route is already inactive.");
+        this.activeUntil = date;
+        this.status = FlightRouteStatus.INACTIVE;
+    }
+
     @Override
     public RouteName identity() { return routeName; }
 
