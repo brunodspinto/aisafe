@@ -3,6 +3,7 @@ package aisafe.app.console.presentation;
 import aisafe.app.console.presentation.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.weatherdata.ImportBulkWeatherDataUI;
 import aisafe.app.console.presentation.weatherdata.RegisterWeatherDataUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
 import aisafe.app.console.presentation.authz.ListUsersUI;
@@ -145,6 +146,7 @@ public class MainMenu extends AbstractUI {
     private Menu buildWeatherMenu() {
         final var menu = new Menu("Weather >");
         menu.addItem(1, "Register Weather Data", new RegisterWeatherDataUI()::show);
+        menu.addItem(2, "Import Bulk Weather Data", new ImportBulkWeatherDataUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
