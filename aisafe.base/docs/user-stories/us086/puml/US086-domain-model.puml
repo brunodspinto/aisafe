@@ -1,0 +1,58 @@
+@startuml US086_DomainModel
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt — US086 Pilot Remote Access
+
+package "Pilot Aggregate" <<Rectangle>> {
+    class Pilot <<entity, aggregate root>> {
+        active
+    }
+}
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        name
+        phoneNumber
+        position
+        skillsAssessmentDate
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+    class IATACode <<value object>> {
+        code
+    }
+}
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+    class AircraftModel <<entity, aggregate root>> {
+        modelName
+    }
+}
+
+package "Flight Aggregate" <<Rectangle>> {
+    class FlightPlan <<entity>> {
+        dslContent
+    }
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
+    }
+}
+
+Pilot "1" --> "1" User                 : "is a"
+Pilot "0..*" --> "1" AirTransportCompany : "belongs to"
+Pilot "1" --> "1..*" AircraftModel      : "certified for"
+Pilot "1" --> "0..*" FlightPlan         : "submits"
+
+AirTransportCompany "1" --> "1" IATACode : "identified by"
+
+FlightPlan "1" --> "1" FlightPlanStatus  : "has"
+
+@enduml
