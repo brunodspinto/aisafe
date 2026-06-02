@@ -1,0 +1,100 @@
+@startuml class-diagram-us086
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Client Application" {
+    class PilotTcpClientApp {
+        +main(args : String[]) : void
+        -showMenu() : void
+    }
+
+    class PilotTcpClient {
+        -socket : Socket
+        -in : BufferedReader
+        -out : PrintWriter
+        +PilotTcpClient(host : String, port : int)
+        +login(username : String, password : String) : boolean
+        +createFlightPlanFromFile(filePath : String) : String
+        +exit() : void
+        +close() : void
+    }
+}
+
+package "Server Application" {
+    class AiSafeTcpServer {
+        -serverSocket : ServerSocket
+        +start(port : int) : void
+    }
+
+    class TcpClientDispatcher {
+        -clientSocket : Socket
+        +TcpClientDispatcher(socket : Socket)
+        +run() : void
+        -authenticate(reader : BufferedReader, writer : PrintWriter) : boolean
+        -resolveRole() : String
+    }
+
+    class PilotSessionHandler {
+        -in : BufferedReader
+        -out : PrintWriter
+        +PilotSessionHandler(in : BufferedReader, out : PrintWriter)
+        +handle() : void
+        -handleCreateFlightPlan() : void
+    }
+}
+
+package "Application Layer" {
+    class CreateFlightPlanFromFileController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : FlightPlanRepository
+        -parser : FlightPlanParserFacade
+        +createFromFile(filePath : String) : FlightPlan
+    }
+}
+
+package "Domain Layer" {
+    class FlightPlan <<entity>> {
+        +identity() : FlightPlanDesignator
+    }
+
+    class FlightPlanDesignator <<value object>> {
+        +valueOf(id : String) : FlightPlanDesignator
+        +toString() : String
+    }
+}
+
+package "Repository Layer" {
+    interface FlightPlanRepository {
+        +save(plan : FlightPlan) : FlightPlan
+        +ofIdentity(id : FlightPlanDesignator) : Optional<FlightPlan>
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthenticationContext {
+        +authenticate(username : String, password : String) : boolean
+        +hasRole(role : Role) : boolean
+        +clear() : void
+    }
+
+    class AuthorizationService
+}
+
+package "Infrastructure" {
+    class AiSafeRoles {
+        {static} PILOT : Role
+    }
+}
+
+PilotTcpClientApp ..> PilotTcpClient : uses
+AiSafeTcpServer ..> TcpClientDispatcher : spawns
+TcpClientDispatcher ..> AuthenticationContext : authenticates via
+TcpClientDispatcher ..> AiSafeRoles : checks PILOT role
+TcpClientDispatcher ..> PilotSessionHandler : delegates to
+PilotSessionHandler ..> CreateFlightPlanFromFileController : creates & calls
+CreateFlightPlanFromFileController ..> AuthorizationService : checks role
+CreateFlightPlanFromFileController ..> FlightPlanRepository : saves
+FlightPlan *-- FlightPlanDesignator : identity
+FlightPlanRepository ..> FlightPlan : manages
+
+@enduml

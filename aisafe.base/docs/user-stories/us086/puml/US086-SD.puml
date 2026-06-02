@@ -1,0 +1,116 @@
+@startuml sd086
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Pilot" as PILOT
+
+box "Client Application" #EBF5FB
+    participant ":PilotTcpClientApp" as APP
+    participant ":PilotTcpClient" as CLIENT
+end box
+
+participant "TCP" as TCP
+
+box "Server Application" #FEF9E7
+    participant ":TcpClientDispatcher" as DISP
+    participant ":PilotSessionHandler" as HANDLER
+    participant ":CreateFlightPlanFromFileController" as CTRL
+    participant ":FlightPlanRepository" as REPO
+end box
+
+participant "AuthenticationContext" as AUTH
+
+activate PILOT
+
+PILOT -> APP : run client application
+activate APP
+APP -> CLIENT** : new PilotTcpClient(host, port)
+activate CLIENT
+CLIENT --> APP
+deactivate CLIENT
+APP --> PILOT : requests credentials
+PILOT -> APP : enters username and password
+APP -> CLIENT : login(username, password)
+activate CLIENT
+CLIENT -> TCP : LOGIN <username> <password>
+activate TCP
+TCP -> DISP : read line
+activate DISP
+DISP -> AUTH : authenticate(username, password)
+activate AUTH
+AUTH --> DISP : authenticated
+deactivate AUTH
+
+alt invalid credentials
+    DISP -> TCP : FAIL invalid credentials
+    TCP --> CLIENT : FAIL ...
+    CLIENT --> APP : false
+    APP --> PILOT : authentication failed
+else role != PILOT
+    DISP -> TCP : UNAUTHORIZED
+    TCP --> CLIENT : UNAUTHORIZED
+    CLIENT --> APP : false
+    APP --> PILOT : unauthorized
+else authenticated with PILOT role
+    DISP -> HANDLER** : new PilotSessionHandler(reader, writer)
+    DISP -> TCP : OK
+    deactivate TCP
+    TCP --> CLIENT : OK
+    deactivate CLIENT
+    APP --> PILOT : authenticated — shows menu
+    deactivate APP
+
+    PILOT -> APP : selects "Create Flight Plan from DSL File"
+    activate APP
+    APP --> PILOT : requests DSL file path
+    PILOT -> APP : enters file path
+    APP -> CLIENT : createFlightPlanFromFile(filePath)
+    activate CLIENT
+    CLIENT -> CLIENT : reads DSL file → byteLength
+    CLIENT -> TCP : CREATE_FLIGHT_PLAN <byteLength>\n<dsl_content>
+    activate TCP
+    TCP -> HANDLER : read command + DSL bytes
+    activate HANDLER
+    HANDLER -> HANDLER : Files.createTempFile() + write DSL bytes
+    HANDLER -> CTRL** : new CreateFlightPlanFromFileController()
+    activate CTRL
+    CTRL --> HANDLER
+    deactivate CTRL
+    HANDLER -> CTRL : createFromFile(tempPath)
+    activate CTRL
+    CTRL -> REPO : save(flightPlan)
+    activate REPO
+    REPO --> CTRL : savedFlightPlan
+    deactivate REPO
+    CTRL --> HANDLER : savedFlightPlan
+    deactivate CTRL
+    HANDLER -> HANDLER : Files.delete(tempPath)
+    HANDLER -> TCP : OK <designator>
+    deactivate HANDLER
+    TCP --> CLIENT : OK <designator>
+    deactivate TCP
+    CLIENT --> APP : designator
+    deactivate CLIENT
+    APP --> PILOT : displays success + designator
+    deactivate APP
+
+    PILOT -> APP : selects "Exit"
+    activate APP
+    APP -> CLIENT : exit()
+    activate CLIENT
+    CLIENT -> TCP : EXIT
+    activate TCP
+    TCP -> DISP : read line
+    DISP -> TCP : BYE
+    deactivate DISP
+    TCP --> CLIENT : BYE
+    deactivate TCP
+    deactivate CLIENT
+    APP --> PILOT : session ended
+    deactivate APP
+end
+
+deactivate PILOT
+
+@enduml

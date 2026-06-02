@@ -140,11 +140,39 @@ The following domain model excerpt shows the aggregates involved in this use cas
 
 ## 4. Design
 
-*To be completed in the next commit.*
-
 ### 4.1. Realization
 
-*To be completed in the next commit.*
+The flow is divided into two phases: **authentication** and **command execution**.
+
+**Authentication phase:**
+
+1. `PilotTcpClientApp` starts, creates a `PilotTcpClient` connected to the server host and port.
+2. The user enters credentials; `PilotTcpClient.login(username, password)` sends `LOGIN <username> <password>` over the socket.
+3. Server-side, `TcpClientDispatcher` (one thread per connection) reads the `LOGIN` line and calls `AuthenticationContext.authenticate(username, password)`.
+4. If authentication fails, the server responds `FAIL invalid credentials` and the connection is closed.
+5. If the user is authenticated but does not have the `PILOT` role (checked via `AuthenticationContext.hasRole(AiSafeRoles.PILOT)`), the server responds `UNAUTHORIZED` and closes the connection.
+6. If authentication succeeds and the role is `PILOT`, the server responds `OK` and instantiates a `PilotSessionHandler`, delegating all subsequent commands to it.
+
+**Command phase — `CREATE_FLIGHT_PLAN`:**
+
+7. The Pilot selects "Create Flight Plan from DSL File" in the client menu and provides a local DSL file path.
+8. `PilotTcpClient.createFlightPlanFromFile(filePath)` reads the file, computes its byte length, and sends `CREATE_FLIGHT_PLAN <byteLength>\n<dsl_content>`.
+9. `PilotSessionHandler` reads the DSL bytes and writes them to a temporary file via `Files.createTempFile(...)`.
+10. A new `CreateFlightPlanFromFileController` is instantiated and `createFromFile(tempPath)` is called — reusing the full 4-stage DSL validation pipeline without modification.
+11. The temp file is deleted after the controller returns.
+12. On success the server responds `OK <designator>`; on failure `ERROR <message>`.
+
+**Exit:**
+
+13. The Pilot selects "Exit"; `PilotTcpClient.exit()` sends `EXIT` and the server responds `BYE`.
+
+The following sequence diagram illustrates the full flow:
+
+![Sequence Diagram](svg/US086-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US086-class-diagram.svg)
 
 ### 4.2. Acceptance Tests
 
