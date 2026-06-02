@@ -209,11 +209,29 @@ void ensureRouteNamesWithDifferentValuesAreNotEqual() {
 
 ---
 
+### `InMemoryFlightRepositoryTest`
+
+Location: `src/test/java/aisafe/infrastructure/persistence/inmemory/InMemoryFlightRepositoryTest.java`
+
+Validates the cross-aggregate planned-flight check (AC074.3) directly, against real in-memory
+data (no mocks). A "planned flight" is a `FlightPlan` (US080) that references the route and has a
+`departureDateTime`. Each test uses a distinct route name because the framework's in-memory store
+is shared statically across instances.
+
+- `ensureReturnsFalseWhenNoPlansExistForRoute` — empty store ⇒ deactivation allowed.
+- `ensureDetectsFlightDepartingOnDeactivationDate` — boundary: departure == deactivation date ⇒ blocked.
+- `ensureDetectsFlightDepartingAfterDeactivationDate` — departure after the date ⇒ blocked.
+- `ensureIgnoresFlightDepartingBeforeDeactivationDate` — departure before the date ⇒ allowed.
+- `ensureIgnoresFlightsOfOtherRoutes` — a plan on another route does not block this route.
+- `ensureIgnoresDslImportedPlansWithoutRouteOrDeparture` — DSL-imported plans (null route/departure) are ignored.
+
+---
+
 ## Coverage by Acceptance Criterion
 
 - AC074.1: `ensureDeactivateSetsStatusToInactive`, `ensureDeactivateSetsActiveUntilDate`, `ensureIsActiveReturnsFalseAfterDeactivation`, `ensureActiveUntilIsNullForNewRoute`
 - AC074.2: No new flights may be scheduled on an inactive route — enforced in US080 (Create a Flight Plan); validated by manual integration test
-- AC074.3: Planned-flight conflict check orchestrated by `DeactivateFlightRouteController` via `FlightRepository.hasFlightsAfter()`; validated by manual test
+- AC074.3: Planned-flight conflict check orchestrated by `DeactivateFlightRouteController` via `FlightRepository.hasFlightsAfter()`; covered by the automated `InMemoryFlightRepositoryTest` (boundary, before/after, other-route and DSL-plan cases) and additionally exercised by manual integration test
 - AC074.4: Controller checks `ATCC` role via `AuthorizationService` and verifies route ownership against the logged-in user's company; validated by manual test
 - Domain invariants (construction and state transitions): `ensureFlightRouteIsCreatedWithActiveStatus`, `ensureActiveUntilIsNullForNewRoute`, `ensureIsActiveReturnsTrueForActiveRoute`, `ensureDeactivateWithNullDateThrows`, `ensureCannotDeactivateAlreadyInactiveRoute`, `ensureIdentityReturnsRouteName`, `ensureTwoRoutesWithSameNameAreEqual`
 - `RouteName` value object: `ensureRouteNameCannotBeNull`, `ensureRouteNameCannotBeBlank`, `ensureValidRouteNameIsAccepted`, `ensureRouteNameWithOnlyOneLetterIsRejected`, `ensureRouteNameWithMoreThanTwoLettersIsRejected`, `ensureRouteNameWithNoDigitsIsRejected`, `ensureRouteNameWithMoreThanFourDigitsIsRejected`, `ensureRouteNamesWithSameValueAreEqual`, `ensureRouteNamesWithDifferentValuesAreNotEqual`
