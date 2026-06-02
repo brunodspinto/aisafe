@@ -88,8 +88,6 @@ The main design decisions were:
 
 **Cross-aggregate invariants handled in the controller** — AC080.3 (pilot of route's company), AC080.9 (aircraft of route's company), and AC080.10 (aircraft ACTIVE) involve more than one aggregate. They are validated in the application controller before the aggregate is constructed. The aggregate itself owns only its own invariants (fuel > 0, departure in future, all required IDs non-null, status starts at `DRAFT`).
 
-**Authentication and authorization** — Only an authenticated user with the `PILOT` role may invoke this use case (AC080.1). This is enforced at the controller boundary via `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT)`.
-
 The main classes identified are:
 
 | Class | Type | Responsibility |
