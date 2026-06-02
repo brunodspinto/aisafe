@@ -218,7 +218,7 @@ void ensureUnauthorizedUserCannotImport() throws Exception {
         "PT-N,IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0"
     );
 
-    assertThrows(IllegalStateException.class,
+    assertThrows(UnauthorizedException.class,
             () -> controller.importWeatherData(csv.toString()));
 }
 ```
@@ -256,7 +256,7 @@ void ensureImportResultContainsCountAndFailureReasons() throws Exception {
         "area_code,provider,format,date,temperature,windSpeed,windDirection,pressure,visibility",
         "PT-N,IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0",
         "UNKNOWN,IPMA,CSV,2025-05-14T11:00:00,21.0,12.0,NE,1012.0,9.0",
-        "PT-N,IPMA,CSV,BAD-DATE,21.0,12.0,NE,1012.0,9.0"
+        "PT-N,IPMA,CSV,2025-05-14T12:00:00,21.0,12.0,INVALID,1012.0,9.0"  // invalid wind direction
     );
 
     final ImportResult result = controller.importWeatherData(csv.toString());

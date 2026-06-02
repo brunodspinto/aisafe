@@ -8,6 +8,7 @@ import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+import eapli.framework.infrastructure.authz.application.exceptions.UnauthorizedException;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import eapli.framework.infrastructure.authz.domain.model.Username;
@@ -125,7 +126,7 @@ class ImportBulkWeatherDataControllerTest {
                 HEADER,
                 "PT-N,IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0");
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(UnauthorizedException.class,
                 () -> controller.importWeatherData(csv.toString()));
     }
 
@@ -156,7 +157,7 @@ class ImportBulkWeatherDataControllerTest {
                 HEADER,
                 "PT-N,IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0",
                 "UNKNOWN,IPMA,CSV,2025-05-14T11:00:00,21.0,12.0,NE,1012.0,9.0",
-                "PT-N,IPMA,CSV,BAD-DATE,21.0,12.0,NE,1012.0,9.0");
+                "PT-N,IPMA,CSV,2025-05-14T12:00:00,21.0,12.0,INVALID,1012.0,9.0"); // invalid wind direction
 
         final ImportResult result = controller.importWeatherData(csv.toString());
 
