@@ -64,13 +64,42 @@ Location: `src/test/java/aisafe/flightroute/domain/RouteNameTest.java`
 - **AC073.1** (route references two registered airports): `ensureOriginAirportCannotBeNull`, `ensureDestinationAirportCannotBeNull`
 - **AC073.2** (origin and destination must be different): `ensureOriginAndDestinationCannotBeTheSame`
 - **AC073.3** (route name format `[A-Z]{2}[0-9]{1,4}`): `ensureValidRouteNameIsAccepted`, `ensureMinimumValidRouteNameIsAccepted`, `ensureMaximumValidRouteNameIsAccepted`, `ensureRouteNameWithOnlyOneLetterIsRejected`, `ensureRouteNameWithMoreThanTwoLettersIsRejected`, `ensureRouteNameWithNoDigitsIsRejected`, `ensureRouteNameWithMoreThanFourDigitsIsRejected`, `ensureRouteNameWithLowercaseLettersIsRejected`, `ensureRouteNameWithSpecialCharactersIsRejected`
-- **AC073.4** (route name must be unique): uniqueness enforced by controller pre-check and `@UniqueConstraint` on `T_FLIGHT_ROUTE.route_name`
-- **AC073.5** (only ATCC may perform this action): authorization enforced by `CreateFlightRouteController` via `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`; validated manually
-- **AC073.6** (company derived from session): company resolved automatically in `authenticatedCollaboratorCompany()`; validated manually
+- **AC073.4** (route name must be unique): `ensureCreateFlightRouteThrowsForDuplicateRouteName` (controller integration test); also enforced at DB level by `@UniqueConstraint` on `T_FLIGHT_ROUTE.route_name`
+- **AC073.5** (only ATCC may perform this action): `ensureAllAirportsThrowsWhenWrongRole`, `ensureCreateFlightRouteThrowsWhenWrongRole`, `ensureAllAirportsThrowsWhenNotAuthenticated`, `ensureCreateFlightRouteThrowsWhenNotAuthenticated` (controller integration tests)
+- **AC073.6** (company derived from session): `ensureRouteIsAssociatedWithAuthenticatedCollaboratorsCompany` (controller integration test)
 - **Status starts as ACTIVE**: `ensureStatusStartsAsActive`, `ensureIsActiveReturnsTrueForNewRoute`
 - **Identity and value semantics**: `ensureIdentityReturnsRouteName`, `ensureTwoRoutesWithSameNameAreEqual`, `ensureTwoRoutesWithDifferentNamesAreNotEqual`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureHashCodeIsConsistentWithEquals`, `ensureSameAsReturnsTrueForEqualRoutes`, `ensureToStringContainsRouteName`
 
-Total: **16 domain tests** (`FlightRouteTest`) + **19 domain tests** (`RouteNameTest`) = **35 automated tests**, all passing.
+### `CreateFlightRouteControllerTest`
+
+Location: `src/test/java/aisafe/flightroute/application/CreateFlightRouteControllerTest.java`
+
+**Authorization — no session:**
+- `ensureAllAirportsThrowsWhenNotAuthenticated`
+- `ensureCreateFlightRouteThrowsWhenNotAuthenticated`
+
+**Authorization — wrong role:**
+- `ensureAllAirportsThrowsWhenWrongRole`
+- `ensureCreateFlightRouteThrowsWhenWrongRole`
+
+**allAirports():**
+- `ensureAllAirportsReturnsAtLeastTheSeededAirports`
+
+**createFlightRoute() — happy path:**
+- `ensureCreateFlightRouteReturnsPersistedRoute`
+- `ensureCreatedRouteIsPersisted`
+- `ensureCreateFlightRouteWithWhitespacePaddedInputsSucceeds`
+- `ensureRouteIsAssociatedWithAuthenticatedCollaboratorsCompany`
+- `ensureMultipleRoutesCanBeCreatedForSameCompany`
+
+**createFlightRoute() — validation:**
+- `ensureCreateFlightRouteThrowsForDuplicateRouteName`
+- `ensureCreateFlightRouteThrowsForUnknownOriginAirport`
+- `ensureCreateFlightRouteThrowsForUnknownDestinationAirport`
+- `ensureCreateFlightRouteThrowsForSameOriginAndDestination`
+- `ensureCreateFlightRouteThrowsForInvalidRouteName`
+
+Total: **16 domain tests** (`FlightRouteTest`) + **19 domain tests** (`RouteNameTest`) + **15 integration tests** (`CreateFlightRouteControllerTest`) = **50 automated tests**, all passing.
 
 ---
 

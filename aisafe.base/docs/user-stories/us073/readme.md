@@ -95,7 +95,9 @@ The following class diagram shows the classes involved:
 
 ### 4.2. Acceptance Tests
 
-All tests are automated with JUnit 5 and located in `src/test/java/aisafe/flightroute/domain/`.
+All tests are automated with JUnit 5:
+- Domain unit tests: `src/test/java/aisafe/flightroute/domain/`
+- Integration tests: `src/test/java/aisafe/flightroute/application/`
 
 ---
 
@@ -194,21 +196,16 @@ void ensureRouteNameWithMoreThanFourDigitsIsRejected() {
 
 **AC073.4 — Route name must be unique**
 
-Route name uniqueness is enforced at the controller level via repository pre-check and at the database level via unique constraint. Validated through manual integration testing:
-
-1. Register a route with name `TP123`.
-2. Attempt to register a second route with the same name `TP123`.
-3. Expected: the system rejects the operation with a uniqueness violation message.
+Validated by automated integration test `ensureCreateFlightRouteThrowsForDuplicateRouteName` in `CreateFlightRouteControllerTest`. Also enforced at the database level by `@UniqueConstraint` on `T_FLIGHT_ROUTE.route_name`.
 
 ---
 
 **AC073.5 / AC073.6 — Authorization and company binding**
 
-Authorization is enforced by the controller via EAPLI's authorization framework. The company is resolved automatically from the authenticated session. Validated through manual integration testing:
-
-1. Login as an ATCC of company `TP`.
-2. Navigate to **Flight Routes > Create Flight Route**.
-3. Expected: the route is created and associated with company `TP` automatically.
+Validated by automated integration tests in `CreateFlightRouteControllerTest`:
+- `ensureAllAirportsThrowsWhenNotAuthenticated` / `ensureCreateFlightRouteThrowsWhenNotAuthenticated` — no session
+- `ensureAllAirportsThrowsWhenWrongRole` / `ensureCreateFlightRouteThrowsWhenWrongRole` — wrong role
+- `ensureRouteIsAssociatedWithAuthenticatedCollaboratorsCompany` — company derived from session
 
 ---
 
@@ -282,7 +279,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 Airport references are stored as `AirportIATACode` value objects — not as `@ManyToOne Airport` references. This keeps Low Coupling between `FlightRoute` and `Airport` aggregates.
 
-The test suite comprises **16 tests** for `FlightRoute` and **19 tests** for `RouteName` — **35 automated tests in total**, all passing. Total project test suite: **518 tests, 0 failures**.
+The test suite comprises **16 tests** for `FlightRoute`, **19 tests** for `RouteName`, and **15 integration tests** for `CreateFlightRouteController` — **50 automated tests in total**, all passing.
 
 ---
 

@@ -119,23 +119,17 @@ else route name is unique
             UI --> ATCC : displays error (destination airport not found)
         else destination airport found
 
-            alt origin equals destination
-                CTRL --> UI : throws IllegalArgumentException
-                UI --> ATCC : displays error (origin and destination must be different)
-            else origin and destination are different
+            CTRL -> ROUTE** : create(routeName, originCode, destinationCode, company.identity())
 
-                CTRL -> ROUTE** : create(routeName, originCode, destinationCode, company.identity())
+            CTRL -> ROUTE_REPO : save(newRoute)
+            activate ROUTE_REPO
+            ROUTE_REPO --> CTRL : savedRoute
+            deactivate ROUTE_REPO
 
-                CTRL -> ROUTE_REPO : save(newRoute)
-                activate ROUTE_REPO
-                ROUTE_REPO --> CTRL : savedRoute
-                deactivate ROUTE_REPO
+            CTRL --> UI : savedRoute
+            deactivate CTRL
 
-                CTRL --> UI : savedRoute
-                deactivate CTRL
-
-                UI --> ATCC : displays operation success message
-            end
+            UI --> ATCC : displays operation success message
         end
     end
 end
