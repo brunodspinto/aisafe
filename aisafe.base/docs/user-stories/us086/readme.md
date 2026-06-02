@@ -176,7 +176,7 @@ The following class diagram shows the classes involved:
 
 ### 4.2. Acceptance Tests
 
-*To be completed in the next commit.*
+All manual acceptance test scripts are documented in [tests.md](tests.md).
 
 ## 5. Implementation
 
