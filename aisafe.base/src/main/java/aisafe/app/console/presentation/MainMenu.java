@@ -9,6 +9,7 @@ import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
+import aisafe.app.console.presentation.flightplan.CreateFlightPlanUI;
 import aisafe.app.console.presentation.airport.RegisterAirportUI;
 import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import aisafe.app.console.presentation.maker.RegisterMakerUI;
@@ -151,7 +152,8 @@ public class MainMenu extends AbstractUI {
 
     private Menu buildFlightPlanMenu() {
         final var menu = new Menu("Flight Plans >");
-        menu.addItem(1, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
+        menu.addItem(1, "Create Flight Plan", new CreateFlightPlanUI()::show);
+        menu.addItem(2, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

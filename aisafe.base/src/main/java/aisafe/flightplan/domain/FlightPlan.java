@@ -1,10 +1,14 @@
 package aisafe.flightplan.domain;
 
+import aisafe.aircraft.domain.RegistrationNumber;
 import aisafe.dsl.ast.FlightPlanAst;
 import aisafe.dsl.ast.FlightType;
+import aisafe.flightroute.domain.RouteName;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
+import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +16,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+
+import java.time.LocalDateTime;
 
 
 /**
@@ -40,6 +46,24 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
     @Lob
     @Column(columnDefinition = "TEXT")
     private String dslContent;
+
+    @Embedded
+    @AttributeOverride(name = "name", column = @Column(name = "route_name"))
+    private RouteName routeName;
+
+    @Embedded
+    @AttributeOverride(name = "value", column = @Column(name = "aircraft_registration"))
+    private RegistrationNumber aircraftRegistration;
+
+    @Column(name = "assigned_pilot_id")
+    private Long assignedPilotId;
+
+    @Column(name = "departure_date_time")
+    private LocalDateTime departureDateTime;
+
+    @Embedded
+    @AttributeOverride(name = "amount", column = @Column(name = "fuel_quantity"))
+    private FuelQuantity fuelQuantity;
 
     /**
      * Protected constructor required by JPA.
@@ -83,9 +107,83 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
         );
     }
 
+    /**
+     * Creates a new FlightPlan from form input (US080).
+     * The plan references its route, aircraft and pilot by identity, and starts in DRAFT status.
+     * The {@code dslContent} is null for form-based plans.
+     *
+     * @param designator           the unique flight plan designator (non-null)
+     * @param flightType           the flight type (non-null)
+     * @param routeName            the route this plan is for (non-null)
+     * @param aircraftRegistration the assigned aircraft's registration (non-null)
+     * @param assignedPilotId      the assigned pilot's identity (non-null)
+     * @param departureDateTime    the planned departure date/time (non-null, must be in the future)
+     * @param fuelQuantity         the planned fuel quantity (non-null, strictly positive)
+     * @throws IllegalArgumentException if any argument is null or the departure is not in the future
+     */
+    public FlightPlan(final FlightPlanDesignator designator,
+                      final FlightType flightType,
+                      final RouteName routeName,
+                      final RegistrationNumber aircraftRegistration,
+                      final Long assignedPilotId,
+                      final LocalDateTime departureDateTime,
+                      final FuelQuantity fuelQuantity) {
+        if (designator == null)
+            throw new IllegalArgumentException("Flight plan designator cannot be null or empty.");
+        if (flightType == null)
+            throw new IllegalArgumentException("Flight type cannot be null.");
+        if (routeName == null)
+            throw new IllegalArgumentException("Flight route cannot be null.");
+        if (aircraftRegistration == null)
+            throw new IllegalArgumentException("Aircraft cannot be null.");
+        if (assignedPilotId == null)
+            throw new IllegalArgumentException("Assigned pilot cannot be null.");
+        if (departureDateTime == null)
+            throw new IllegalArgumentException("Departure date/time cannot be null.");
+        if (departureDateTime.isBefore(LocalDateTime.now()))
+            throw new IllegalArgumentException("Departure date/time must be in the future.");
+        if (fuelQuantity == null)
+            throw new IllegalArgumentException("Fuel quantity cannot be null.");
+
+        this.designator = designator;
+        this.flightType = flightType;
+        this.routeName = routeName;
+        this.aircraftRegistration = aircraftRegistration;
+        this.assignedPilotId = assignedPilotId;
+        this.departureDateTime = departureDateTime;
+        this.fuelQuantity = fuelQuantity;
+        this.status = FlightPlanStatus.DRAFT;
+        this.dslContent = null;
+    }
+
     /** @return unique flight plan designator string (always upper-case) */
     public String designator() {
         return designator.toString();
+    }
+
+    /** @return the route name this plan is for, or {@code null} for DSL-imported plans */
+    public RouteName routeName() {
+        return routeName;
+    }
+
+    /** @return the assigned aircraft's registration, or {@code null} for DSL-imported plans */
+    public RegistrationNumber aircraftRegistration() {
+        return aircraftRegistration;
+    }
+
+    /** @return the assigned pilot's identity, or {@code null} for DSL-imported plans */
+    public Long assignedPilotId() {
+        return assignedPilotId;
+    }
+
+    /** @return the planned departure date/time, or {@code null} for DSL-imported plans */
+    public LocalDateTime departureDateTime() {
+        return departureDateTime;
+    }
+
+    /** @return the planned fuel quantity, or {@code null} for DSL-imported plans */
+    public FuelQuantity fuelQuantity() {
+        return fuelQuantity;
     }
 
     /** @return flight type classification */
