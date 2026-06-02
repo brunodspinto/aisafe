@@ -26,20 +26,22 @@ Test: Unit tests for `FlightPlan` domain invariants (above 90% coverage) and man
 
 - **AC080.1** Only an authenticated user with the `PILOT` role may register a flight plan.
 - **AC080.2** The flight plan must reference an existing `FlightRoute` already registered in the system.
-- **AC080.3** The pilot assigned to the flight plan must belong to the company of the flight route — i.e. `pilot.companyIataCode()` must equal `flightRoute.companyIataCode()`. *(Literal rule from the enunciado.)*
+- **AC080.3** The pilot assigned to the flight plan must belong to the company of the flight route — i.e. `pilot.companyIataCode()` must equal `flightRoute.companyIataCode()`.
 - **AC080.4** The aircraft referenced in the flight plan must already exist in the system.
 - **AC080.5** The fuel quantity must be strictly positive.
 - **AC080.6** The departure date/time must be in the future (it is not allowed to plan a flight in the past).
 - **AC080.7** The flight plan is created with status `DRAFT`.
-- **AC080.8** The flight plan has a unique identifier (`FlightPlanDesignator`).
-- **AC080.9** The aircraft assigned to the flight plan must belong to the company of the flight route. *(Derived rule — a route is operated by one company's fleet; not explicitly stated in the enunciado but follows from the domain.)*
-- **AC080.10** The aircraft must be in `ACTIVE` operational status (not `DECOMMISSIONED`). *(Derived rule — by analogy with US071, a decommissioned aircraft cannot be assigned to new flight plans.)*
+- **AC080.8** The flight plan has a unique identifier. *(The specific identifier scheme — e.g. flight designator format `xxNNNN` — is deferred to the Analysis phase.)*
+- **AC080.9** The aircraft assigned to the flight plan must belong to the company of the flight route.
+- **AC080.10** The aircraft must be in `ACTIVE` operational status (not `DECOMMISSIONED`).
 
 **Notes on interpretation:**
 
-The enunciado does not provide an explicit "Acceptance Criteria" section for US080. The criteria above are derived from the user story statement and from the system specifications (sections 3.2 and 3.4 of the requirements document). Criteria literally stated in the enunciado are marked as *Literal*; criteria reasoned from the domain are marked as *Derived*.
+The enunciado does not provide an explicit "Acceptance Criteria" section for US080. The criteria above are derived from the user story statement and from the system specifications (sections 3.2 and 3.4 of the requirements document).
 
-The user story is read with the interpretation that the **authenticated pilot is the pilot assigned to the flight plan** — the "I" of "I must add … pilot" is the authenticated user. The UI does not ask the operator to select a pilot from a list; the pilot of the plan is implicitly the session user. This is the most direct reading of "As a Pilot, I want to register a flight plan" and keeps the use case simple. The remaining inputs the pilot must provide are therefore: **flight route, aircraft, departure date/time, fuel quantity**.
+The user story is read with the interpretation that the **assigned pilot is an explicit input**, chosen by the authenticated pilot from the active pilots of the route's company. The "pilot" listed alongside "aircraft, departure date/time, fuel quantity" is a field that the operator must provide. The rule *"The pilot must be of the route's company"* (literally stated in the enunciado) only makes sense if the pilot is an actual choice — otherwise it would be trivially satisfied and there would be no need to mention it. Under this reading the use case supports both self-assignment (the authenticated pilot selects themselves) and assignment of another pilot of the same company (e.g. a senior pilot scheduling a flight plan for a colleague), provided the AC080.3 constraint holds.
+
+The full set of inputs the operator must provide is therefore: **flight route, aircraft, departure date/time, fuel quantity, assigned pilot**.
 
 **Dependencies/References:**
 
