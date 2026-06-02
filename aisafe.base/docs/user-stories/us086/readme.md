@@ -176,16 +176,180 @@ The following class diagram shows the classes involved:
 
 ### 4.2. Acceptance Tests
 
-All manual acceptance test scripts are documented in [tests.md](tests.md).
+Automated tests are split into two classes, both in `src/test/java/aisafe/tcpserver/pilot/`:
+
+- `PilotSessionHandlerTest` — **unit tests** using in-memory streams (`StringReader` / `StringWriter`), no socket or EAPLI context required.
+- `PilotSessionHandlerIT` — **implementation tests** using a real loopback `ServerSocket`, verifying the protocol over actual TCP I/O.
+
+Manual integration tests are documented in [tests.md](tests.md).
+
+---
+
+**AC086.1 — EXIT command returns BYE**
+
+**Test:** `ensureExitCommandReturnsBye`
+
+```java
+@Test
+void ensureExitCommandReturnsBye() throws IOException {
+    final String response = runSession("EXIT");
+    assertEquals("BYE", response);
+}
+```
+
+---
+
+**AC086.1 — Unknown command returns UNKNOWN_COMMAND**
+
+**Test:** `ensureUnknownCommandReturnsUnknownCommand`
+
+```java
+@Test
+void ensureUnknownCommandReturnsUnknownCommand() throws IOException {
+    final String response = runSession("HELLO\nEXIT");
+    assertTrue(response.contains("UNKNOWN_COMMAND"));
+}
+```
+
+**Test:** `ensureMultipleUnknownCommandsAreEachRejected`
+
+```java
+@Test
+void ensureMultipleUnknownCommandsAreEachRejected() throws IOException {
+    final String response = runSession("FOO\nBAR\nEXIT");
+    assertEquals(2, response.lines().filter(l -> l.equals("UNKNOWN_COMMAND")).count());
+}
+```
+
+---
+
+**AC086.3 — CREATE_FLIGHT_PLAN with missing or invalid byte length returns ERROR**
+
+**Test:** `ensureCreateFlightPlanWithoutByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithoutByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithInvalidByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN abc\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithNegativeByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithNegativeByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN -10\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+---
+
+**AC086.4 + AC086.1 — Successful authentication as Pilot (manual)**
+
+1. Run `./run-pilot-client.sh`, enter `localhost` / `9999` / `pilot1` / `Password1`.
+2. Expected: server responds `OK` and the Pilot menu is displayed.
+
+---
+
+**AC086.4 — Authentication failure — wrong password (manual)**
+
+1. Run `./run-pilot-client.sh` and enter credentials `pilot1` / `wrongpassword`.
+2. Expected: client displays `Authentication failed.` and terminates.
+
+---
+
+**AC086.4 — Authorization failure — non-Pilot user (manual)**
+
+1. Run `./run-pilot-client.sh` and enter credentials `atcc1` / `Password1`.
+2. Expected: client displays `Authentication failed.` and terminates (server responded `UNAUTHORIZED`).
+
+---
+
+**AC086.3 — CREATE_FLIGHT_PLAN with valid DSL (manual)**
+
+1. Authenticate as `pilot1`, select option `1`, provide `src/test/resources/dsl/valid/01_single_leg_regular.dsl`.
+2. Expected: client displays `Flight plan created: TP123`.
 
 ## 5. Implementation
 
-*To be completed in the next commit.*
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.tcpserver` | `AiSafeTcpServer` | Opens `ServerSocket` on port 9999; accepts connections; spawns `TcpClientDispatcher` daemon threads |
+| `aisafe.tcpserver` | `TcpClientDispatcher` | Handles one connection: reads `LOGIN`, authenticates via `AuthenticationContext`, checks `PILOT` role, delegates to `PilotSessionHandler` |
+| `aisafe.tcpserver.pilot` | `PilotSessionHandler` | Command loop: `CREATE_FLIGHT_PLAN`, `EXIT`, `UNKNOWN_COMMAND` |
+| `aisafe.app.pilot` | `PilotTcpClient` | Client-side TCP communication: `login()`, `createFlightPlanFromFile()`, `exit()` |
+| `aisafe.app.pilot` | `PilotTcpClientApp` | Standalone client entry point; interactive Pilot menu |
+| `aisafe.app.console` | `AiSafeConsoleApp` | Modified to start `AiSafeTcpServer` in a daemon thread before the console menu |
+| `aisafe.app.console` | `AiSafeBootstrap` | Modified to create `pilot1 / Password1` (role `PILOT`, company TAP, certified for Boeing 737-800) |
+
+The `CREATE_FLIGHT_PLAN` command is handled by writing the received DSL content to a temporary file and delegating to the existing `CreateFlightPlanFromFileController.createFromFile(path)`. The temp file is deleted after the controller returns, regardless of outcome:
+
+```java
+tempFile = Files.createTempFile("aisafe-dsl-", ".dsl");
+Files.writeString(tempFile, dslContent);
+final var flightPlan = new CreateFlightPlanFromFileController().createFromFile(tempFile.toString());
+out.println("OK " + flightPlan.identity());
+```
+
+---
 
 ## 6. Integration/Demonstration
 
-*To be completed in the next commit.*
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap creates `pilot1 / Password1` automatically on first run.
+
+**Start the server:**
+
+1. Run `AiSafeConsoleApp` — the TCP server starts on port 9999 automatically.
+
+**Connect and authenticate:**
+
+2. Run `PilotTcpClientApp` in a separate terminal.
+3. Enter host `localhost` and port `9999`.
+4. Enter credentials `pilot1` / `Password1`.
+5. The server responds `OK` and the Pilot menu is displayed:
+   ```
+   === Pilot Remote Menu ===
+   1. Create Flight Plan from DSL File
+   0. Exit
+   ```
+
+**Create a flight plan:**
+
+6. Select option `1` and provide the path to a valid DSL file, e.g.:
+   ```
+   DSL file path: /tmp/test.dsl
+   ```
+7. The server validates and persists the flight plan and responds:
+   ```
+   Flight plan created: TP800
+   ```
+
+**Authentication failure scenario:**
+
+- Attempt login with wrong credentials → server responds `FAIL invalid credentials` and closes.
+- Attempt login with a non-Pilot account → server responds `UNAUTHORIZED` and closes.
+
+---
 
 ## 7. Observations
 
-*To be completed in the next commit.*
+- The TCP server is shared across US044, US078, and US086. Each role dispatches to a dedicated session handler (`PilotSessionHandler` for US086), keeping role-specific command logic isolated and making it straightforward to add handlers for other roles in future sprints.
+- The `TcpClientDispatcher` always calls `AuthenticationContext.clear()` in a `finally` block to ensure the EAPLI session is released even if the connection is closed unexpectedly. EAPLI's authentication context is thread-local, so concurrent sessions do not interfere with each other.
+- The temporary-file approach for DSL transfer reuses `CreateFlightPlanFromFileController` without any modification — the full 4-stage validation pipeline (lexical → syntactic → range → semantic) is exercised server-side exactly as it is in the console UI.
+- `PilotTcpClientApp` is a standalone application with its own `main` method. It has no dependency on any JPA or repository class — all persistence is performed exclusively server-side (AC086.2).
+- US082 (Insert weather data) and US085 (Test/validate a flight plan) are not yet implemented in Sprint 3 and are therefore not exposed by `PilotSessionHandler`. The command loop returns `UNKNOWN_COMMAND` for any unrecognised input, so the server behaves safely even if a client sends unsupported commands.

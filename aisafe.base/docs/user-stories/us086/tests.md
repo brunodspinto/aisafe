@@ -2,93 +2,210 @@
 
 ## Scope
 
-US086 covers remote access to the AISafe system by a Pilot via a dedicated TCP client application. The tests verify the TCP protocol (authentication and command execution), role-based access control, and the end-to-end flow of the `CREATE_FLIGHT_PLAN` command.
+US086 covers remote access to the AISafe system by a Pilot via a dedicated TCP client application. The tests verify the TCP protocol (command dispatch, error handling), role-based access control, and the end-to-end flow of the `CREATE_FLIGHT_PLAN` command.
+
+---
 
 ## Automated Tests
 
-US086 introduces no new domain classes — the TCP server and dispatcher are infrastructure components whose behaviour is validated through manual integration testing. Domain-level flight plan creation (parsing, validation, persistence) is covered by the automated test suite of US081.
+### `PilotSessionHandlerTest`
+
+Location: `src/test/java/aisafe/tcpserver/pilot/PilotSessionHandlerTest.java`
+
+Uses in-memory streams (`StringReader` / `StringWriter`) to test the command loop without a real socket, server, or EAPLI authentication context.
+
+**Test:** `ensureExitCommandReturnsBye`
+
+```java
+@Test
+void ensureExitCommandReturnsBye() throws IOException {
+    final String response = runSession("EXIT");
+    assertEquals("BYE", response);
+}
+```
+
+**Test:** `ensureUnknownCommandReturnsUnknownCommand`
+
+```java
+@Test
+void ensureUnknownCommandReturnsUnknownCommand() throws IOException {
+    final String response = runSession("HELLO\nEXIT");
+    assertTrue(response.contains("UNKNOWN_COMMAND"));
+}
+```
+
+**Test:** `ensureMultipleUnknownCommandsAreEachRejected`
+
+```java
+@Test
+void ensureMultipleUnknownCommandsAreEachRejected() throws IOException {
+    final String response = runSession("FOO\nBAR\nEXIT");
+    assertEquals(2, response.lines().filter(l -> l.equals("UNKNOWN_COMMAND")).count());
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithoutByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithoutByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithInvalidByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN abc\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithNegativeByteLengthReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithNegativeByteLengthReturnsError() throws IOException {
+    final String response = runSession("CREATE_FLIGHT_PLAN -10\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureSessionHandlesUnknownCommandBeforeExit`
+
+```java
+@Test
+void ensureSessionHandlesUnknownCommandBeforeExit() throws IOException {
+    final String response = runSession("UNKNOWN\nEXIT");
+    assertTrue(response.contains("UNKNOWN_COMMAND"));
+    assertTrue(response.contains("BYE"));
+}
+```
+
+---
+
+### `PilotSessionHandlerIT`
+
+Location: `src/test/java/aisafe/tcpserver/pilot/PilotSessionHandlerIT.java`
+
+Implementation tests that exercise `PilotSessionHandler` over a real loopback TCP socket. A `ServerSocket` on a random port is started in `@BeforeEach` and torn down in `@AfterEach`. These tests verify that the protocol behaves correctly over actual network I/O.
+
+**Test:** `ensureExitOverRealSocketReturnsBye`
+
+```java
+@Test
+void ensureExitOverRealSocketReturnsBye() throws Exception {
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+**Test:** `ensureUnknownCommandOverRealSocketReturnsUnknownCommand`
+
+```java
+@Test
+void ensureUnknownCommandOverRealSocketReturnsUnknownCommand() throws Exception {
+    clientOut.println("HELLO");
+    assertEquals("UNKNOWN_COMMAND", clientIn.readLine());
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithInvalidLengthOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithInvalidLengthOverRealSocketReturnsError() throws Exception {
+    clientOut.println("CREATE_FLIGHT_PLAN abc");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+}
+```
+
+**Test:** `ensureCreateFlightPlanWithNegativeLengthOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureCreateFlightPlanWithNegativeLengthOverRealSocketReturnsError() throws Exception {
+    clientOut.println("CREATE_FLIGHT_PLAN -1");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+}
+```
+
+**Test:** `ensureMultipleCommandsOverRealSocketAreHandledInSequence`
+
+```java
+@Test
+void ensureMultipleCommandsOverRealSocketAreHandledInSequence() throws Exception {
+    clientOut.println("FOO");
+    assertEquals("UNKNOWN_COMMAND", clientIn.readLine());
+    clientOut.println("BAR");
+    assertEquals("UNKNOWN_COMMAND", clientIn.readLine());
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
 
 ---
 
 ## Coverage by Acceptance Criterion
 
-- **AC086.1** (TCP client required): Manual test — connect `PilotTcpClientApp` to `AiSafeTcpServer`; verify the session is established and commands are exchanged over the TCP connection.
-- **AC086.2** (no direct DB access from client): Structural — `PilotTcpClientApp` holds no reference to any JPA/repository class; all persistence is performed server-side by `CreateFlightPlanFromFileController`. Verified by code inspection.
-- **AC086.3** (all Pilot USs available remotely): Manual test — `CREATE_FLIGHT_PLAN` command is exposed for US081. US082 and US085 are not yet implemented in Sprint 3 and are therefore not exposed.
-- **AC086.4** (authentication and authorization enforced): Manual tests — invalid credentials receive `FAIL`; a user without the `PILOT` role receives `UNAUTHORIZED`; only an authenticated Pilot may execute commands.
+- **AC086.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
+- **AC086.2** (no direct DB access from client): structural — `PilotTcpClientApp` has only JDK imports; verified by code inspection
+- **AC086.3** (Pilot USs available remotely): `ensureCreateFlightPlanWithoutByteLengthReturnsError`, `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`, `ensureCreateFlightPlanWithNegativeByteLengthReturnsError` + manual test (valid DSL flow)
+- **AC086.4** (authentication and authorization): manual tests (wrong password → `FAIL`; non-Pilot role → `UNAUTHORIZED`)
+- **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 
 ---
 
 ## Acceptance Tests
 
-**Prerequisites:** Run `AiSafeConsoleApp` (the TCP server starts on port 9999 at boot). At least one Pilot user must exist — use `pilot1 / Password1` created by the bootstrap. A valid DSL file must be available locally.
+**Prerequisites:** `AiSafeConsoleApp` running (TCP server on port 9999) and `pilot1 / Password1` created by the bootstrap. Run the client with `./run-pilot-client.sh`.
 
 ---
 
-**Manual test — AC086.4 / AC086.1 (successful authentication):**
+**AC086.1 + AC086.4 — Successful authentication as Pilot**
 
-1. Start `PilotTcpClientApp`, enter host `localhost` and port `9999`.
+1. Run `./run-pilot-client.sh`, enter host `localhost` and port `9999`.
 2. Enter credentials `pilot1` / `Password1`.
-3. Expected: server responds `OK` and the client displays the Pilot menu.
+3. Expected: server responds `OK` and the Pilot menu is displayed.
 
 ---
 
-**Manual test — AC086.4 (authentication failure — wrong password):**
+**AC086.4 — Authentication failure (wrong password)**
 
-1. Start `PilotTcpClientApp` and attempt login with `pilot1` / `wrongpassword`.
-2. Expected: server responds `FAIL invalid credentials` and the connection is closed.
-
----
-
-**Manual test — AC086.4 (authorization failure — non-Pilot user):**
-
-1. Start `PilotTcpClientApp` and attempt login with a Backoffice Operator user (e.g., `backoffice1` / `Password1`).
-2. Expected: server responds `UNAUTHORIZED` and the connection is closed.
+1. Run `./run-pilot-client.sh` and enter credentials `pilot1` / `wrongpassword`.
+2. Expected: client displays `Authentication failed.` and terminates.
 
 ---
 
-**Manual test — AC086.3 / AC086.1 (CREATE_FLIGHT_PLAN — valid DSL):**
+**AC086.4 — Authorization failure (non-Pilot user)**
+
+1. Run `./run-pilot-client.sh` and enter credentials `atcc1` / `Password1`.
+2. Expected: client displays `Authentication failed.` and terminates (server responded `UNAUTHORIZED`).
+
+---
+
+**AC086.3 + AC086.1 — CREATE_FLIGHT_PLAN with valid DSL**
 
 1. Authenticate as `pilot1`.
-2. Select "Create Flight Plan from DSL File" and provide the path to a valid DSL file, e.g.:
-   ```
-   FLIGHT TP800 TYPE REGULAR {
-     LEG {
-       DEPARTURE: OPO 2026-07-04 08:00;
-       ARRIVAL: MAD 2026-07-04 09:30;
-       ROUTE: OPO -> MAD;
-       SEGMENT {
-         START: (+41.15, -8.61);
-         END: (+40.49, -3.56);
-         ALTITUDE: 35000 FT WIDTH: 5 KM;
-         WIND: (270, 30 KNOT);
-       }
-       FUEL: 6000 KG;
-     }
-   }
-   ```
-3. Expected: server responds `OK TP800` and the client displays the designator.
+2. Select option `1` and provide the path `src/test/resources/dsl/valid/01_single_leg_regular.dsl`.
+3. Expected: client displays `Flight plan created: TP123`.
 
 ---
 
-**Manual test — AC086.3 (CREATE_FLIGHT_PLAN — invalid DSL):**
+**AC086.3 — CREATE_FLIGHT_PLAN with invalid DSL**
 
 1. Authenticate as `pilot1`.
-2. Select "Create Flight Plan from DSL File" and provide a file with a syntax error (e.g., missing semicolon after a field).
-3. Expected: server responds `ERROR` with a description of the parse error; no flight plan is persisted.
+2. Select option `1` and provide a file with invalid DSL content.
+3. Expected: client displays `Failed: ERROR <parse error description>`; no flight plan is persisted.
 
 ---
 
-**Manual test — AC086.1 (unknown command):**
+**AC086.1 — EXIT command**
 
-1. Using `telnet localhost 9999`, authenticate as `pilot1`.
-2. Send an unrecognised command, e.g. `HELLO`.
-3. Expected: server responds `UNKNOWN_COMMAND` and the session remains open.
-
----
-
-**Manual test — AC086.1 (EXIT command):**
-
-1. Authenticate as `pilot1`.
-2. Select "Exit" in the client menu.
-3. Expected: server responds `BYE` and both client and server close the connection cleanly.
+1. Authenticate as `pilot1` and select option `0`.
+2. Expected: session terminates cleanly.

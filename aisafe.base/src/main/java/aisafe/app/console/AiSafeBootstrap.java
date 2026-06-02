@@ -52,7 +52,7 @@ public final class AiSafeBootstrap {
         bootstrapAtccUser();
         bootstrapAtccAirEuropa();
         bootstrapAircrafts();
-
+        bootstrapPilotUser();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -505,6 +505,62 @@ public final class AiSafeBootstrap {
         bootstrapAtccUser();
         bootstrapAtccAirEuropa();
         bootstrapAircrafts();
+        bootstrapPilotUser();
+    }
+
+    /** Seeds a Pilot user for US086 remote access testing. */
+    private static void bootstrapPilotUser() {
+        final var checkRepo = PersistenceContext.repositories().systemUsers();
+        final String username = "pilot1";
+
+        if (checkRepo.ofIdentity(
+                eapli.framework.infrastructure.authz.domain.model.Username.valueOf(username)).isPresent()) {
+            System.out.println("Pilot user already exists: " + username);
+            return;
+        }
+
+        final var modelRepo = PersistenceContext.repositories().aircraftModels();
+        final var modelOpt = modelRepo.findByModelNameAndMaker("737-800", "Boeing");
+        if (modelOpt.isEmpty()) {
+            System.out.println("Boeing 737-800 not found — skipping pilot bootstrap.");
+            return;
+        }
+        final Long modelId = modelOpt.get().identity();
+
+        final var tx = PersistenceContext.repositories().newTransactionalContext();
+        final var systemUserRepo = PersistenceContext.repositories().systemUsers(tx);
+        final var userRepo = PersistenceContext.repositories().users(tx);
+        final var pilotRepo = PersistenceContext.repositories().pilots(tx);
+        final var companyRepo = PersistenceContext.repositories().airTransportCompanies(tx);
+
+        tx.beginTransaction();
+
+        final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+        builder.withUsername(username)
+                .withPassword("Password1")
+                .withName("Pilot", "One")
+                .withEmail("pilot1@aisafe.com")
+                .withRoles(AiSafeRoles.PILOT);
+        final var savedSystemUser = systemUserRepo.save(builder.build());
+
+        final var user = new aisafe.usermanagement.domain.User(
+                savedSystemUser,
+                aisafe.usermanagement.domain.MecanographicNumber.valueOf("PLT001"),
+                "930000001",
+                new aisafe.usermanagement.domain.Email("pilot1@aisafe.com"),
+                "Pilot",
+                new aisafe.usermanagement.domain.SecurityClearance(
+                        aisafe.usermanagement.domain.SecurityLevel.GUARDED,
+                        java.time.LocalDate.of(2030, 1, 1)),
+                java.time.LocalDate.of(2025, 1, 1));
+        final var savedUser = userRepo.save(user);
+
+        companyRepo.ofIdentity(IATACode.valueOf("TP")).ifPresent(company -> {
+            pilotRepo.save(new aisafe.pilot.domain.Pilot(savedUser, company.identity(), java.util.Set.of(modelId)));
+            System.out.println("Pilot created: " + username + " for company TAP, certified for 737-800");
+        });
+
+        tx.commit();
     }
 
     /** Seeds an ATCC user linked to Air Europa (UX) for demo of US070/US072. */

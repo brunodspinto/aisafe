@@ -1,6 +1,7 @@
 package aisafe.app.console;
 
 import aisafe.infrastructure.persistence.PersistenceContext;
+import aisafe.tcpserver.AiSafeTcpServer;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.PreLoginMenu;
@@ -20,6 +21,7 @@ public final class AiSafeConsoleApp {
                 new PlainTextEncoder());
 
         bootstrapAdminIfNeeded();
+        startTcpServer();
 
         System.out.println("=====================================");
         System.out.println("      AISafe Backoffice Console      ");
@@ -30,5 +32,12 @@ public final class AiSafeConsoleApp {
 
     private static void bootstrapAdminIfNeeded() {
         AiSafeBootstrap.runBootstrap();
+    }
+
+    private static void startTcpServer() {
+        final Thread serverThread = new Thread(() -> AiSafeTcpServer.start(9999));
+        serverThread.setDaemon(true);
+        serverThread.setName("tcp-server");
+        serverThread.start();
     }
 }
