@@ -1,0 +1,108 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram - US080 Create a Flight Plan
+
+package "Presentation" {
+    class CreateFlightPlanUI {
+        +doShow()
+        +headline() : String
+    }
+}
+
+package "Application" {
+    class CreateFlightPlanController {
+        -authz: AuthorizationService
+        -pilotRepo: PilotRepository
+        -flightRouteRepo: FlightRouteRepository
+        -aircraftRepo: AircraftRepository
+        -companyRepo: AirTransportCompanyRepository
+        -flightPlanRepo: FlightPlanRepository
+        +availableRoutes() : Iterable<FlightRoute>
+        +availableAircraft() : Iterable<Aircraft>
+        +availablePilots() : Iterable<Pilot>
+        +createFlightPlan(routeName, aircraftRegistration,\nassignedPilotId, flightType, designator,\ndepartureDateTime, fuelAmount) : FlightPlan
+    }
+}
+
+package "Domain" {
+
+    class FlightPlan <<entity, aggregate root>> {
+        -departureDateTime: LocalDateTime
+        -status: FlightPlanStatus
+        -dslContent: String (optional)
+        +FlightPlan(designator, flightType, routeName,\naircraftRegistration, pilotId,\ndepartureDateTime, fuelQuantity)
+        +designator() : String
+        +status() : FlightPlanStatus
+        +markValidated()
+        +markTested()
+    }
+
+    class FlightPlanDesignator <<value object>> {
+        -value: String
+        +{static} valueOf(value: String) : FlightPlanDesignator
+    }
+
+    class FuelQuantity <<value object>> {
+        -amount: double
+        +{static} valueOf(amount: double) : FuelQuantity
+    }
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+
+    class FlightRoute <<entity, aggregate root>> {
+        +companyIataCode() : IATACode
+        +isActive() : boolean
+    }
+
+    class Aircraft <<entity, aggregate root>> {
+        +isActive() : boolean
+    }
+
+    class Pilot <<entity, aggregate root>> {
+        +companyIataCode() : IATACode
+        +isActive() : boolean
+    }
+}
+
+package "Repository" {
+    interface FlightPlanRepository <<interface>> {
+        +save(plan: FlightPlan) : FlightPlan
+        +ofIdentity(designator: FlightPlanDesignator) : Optional<FlightPlan>
+    }
+    interface FlightRouteRepository <<interface>> {
+        +ofIdentity(name: RouteName) : Optional<FlightRoute>
+        +findByCompany(iata: IATACode) : Iterable<FlightRoute>
+    }
+    interface AircraftRepository <<interface>> {
+        +ofIdentity(reg: RegistrationNumber) : Optional<Aircraft>
+    }
+    interface PilotRepository <<interface>> {
+        +ofIdentity(id: Long) : Optional<Pilot>
+        +findBySystemUser(su: SystemUser) : Optional<Pilot>
+        +findByAirTransportCompany(c: AirTransportCompany) : Iterable<Pilot>
+    }
+}
+
+CreateFlightPlanUI ..> CreateFlightPlanController : uses
+CreateFlightPlanController ..> FlightPlanRepository : uses
+CreateFlightPlanController ..> FlightRouteRepository : uses
+CreateFlightPlanController ..> AircraftRepository : uses
+CreateFlightPlanController ..> PilotRepository : uses
+CreateFlightPlanController ..> FlightPlan : creates
+
+FlightPlan *-- FlightPlanDesignator : "identified by"
+FlightPlan *-- FuelQuantity : "has"
+FlightPlan --> FlightPlanStatus : "is in"
+FlightPlan ..> FlightRoute : "for route (by RouteName)"
+FlightPlan ..> Aircraft : "uses (by RegistrationNumber)"
+FlightPlan ..> Pilot : "assigned to (by id)"
+
+@enduml
