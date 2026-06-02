@@ -3,12 +3,14 @@ package aisafe.app.console.presentation;
 import aisafe.app.console.presentation.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.weatherdata.ImportBulkWeatherDataUI;
 import aisafe.app.console.presentation.weatherdata.RegisterWeatherDataUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
 import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
+import aisafe.app.console.presentation.flightplan.CreateFlightPlanUI;
 import aisafe.app.console.presentation.airport.RegisterAirportUI;
 import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import aisafe.app.console.presentation.maker.RegisterMakerUI;
@@ -145,13 +147,15 @@ public class MainMenu extends AbstractUI {
     private Menu buildWeatherMenu() {
         final var menu = new Menu("Weather >");
         menu.addItem(1, "Register Weather Data", new RegisterWeatherDataUI()::show);
+        menu.addItem(2, "Import Bulk Weather Data", new ImportBulkWeatherDataUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
 
     private Menu buildFlightPlanMenu() {
         final var menu = new Menu("Flight Plans >");
-        menu.addItem(1, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
+        menu.addItem(1, "Create Flight Plan", new CreateFlightPlanUI()::show);
+        menu.addItem(2, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

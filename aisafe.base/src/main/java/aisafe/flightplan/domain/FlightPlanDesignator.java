@@ -21,7 +21,13 @@ public class FlightPlanDesignator implements ValueObject, Comparable<FlightPlanD
     public FlightPlanDesignator(final String value) {
         if (value == null || value.isBlank())
             throw new IllegalArgumentException("Flight plan designator cannot be null or empty.");
-        this.value = value.trim().toUpperCase();
+        final String normalized = value.trim().toUpperCase();
+        if (!normalized.matches("[A-Z]{2}[0-9]{1,4}[A-Z]?"))
+            throw new IllegalArgumentException(
+                    "Flight plan designator must follow the format xxN(N)(N)(N)(a) "
+                            + "— 2 uppercase letters, 1 to 4 digits, optional uppercase suffix (e.g. TP1234, TP1234A): "
+                            + value);
+        this.value = normalized;
     }
 
     public static FlightPlanDesignator valueOf(final String value) {
