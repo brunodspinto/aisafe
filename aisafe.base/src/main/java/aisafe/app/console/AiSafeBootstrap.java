@@ -53,6 +53,8 @@ public final class AiSafeBootstrap {
         bootstrapAtccAirEuropa();
         bootstrapAircrafts();
         bootstrapPilotUser();
+        bootstrapFlightRoutes();
+        bootstrapFlightPlans();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -506,6 +508,8 @@ public final class AiSafeBootstrap {
         bootstrapAtccAirEuropa();
         bootstrapAircrafts();
         bootstrapPilotUser();
+        bootstrapFlightRoutes();
+        bootstrapFlightPlans();
     }
 
     /** Seeds a Pilot user for US086 remote access testing. */
@@ -607,6 +611,67 @@ public final class AiSafeBootstrap {
             tx.commit();
         } else {
             System.out.println("ATCC collaborator already exists: " + username);
+        }
+    }
+
+    /**
+     * Seeds sample flight routes for the TAP (TP) fleet so that US074
+     * (Deactivate a Flight Route) can be demonstrated from the console.
+     * <ul>
+     *   <li>{@code TP100} (LIS → OPO): active, no planned flights → can be deactivated.</li>
+     *   <li>{@code TP200} (OPO → LIS): active, has a planned flight → demonstrates AC074.3.</li>
+     * </ul>
+     */
+    private static void bootstrapFlightRoutes() {
+        final var routeRepo = PersistenceContext.repositories().flightRoutes();
+        final aisafe.airtransportcompany.domain.IATACode tap = IATACode.valueOf("TP");
+
+        seedFlightRoute(routeRepo, "TP100", "LIS", "OPO", tap);
+        seedFlightRoute(routeRepo, "TP200", "OPO", "LIS", tap);
+    }
+
+    /** Seeds one flight route if it does not already exist. */
+    private static void seedFlightRoute(
+            final aisafe.flightroute.repositories.FlightRouteRepository repo,
+            final String name, final String origin, final String destination,
+            final aisafe.airtransportcompany.domain.IATACode company) {
+        final aisafe.flightroute.domain.RouteName routeName =
+                new aisafe.flightroute.domain.RouteName(name);
+        if (repo.ofIdentity(routeName).isEmpty()) {
+            repo.save(new aisafe.flightroute.domain.FlightRoute(
+                    routeName,
+                    aisafe.airport.domain.AirportIATACode.valueOf(origin),
+                    aisafe.airport.domain.AirportIATACode.valueOf(destination),
+                    company));
+            System.out.println("Flight route created: " + name + " (" + origin + " -> " + destination + ")");
+        } else {
+            System.out.println("Flight route already exists: " + name);
+        }
+    }
+
+    /**
+     * Seeds a planned flight plan on route {@code TP200} so that the US074
+     * planned-flight rejection rule (AC074.3) can be demonstrated. The departure is
+     * set ~180 days in the future, so deactivating TP200 from a date on or before
+     * that departure is rejected, while a later date is accepted.
+     */
+    private static void bootstrapFlightPlans() {
+        final var planRepo = PersistenceContext.repositories().flightPlans();
+        final aisafe.flightplan.domain.FlightPlanDesignator designator =
+                aisafe.flightplan.domain.FlightPlanDesignator.valueOf("TP2001");
+
+        if (planRepo.ofIdentity(designator).isEmpty()) {
+            planRepo.save(new aisafe.flightplan.domain.FlightPlan(
+                    designator,
+                    aisafe.dsl.ast.FlightType.REGULAR,
+                    new aisafe.flightroute.domain.RouteName("TP200"),
+                    RegistrationNumber.valueOf("CS-TUA"),
+                    1L,
+                    java.time.LocalDateTime.now().plusDays(180),
+                    aisafe.flightplan.domain.FuelQuantity.valueOf(5000)));
+            System.out.println("Flight plan created: TP2001 on route TP200 (planned ~180 days out).");
+        } else {
+            System.out.println("Flight plan already exists: TP2001");
         }
     }
 

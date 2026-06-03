@@ -67,7 +67,7 @@ The following domain model excerpt shows the aggregate structure:
 7. If planned flights are found, the controller returns an error; the UI informs the user that the deactivation was rejected.
 8. If no planned flights exist, the controller calls `flightRoute.deactivate(date)`, which sets `activeUntil = date` and transitions `FlightRouteStatus` to `INACTIVE`.
 9. The updated `FlightRoute` is persisted via `FlightRouteRepository.save(flightRoute)`.
-10. The UI confirms success: `Route '...' deactivated from [date] onwards.`
+10. The UI confirms success: `Route [name] ([origin] -> [destination]) deactivated from [date] onwards.`
 
 The following sequence diagram illustrates the flow:
 
@@ -135,23 +135,24 @@ public boolean hasFlightsAfter(final FlightRoute route, final LocalDate deactiva
 
 1. Login with Air Transport Company Collaborator (ATCC) credentials (e.g., username: `atcc1`, password: `Password1`).
 2. Select **Flight Routes > Deactivate Flight Route** from the main menu.
-3. The system lists the active routes of the ATCC's company, e.g.:
+3. The system lists the active routes of the ATCC's company (each line shows the route name, airports and operating company's IATA code), e.g.:
    ```
-   [1] LIS → OPO  (TAP Air Portugal)  — ACTIVE
-   [2] LIS → CDG  (TAP Air Portugal)  — ACTIVE
+   --- Active Flight Routes ---
+     [1] TP100  LIS -> OPO  (TP)  — ACTIVE
+     [2] TP200  OPO -> LIS  (TP)  — ACTIVE
    ```
 4. Enter the number of the route to deactivate (e.g., `1`).
-5. Enter the deactivation date (e.g., `2025-08-01`).
+5. Enter the deactivation date (e.g., `2026-08-01`).
 6. The system confirms:
    ```
-   Route 'LIS → OPO' deactivated from 2025-08-01 onwards.
+   Route TP100 (LIS -> OPO) deactivated from 2026-08-01 onwards.
    ```
 
 **Rejection scenario:**
 
-- If planned flights exist for `LIS → OPO` on or after `2025-08-01`, the system displays:
+- If planned flights exist for route `TP200` on or after the chosen date (the bootstrap seeds a flight plan `TP2001` on `TP200`), the system displays:
   ```
-  Cannot deactivate: there are planned flights on this route from 2025-08-01 onwards.
+  Cannot deactivate: there are planned flights on this route from 2026-08-01 onwards.
   ```
 
 ---
