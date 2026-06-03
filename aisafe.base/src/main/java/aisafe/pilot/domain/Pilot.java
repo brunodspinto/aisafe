@@ -111,6 +111,17 @@ public class Pilot implements AggregateRoot<Long> {
     /** @return {@code true} if this pilot is active (a newly added pilot is active) */
     public boolean isActive() { return active; }
 
+    /**
+     * Makes this pilot inactive. A pilot that is made inactive cannot be assigned to new flight plans.
+     *
+     * @throws IllegalStateException if the pilot is already inactive
+     */
+    public void deactivate() {
+        if (!active)
+            throw new IllegalStateException("Pilot is already inactive.");
+        active = false;
+    }
+
     @Override
     public Long identity() { return id; }
 

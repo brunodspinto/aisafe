@@ -190,3 +190,56 @@ void ensureDeactivatePilotThrowsWhenPilotBelongsToOtherCompany() {
 ```
 
 ---
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.pilot.domain` | `Pilot` | Aggregate root — `deactivate()` added |
+| `aisafe.flightplan.repositories` | `FlightPlanRepository` | `hasFlightPlanAssignedTo(Long)` added |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightPlanRepository` | In-memory implementation |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightPlanRepository` | JPA implementation |
+| `aisafe.pilot.application` | `RemovePilotController` | Use case orchestrator |
+| `aisafe.app.console.presentation.pilot` | `RemovePilotUI` | Console UI |
+
+**Design decisions:**
+
+`deactivate()` is a domain method on `Pilot` — following the Information Expert principle, the `active` field is owned by the aggregate, so the behaviour that changes it belongs there. The method enforces the invariant that an already-inactive pilot cannot be deactivated again (`IllegalStateException`).
+
+The flight-plan guard is enforced at the application layer, not inside the domain method — checking `FlightPlan` requires querying a separate aggregate, which would violate aggregate isolation if placed inside `Pilot`.
+
+`RemovePilotController` uses auto-tx (no explicit `tx.begin/commit/rollback`) because the operation updates a single aggregate — consistent with the pattern used by `DecommissionAircraftController`.
+
+The test suite comprises **2 domain unit tests** (`PilotTest`) + **11 integration tests** (`RemovePilotControllerTest`) = **13 automated tests**, all passing.
+
+---
+
+## 6. Integration/Demonstration
+
+This US integrates with:
+
+- **US075** — Add a Pilot. The pilot must exist and be active before it can be deactivated.
+- **US080** — Create a Flight Plan. A pilot assigned to any flight plan cannot be deactivated.
+
+**To compile and run all tests:**
+```bash
+mvn clean test
+```
+
+**To run the application:**
+```bash
+./run-inmemory.sh
+```
+
+**To deactivate a pilot:**
+
+1. Login with Air Transport Company Collaborator (ATCC) credentials.
+2. Select **Pilots >** from the main menu.
+3. Select **Remove Pilot**.
+4. The system lists active pilots of your company — select one by number.
+5. Confirm with `yes`.
+6. The system confirms: `Pilot successfully deactivated.`
+
+---

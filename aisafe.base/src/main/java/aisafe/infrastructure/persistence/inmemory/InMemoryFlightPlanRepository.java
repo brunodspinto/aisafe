@@ -8,4 +8,12 @@ import eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryDomainR
 public class InMemoryFlightPlanRepository
         extends InMemoryDomainRepository<FlightPlan, FlightPlanDesignator>
         implements FlightPlanRepository {
+
+    @Override
+    public boolean hasFlightPlanAssignedTo(final Long pilotId) {
+        for (final FlightPlan fp : findAll()) {
+            if (pilotId.equals(fp.assignedPilotId())) return true;
+        }
+        return false;
+    }
 }
