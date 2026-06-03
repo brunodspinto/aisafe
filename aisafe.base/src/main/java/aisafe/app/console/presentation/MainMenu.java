@@ -197,7 +197,7 @@ public class MainMenu extends AbstractUI {
         final var menu = new Menu("Pilots >");
         menu.addItem(1, "Add Pilot", new AddPilotUI()::show);
         menu.addItem(2, "List Pilot Roster", new ListPilotRosterUI()::show);
-        menu.addItem(2, "Remove Pilot", new RemovePilotUI()::show);
+        menu.addItem(3, "Remove Pilot", new RemovePilotUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
