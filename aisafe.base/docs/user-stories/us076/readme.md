@@ -64,7 +64,7 @@ The main classes involved are:
 1. The UI (`ListPilotRosterUI`) presents the authenticated ATCC with a filter menu: all pilots, active only, or by certified aircraft model name.
 2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`.
 3. The controller resolves the authenticated user's `AirTransportCompany` via `CollaboratorRepository.findBySystemUser()` followed by `AirTransportCompanyRepository.ofIdentity(iataCode)`.
-4. The controller calls `pilotRepo.findByAirTransportCompany(company)` to retrieve the full roster.
+4. The private helper `loadRoster(company)` calls `pilotRepo.findByAirTransportCompany(company)` and collects the result into a `List<Pilot>`. All three public methods delegate to this helper so the repository call is written once.
 5. The applicable filter is applied in memory:
    - **All**: no filter, full list is returned.
    - **Active only**: `pilot.isActive()` predicate applied.

@@ -36,7 +36,27 @@ Tests do **not** cover persistence (JPA/H2) — that is validated by manual demo
 
 ---
 
-## 4. Manual Test Steps
+## 4. Automated Tests
+
+**Class:** `aisafe.pilot.application.ListPilotRosterControllerTest`
+
+Tests use the package-private constructor to inject `InMemoryPilotRepository` and `InMemoryAircraftModelRepository`. No JPA or authentication context is required. Authorization (AC076.4) is validated manually.
+
+| Test method | What it verifies |
+|-------------|-----------------|
+| `allPilots_returnsBothPilotsOfSameCompany` | Two pilots for company A → both returned by `allPilots(company)` |
+| `allPilots_excludesPilotFromOtherCompany` | Pilot registered to company B is absent from company A's roster |
+| `allPilots_emptyWhenNoPilots` | Company with no registered pilots → empty list |
+| `activePilots_returnsOnlyActivePilots` | One active + one inactive pilot → only the active pilot returned |
+| `activePilots_emptyWhenNoActivePilots` | All pilots inactive → empty list |
+| `pilotsByCertifiedModel_returnsMatchingPilot` | Pilot certified for saved "A320" model → returned when filter = "A320" |
+| `pilotsByCertifiedModel_isCaseInsensitive` | Filter "a320" (lowercase) matches stored model name "A320" |
+| `pilotsByCertifiedModel_excludesUncertifiedPilot` | Pilot not certified for the model → not returned |
+| `pilotsByCertifiedModel_emptyWhenModelNameUnknown` | Non-existent model name → empty list, no exception |
+
+---
+
+## 5. Manual Test Steps
 
 ### AT076.1 — All pilots
 
