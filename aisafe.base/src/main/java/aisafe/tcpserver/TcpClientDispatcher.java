@@ -1,6 +1,7 @@
 package aisafe.tcpserver;
 
 import aisafe.auth.AuthenticationContext;
+import aisafe.tcpserver.collaborator.CollaboratorSessionHandler;
 import aisafe.tcpserver.pilot.PilotSessionHandler;
 import aisafe.usermanagement.domain.AiSafeRoles;
 
@@ -52,6 +53,9 @@ public final class TcpClientDispatcher implements Runnable {
             if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
                 out.println("OK");
                 new PilotSessionHandler(in, out).handle();
+            } else if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
+                out.println("OK");
+                new CollaboratorSessionHandler(in, out).handle();
             } else {
                 out.println("UNAUTHORIZED");
             }
