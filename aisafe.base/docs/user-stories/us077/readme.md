@@ -31,6 +31,36 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 
 - **US030** — Authentication and authorization must be in place (role `ATCC`).
 - **US075** — Add a Pilot. A pilot must exist and be active before it can be deactivated.
+- **US080** — Create a Flight Plan. A pilot with an assigned flight plan cannot be deactivated.
 
+---
+
+## 3. Analysis
+
+Deactivating a pilot means setting the `Pilot` aggregate's `active` flag to `false` while keeping the record in the system for historical traceability (AC077.2). The deactivation is blocked if the pilot has any flight plan assigned (AC077.3).
+
+The main design decisions taken were:
+
+**`deactivate()` as a domain method on `Pilot`** — The `active` field is owned by `Pilot`. Following the Information Expert principle, the deactivation behaviour belongs inside the aggregate. The method enforces the invariant that an already-inactive pilot cannot be deactivated again, throwing `IllegalStateException`. The flight-plan guard is intentionally *not* placed inside the domain method — it requires querying a separate aggregate (`FlightPlan`), which would violate aggregate isolation. The guard is enforced at the application layer.
+
+**Cross-aggregate check via `FlightPlanRepository`** — In the domain model, `Flight` references its assigned `Pilot` by identity to keep Low Coupling between aggregates. The constraint from AC077.3 is checked in the controller by calling `FlightPlanRepository.hasFlightPlanAssignedTo(Long pilotId)`. This method returns `true` if any flight plan exists for the given pilot, regardless of status — if a pilot is referenced in any flight, they cannot be deactivated.
+
+**Company scoping** — The authenticated ATCC's company is resolved from the session using the same `authenticatedCollaboratorCompany()` helper present in `AddPilotController`. The controller only lists and deactivates pilots whose `companyIataCode` matches the authenticated user's company (AC077.4).
+
+**Soft-delete** — The `Pilot` record is never deleted. Setting `active = false` preserves the full record and keeps all cross-aggregate references (from `FlightPlan`) valid.
+
+The main classes identified are:
+
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `Pilot` | Entity / Aggregate Root | Owns `active` flag; enforces deactivation invariant via `deactivate()` |
+| `FlightPlanRepository` | Repository Interface | Guards AC077.3 via `hasFlightPlanAssignedTo(Long pilotId)` |
+| `PilotRepository` | Repository Interface | Lists active pilots filtered by company |
+| `RemovePilotController` | Application Controller | Orchestrates the use case; enforces `ATCC` role and company scope |
+| `RemovePilotUI` | UI | Lists active pilots, requests selection and confirmation |
+
+The following diagram shows the domain model excerpt relevant to this US:
+
+![Domain Model](svg/US077-domain-model.svg)
 
 ---

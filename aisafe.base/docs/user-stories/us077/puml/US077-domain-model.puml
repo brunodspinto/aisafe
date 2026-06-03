@@ -1,0 +1,56 @@
+@startuml domain_model_us077
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model — US077 Remove a Pilot
+
+package "Pilot Aggregate" <<Rectangle>> {
+    class Pilot <<entity, aggregate root>> {
+        active
+    }
+}
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        name
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+
+    class IATACode <<value object>> {
+        code
+    }
+}
+
+package "Flight Aggregate" <<Rectangle>> {
+    class Flight <<entity, aggregate root>> {
+        flightDesignator
+        departureDateTime
+    }
+
+    class FlightPlan <<entity>> {
+        totalFuelLoad
+        status
+    }
+
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        APPROVED
+        REJECTED
+    }
+}
+
+Pilot "1" --> "1" User : "is a"
+Pilot "0..*" --> "1" AirTransportCompany : "belongs to"
+AirTransportCompany "1" *-- "1" IATACode : "identified by"
+
+Flight "1" --> "1" User : "assigned to"
+Flight "1" *-- "1..*" FlightPlan : "has"
+FlightPlan "1" --> "1" FlightPlanStatus : "has status"
+
+@enduml
