@@ -154,4 +154,20 @@ class PilotTest {
         final Pilot pilot = new Pilot(validUser("pilot14"), validCompany(), Set.of(1L));
         assertTrue(pilot.sameAs(pilot));
     }
+
+    // US077 — deactivation tests
+
+    @Test
+    void ensureDeactivateSetsActiveToFalse() {
+        final Pilot pilot = new Pilot(validUser("pilot-deact-1"), validCompany(), Set.of(1L));
+        pilot.deactivate();
+        assertFalse(pilot.isActive());
+    }
+
+    @Test
+    void ensureDeactivateAlreadyInactivePilotThrows() {
+        final Pilot pilot = new Pilot(validUser("pilot-deact-2"), validCompany(), Set.of(1L));
+        pilot.deactivate();
+        assertThrows(IllegalStateException.class, pilot::deactivate);
+    }
 }

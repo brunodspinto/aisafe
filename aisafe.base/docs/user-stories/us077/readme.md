@@ -91,7 +91,102 @@ The following class diagram shows the classes involved:
 ### 4.2. Acceptance Tests
 
 All tests are automated with JUnit 5:
-- Domain unit tests: `src/test/java/aisafe/pilot/domain/`
-- Integration tests: `src/test/java/aisafe/pilot/application/`
+- Domain unit tests: `src/test/java/aisafe/pilot/domain/PilotTest.java`
+- Integration tests: `src/test/java/aisafe/pilot/application/RemovePilotControllerTest.java`
+
+---
+
+**AC077.1 — Only ATCC may perform this action**
+
+**Test:** `ensureAllActivePilotsThrowsWhenNotAuthenticated`
+
+```java
+@Test
+void ensureAllActivePilotsThrowsWhenNotAuthenticated() {
+    assertThrows(UnauthenticatedException.class,
+            () -> controller.allActivePilotsOfCompany());
+}
+```
+
+**Test:** `ensureAllActivePilotsThrowsWhenWrongRole`
+
+```java
+@Test
+void ensureAllActivePilotsThrowsWhenWrongRole() {
+    AuthenticationContext.authenticate(OPERATOR_USERNAME, OPERATOR_PASSWORD);
+    assertThrows(UnauthorizedException.class,
+            () -> controller.allActivePilotsOfCompany());
+}
+```
+
+---
+
+**AC077.2 — Pilot is made inactive, not deleted**
+
+**Test:** `ensureDeactivateSetsActiveToFalse` (domain)
+
+```java
+@Test
+void ensureDeactivateSetsActiveToFalse() {
+    final Pilot pilot = new Pilot(validUser("pilot-deact-1"), validCompany(), Set.of(1L));
+    pilot.deactivate();
+    assertFalse(pilot.isActive());
+}
+```
+
+**Test:** `ensureDeactivatePilotSetsActiveToFalse` (controller)
+
+```java
+@Test
+void ensureDeactivatePilotSetsActiveToFalse() {
+    AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+    final Pilot result = controller.deactivatePilot(pilotToDeactivate1.identity());
+    assertFalse(result.isActive());
+}
+```
+
+**Test:** `ensureDeactivatePilotIsPersisted`
+
+```java
+@Test
+void ensureDeactivatePilotIsPersisted() {
+    AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+    controller.deactivatePilot(pilotToDeactivate2.identity());
+    final Optional<Pilot> found = PersistenceContext.repositories().pilots()
+            .ofIdentity(pilotToDeactivate2.identity());
+    assertTrue(found.isPresent());
+    assertFalse(found.get().isActive());
+}
+```
+
+---
+
+**AC077.3 — Cannot deactivate pilot with flight plans assigned**
+
+**Test:** `ensureDeactivatePilotThrowsWhenFlightPlansAssigned`
+
+```java
+@Test
+void ensureDeactivatePilotThrowsWhenFlightPlansAssigned() {
+    AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+    assertThrows(IllegalArgumentException.class,
+            () -> controller.deactivatePilot(pilotWithFlightPlan.identity()));
+}
+```
+
+---
+
+**AC077.4 — Only own company pilots**
+
+**Test:** `ensureDeactivatePilotThrowsWhenPilotBelongsToOtherCompany`
+
+```java
+@Test
+void ensureDeactivatePilotThrowsWhenPilotBelongsToOtherCompany() {
+    AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+    assertThrows(IllegalArgumentException.class,
+            () -> controller.deactivatePilot(otherCompanyPilot.identity()));
+}
+```
 
 ---
