@@ -24,7 +24,19 @@ Tests do **not** cover persistence (JPA/H2) — that is validated by manual demo
 
 ---
 
-## 3. Manual Test Steps
+## 3. Coverage by Acceptance Criterion
+
+| Acceptance Criterion | Satisfied by (class · method) |
+|----------------------|-------------------------------|
+| AC076.1 — All pilots | `ListPilotRosterController.allPilots()` — returns the full list from `PilotRepository.findByAirTransportCompany(company)` |
+| AC076.2 — Active only | `ListPilotRosterController.activePilots()` — delegates to `allPilots()` then filters by `Pilot.isActive()` |
+| AC076.3 — By model name (case-insensitive) | `ListPilotRosterController.pilotsByCertifiedModel(String)` — resolves matching model IDs via `AircraftModelRepository.findAll()` with `equalsIgnoreCase`, then filters by `Pilot.isCertifiedFor(Long)` |
+| AC076.4 — Authorization | `ListPilotRosterController.allPilots()` / `activePilots()` / `pilotsByCertifiedModel()` — each calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)` before proceeding |
+| AC076.5 — Empty result message | `ListPilotRosterUI` — detects an empty result list and prints `"No pilots found for the selected filter."` |
+
+---
+
+## 4. Manual Test Steps
 
 ### AT076.1 — All pilots
 
