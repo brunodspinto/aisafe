@@ -1,0 +1,77 @@
+@startuml class-diagram-us077
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram - US077 Remove a Pilot
+
+package "Presentation" {
+    class RemovePilotUI {
+        +doShow()
+        +headline() : String
+    }
+}
+
+package "Application" {
+    class RemovePilotController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -pilotRepo : PilotRepository
+        -flightPlanRepo : FlightPlanRepository
+        -collaboratorRepo : CollaboratorRepository
+        -companyRepo : AirTransportCompanyRepository
+        +allActivePilotsOfCompany() : Iterable<Pilot>
+        +deactivatePilot(pilotId : Long) : Pilot
+        -authenticatedCollaboratorCompany() : AirTransportCompany
+    }
+}
+
+package "Domain" {
+    class Pilot <<entity, aggregate root>> {
+        -id : Long
+        -active : boolean
+        +isActive() : boolean
+        +deactivate() : void
+        +companyIataCode() : IATACode
+        +identity() : Long
+    }
+
+    class IATACode <<value object>> {
+        -code : String
+    }
+}
+
+package "Repository" {
+    interface PilotRepository <<interface>> {
+        +findByAirTransportCompany(company : IATACode) : Iterable<Pilot>
+        +ofIdentity(id : Long) : Optional<Pilot>
+        +save(pilot : Pilot) : Pilot
+    }
+
+    interface FlightPlanRepository <<interface>> {
+        +hasFlightPlanAssignedTo(pilotId : Long) : boolean
+    }
+
+    class InMemoryPilotRepository
+    class JpaPilotRepository
+    class InMemoryFlightPlanRepository
+    class JpaFlightPlanRepository
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthorizationService
+}
+
+RemovePilotUI ..> RemovePilotController : uses
+RemovePilotController ..> AuthorizationService : checks role
+RemovePilotController ..> PilotRepository : queries / saves
+RemovePilotController ..> FlightPlanRepository : checks constraint
+RemovePilotController ..> Pilot : calls deactivate()
+
+Pilot --> IATACode : "belongs to company"
+
+PilotRepository <|.. InMemoryPilotRepository
+PilotRepository <|.. JpaPilotRepository
+FlightPlanRepository <|.. InMemoryFlightPlanRepository
+FlightPlanRepository <|.. JpaFlightPlanRepository
+
+@enduml

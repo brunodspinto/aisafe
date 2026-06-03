@@ -1,0 +1,130 @@
+@startuml sd077
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "ATCC" as ATCC
+participant ":RemovePilotUI" as UI
+participant ":RemovePilotController" as CTRL
+participant "PersistenceContext" as PC
+participant "RepositoryFactory" as FACT
+participant "AuthzRegistry" as AUTHZR
+participant "AuthorizationService" as AUTHZ
+participant "PilotRepository" as PILOT_REPO
+participant "FlightPlanRepository" as FP_REPO
+participant "CollaboratorRepository" as COLLAB_REPO
+participant "AirTransportCompanyRepository" as COMPANY_REPO
+participant ":Pilot" as PILOT
+
+activate ATCC
+
+ATCC -> UI : asks to remove a pilot
+activate UI
+
+UI -> CTRL** : create()
+activate CTRL
+CTRL -> AUTHZR : authorizationService()
+activate AUTHZR
+AUTHZR --> CTRL : authz
+deactivate AUTHZR
+CTRL -> PC : repositories()
+activate PC
+PC --> CTRL : repositoryFactory
+deactivate PC
+CTRL -> FACT : pilots()
+activate FACT
+FACT --> CTRL : pilotRepository
+deactivate FACT
+CTRL -> FACT : flightPlans()
+activate FACT
+FACT --> CTRL : flightPlanRepository
+deactivate FACT
+CTRL -> FACT : collaborators()
+activate FACT
+FACT --> CTRL : collaboratorRepository
+deactivate FACT
+CTRL -> FACT : airTransportCompanies()
+activate FACT
+FACT --> CTRL : companyRepository
+deactivate FACT
+deactivate CTRL
+
+UI -> CTRL : allActivePilotsOfCompany()
+activate CTRL
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+CTRL -> COLLAB_REPO : findBySystemUser(authenticatedUser)
+activate COLLAB_REPO
+COLLAB_REPO --> CTRL : collaborator
+deactivate COLLAB_REPO
+CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company
+deactivate COMPANY_REPO
+CTRL -> PILOT_REPO : findByAirTransportCompany(company.identity())
+activate PILOT_REPO
+PILOT_REPO --> CTRL : pilots
+deactivate PILOT_REPO
+CTRL --> UI : activePilots
+deactivate CTRL
+
+UI --> ATCC : displays active pilots, requests selection
+deactivate UI
+
+ATCC -> UI : selects pilot
+activate UI
+
+UI -> CTRL : deactivatePilot(pilotId)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(ATCC)
+activate AUTHZ
+AUTHZ --> CTRL : (authorized)
+deactivate AUTHZ
+
+CTRL -> COLLAB_REPO : findBySystemUser(authenticatedUser)
+activate COLLAB_REPO
+COLLAB_REPO --> CTRL : collaborator
+deactivate COLLAB_REPO
+
+CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
+activate COMPANY_REPO
+COMPANY_REPO --> CTRL : company
+deactivate COMPANY_REPO
+
+CTRL -> PILOT_REPO : ofIdentity(pilotId)
+activate PILOT_REPO
+PILOT_REPO --> CTRL : pilot
+deactivate PILOT_REPO
+
+CTRL -> FP_REPO : hasFlightPlanAssignedTo(pilotId)
+activate FP_REPO
+FP_REPO --> CTRL : hasPlans
+deactivate FP_REPO
+
+alt hasPlans == true
+    CTRL --> UI : throws IllegalArgumentException
+    UI --> ATCC : displays error (pilot has flight plans assigned)
+else hasPlans == false
+    CTRL -> PILOT : deactivate()
+    activate PILOT
+    PILOT --> CTRL : (active = false)
+    deactivate PILOT
+
+    CTRL -> PILOT_REPO : save(pilot)
+    activate PILOT_REPO
+    PILOT_REPO --> CTRL : savedPilot
+    deactivate PILOT_REPO
+
+    CTRL --> UI : savedPilot
+    deactivate CTRL
+
+    UI --> ATCC : "Pilot successfully deactivated!"
+end
+
+deactivate UI
+deactivate ATCC
+
+@enduml

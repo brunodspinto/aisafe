@@ -64,3 +64,34 @@ The following diagram shows the domain model excerpt relevant to this US:
 ![Domain Model](svg/US077-domain-model.svg)
 
 ---
+
+## 4. Design
+
+### 4.1. Realization
+
+The use case follows the standard layered flow: `RemovePilotUI` lists the active pilots of the authenticated ATCC's company, requests the user's selection and confirmation, then delegates to `RemovePilotController`. The controller:
+
+1. Verifies the authenticated user has the `ATCC` role
+2. Resolves the authenticated collaborator's company from the session
+3. Lists only active pilots that belong to that company (`allActivePilotsOfCompany()`)
+4. Resolves the selected pilot by id and verifies it belongs to the same company
+5. Checks whether any flight plan is assigned to the pilot via `FlightPlanRepository`
+6. If a flight plan exists, throws `IllegalArgumentException` (AC077.3)
+7. Otherwise, calls `pilot.deactivate()` which sets `active = false` and enforces the already-inactive guard
+8. Persists the updated pilot via `PilotRepository` (auto-tx)
+
+The following sequence diagram illustrates this flow:
+
+![Sequence Diagram](svg/US077-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US077-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+All tests are automated with JUnit 5:
+- Domain unit tests: `src/test/java/aisafe/pilot/domain/`
+- Integration tests: `src/test/java/aisafe/pilot/application/`
+
+---
