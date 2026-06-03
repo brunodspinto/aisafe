@@ -43,7 +43,7 @@ The main design decisions taken were:
 
 **`deactivate()` as a domain method on `Pilot`** — The `active` field is owned by `Pilot`. Following the Information Expert principle, the deactivation behaviour belongs inside the aggregate. The method enforces the invariant that an already-inactive pilot cannot be deactivated again, throwing `IllegalStateException`. The flight-plan guard is intentionally *not* placed inside the domain method — it requires querying a separate aggregate (`FlightPlan`), which would violate aggregate isolation. The guard is enforced at the application layer.
 
-**Cross-aggregate check via `FlightPlanRepository`** — In the domain model, `Flight` references its assigned `Pilot` by identity to keep Low Coupling between aggregates. The constraint from AC077.3 is checked in the controller by calling `FlightPlanRepository.hasFlightPlanAssignedTo(Long pilotId)`. This method returns `true` if any flight plan exists for the given pilot, regardless of status — if a pilot is referenced in any flight, they cannot be deactivated.
+**Cross-aggregate check via `FlightPlanRepository`** — `FlightPlan` references its assigned pilot by `Long` identity (not by object reference) to keep Low Coupling between aggregates. The constraint from AC077.3 is checked in the controller by calling `FlightPlanRepository.hasFlightPlanAssignedTo(Long pilotId)`. This method returns `true` if any `FlightPlan` with the given pilot id exists, regardless of status — if a pilot is referenced in any flight plan, they cannot be deactivated.
 
 **Company scoping** — The authenticated ATCC's company is resolved from the session using the same `authenticatedCollaboratorCompany()` helper present in `AddPilotController`. The controller only lists and deactivates pilots whose `companyIataCode` matches the authenticated user's company (AC077.4).
 
@@ -243,3 +243,12 @@ mvn clean test
 6. The system confirms: `Pilot successfully deactivated.`
 
 ---
+
+## 7. Observations
+
+- The deactivation is a soft-delete — the `Pilot` record is never removed from the database. This preserves historical traceability and keeps all cross-aggregate references (e.g. from `FlightPlan`) valid.
+- The flight-plan guard (`hasFlightPlanAssignedTo`) checks all flight plans regardless of status (DRAFT, VALIDATED, TESTED). A pilot referenced in any flight plan — even one not yet approved — cannot be deactivated. This is a conservative but safe design choice.
+- An alternative design would have been to place the `deactivate()` guard (including the flight-plan check) entirely inside the domain method. This was not adopted because the flight-plan check requires querying a separate aggregate (`FlightPlan`), which would violate aggregate isolation and introduce infrastructure concerns into the domain.
+- `Pilot` uses a database-generated `Long` as its identity — unlike other aggregates in this domain (e.g. `FlightRoute` with `RouteName`, `Airport` with `AirportIATACode`) which use natural business identities as value objects. This is because a pilot has no natural single-field business key that is both unique and stable across the system.
+- The `RemovePilotController` reuses the `authenticatedCollaboratorCompany()` helper pattern established by `AddPilotController`, keeping company resolution consistent across all pilot use cases.
+- If a pilot is deactivated and later needs to be reactivated, a new use case would be required (e.g. US078 "Reactivate a Pilot"). The `active` field design supports this without schema changes.
