@@ -51,3 +51,125 @@ The ATCC user stories that must be remotely available are the company-management
 | US086         | Provides the shared TCP skeleton (`AiSafeTcpServer`, `TcpClientDispatcher`, `AuthenticationContext`) reused by US078.     |
 | US090         | The Remote Accesses Logging Server receives the UDP datagrams emitted by the US078 client app on login/logout/disconnect. |
 
+---
+
+## 3. Analysis
+
+US078 requires a standalone TCP client application and reuses the TCP server embedded in the main AISafe application. The client connects to the server, authenticates as an ATCC, and then issues commands that map to existing collaborator use cases — the server executes those use cases on behalf of the remote user.
+
+### Architecture overview
+
+The TCP server (`AiSafeTcpServer`) runs inside the same JVM as the console application, sharing the same persistence context and EAPLI authentication infrastructure. One `TcpClientDispatcher` thread is spawned per accepted connection; it handles authentication and then delegates to a role-specific session handler. For the `ATCC` role this is the new `CollaboratorSessionHandler`. The UDP remote-access logging is emitted by the **client** application.
+
+```
+[CollaboratorTcpClientApp]  ──TCP──►  [AiSafeTcpServer]
+                                             │
+                                     [TcpClientDispatcher]  (one thread per connection)
+                                             │  authenticates via AuthenticationContext
+                                             │  role == ATCC?
+                                             ▼
+                                     [CollaboratorSessionHandler]
+                                             │
+                          ┌──────────────────┼─────────────────────┐
+                          ▼                   ▼                     ▼
+            [ListFleetController]  [DeactivateFlightRouteController]  [CreateFlightRouteController] ...
+                          │                   │                     │
+                          ▼                   ▼                     ▼
+            [AircraftRepository]   [FlightRouteRepository]   (existing repositories)
+
+   [CollaboratorTcpClientApp] ─(login/logout/disconnect)─► [RemoteAccessLogger] ──UDP──► [US090 Logging Server]
+```
+
+### TCP Protocol
+
+The protocol is text-based and line-oriented (UTF-8, `\n` terminated), identical in spirit to US086. This keeps it simple to implement, test with `telnet`/`nc`, and read in logs.
+
+**Authentication phase:**
+
+```
+C→S:  LOGIN <username> <password>
+S→C:  OK
+  or
+S→C:  FAIL <reason>          (invalid credentials)
+  or
+S→C:  UNAUTHORIZED           (authenticated but not an ATCC)
+```
+
+**Command phase (after successful LOGIN as ATCC):**
+
+```
+# List the company's fleet
+C→S:  LIST_FLEET
+S→C:  FLEET <count>
+S→C:  <registration> <model> <status>      (one line per aircraft)
+S→C:  END
+
+# List active flight routes
+C→S:  LIST_ROUTES
+S→C:  ROUTES <count>
+S→C:  <routeName> <origin> <destination>   (one line per active route)
+S→C:  END
+
+# Deactivate a flight route
+C→S:  DEACTIVATE_ROUTE <routeName> <YYYY-MM-DD>
+S→C:  OK <routeName> deactivated from <date>
+  or
+S→C:  ERROR <message>
+
+# Create a flight route
+C→S:  CREATE_ROUTE <routeName> <originIATA> <destinationIATA>
+S→C:  OK <routeName>
+  or
+S→C:  ERROR <message>
+
+# End session
+C→S:  EXIT
+S→C:  BYE
+```
+
+Any unrecognised command receives `UNKNOWN_COMMAND`.
+
+### Reuse of existing classes
+
+`CollaboratorSessionHandler` contains **no business logic** — each command is delegated to the corresponding existing application controller (`ListFleetController`, `DeactivateFlightRouteController`, `CreateFlightRouteController`, …). Those controllers already enforce the ATCC role (`authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.ATCC)`) and resolve the collaborator's company from the authenticated session, so the same `atcc1 → TAP` ownership rules apply remotely exactly as in the console.
+
+Authentication reuses `AuthenticationContext.authenticate(username, password)` (EAPLI), and role verification uses `AuthenticationContext.hasRole(AiSafeRoles.ATCC)`.
+
+### Remote-access logging (UDP, US090)
+
+On each authentication outcome and at session end, the **client application** (`CollaboratorTcpClientApp`) emits a fire-and-forget UDP datagram to the US090 logging server through `RemoteAccessLogger`. The client knows its own service id (`US78`) and local IP/port (`socket.getLocalAddress()` / `getLocalPort()`); it logs `LOGIN_SUCCESS`/`LOGIN_FAILED` after reading the login reply, `LOGOUT` on clean exit, and `CONNECTION_LOST` on `IOException`. An abruptly killed client cannot emit a datagram — an accepted limitation (only detectable disconnects are reported). The agreed payload is ASCII, pipe-delimited:
+
+```
+<timestamp> | <username> | <clientIP> | <clientPort> | <serviceId> | <EVENT>
+```
+
+`serviceId = US78`; `EVENT ∈ { LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, CONNECTION_LOST }`.
+
+### Key design decisions
+
+**Reuse of the shared server** — US078 does not create a new server; it adds an `ATCC` branch to the existing `TcpClientDispatcher`, which already foresaw this extension point (OCP).
+
+**Role-specific session handler** — all ATCC command logic lives in `CollaboratorSessionHandler`, isolated from the dispatcher and from the other roles' handlers.
+
+**Client-side UDP logging** — the UDP datagram is sent by the client app, not the server, because the client owns its service identity (`US78`) and its local IP/port, and because the UDP networking is precisely the exercise of the remote-access client (US044/US078/US086).
+
+**No new domain objects** — the TCP/UDP layer is infrastructure (a delivery mechanism); all aggregates already exist in Domain Model V8.
+
+### Main classes identified
+
+| Class                                                                                                   | Type                     | Responsibility                                                                                                           |
+|---------------------------------------------------------------------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `CollaboratorTcpClientApp`                                                                              | Client Main              | Standalone client entry point; interactive ATCC menu; emits UDP log events                                               |
+| `CollaboratorTcpClient`                                                                                 | Client                   | Encapsulates TCP communication: `login()`, `listFleet()`, `listRoutes()`, `deactivateRoute()`, `createRoute()`, `exit()` |
+| `RemoteAccessLogger`                                                                                    | UDP logger (client-side) | Lives in the client app (`aisafe.app.collaborator`); sends remote-access events to the US090 logging server              |
+| `AiSafeTcpServer` *(existing)*                                                                          | Server                   | Opens `ServerSocket` on port 9999; accepts connections; spawns dispatcher threads                                        |
+| `TcpClientDispatcher` *(modified)*                                                                      | `Runnable`               | Authenticates one connection; adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
+| `CollaboratorSessionHandler`                                                                            | Session Handler          | ATCC command loop; delegates each command to an existing controller                                                      |
+| `AuthenticationContext` *(existing)*                                                                    | Auth adapter             | Authenticates credentials via EAPLI; verifies role                                                                       |
+| `ListFleetController`, `DeactivateFlightRouteController`, `CreateFlightRouteController`, … *(existing)* | Controllers              | Execute the collaborator use cases; reused server-side                                                                   |
+| `AiSafeRoles.ATCC` *(existing)*                                                                         | Role constant            | Used in the dispatcher to authorize collaborator access                                                                  |
+
+The following domain model excerpt shows the aggregates touched by this use case:
+
+![Domain Model](svg/US078-domain-model.svg)
+
