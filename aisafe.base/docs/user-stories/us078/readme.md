@@ -211,3 +211,108 @@ The following class diagram shows the classes involved:
 ### 4.2. Acceptance Tests
 
 All automated tests and manual acceptance scripts are documented in [tests.md](tests.md).
+
+---
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package                         | Class                              | Role                                                                                       |
+|---------------------------------|------------------------------------|--------------------------------------------------------------------------------------------|
+| `aisafe.tcpserver`              | `AiSafeTcpServer` *(existing)*     | Accepts connections; spawns `TcpClientDispatcher` daemon threads                           |
+| `aisafe.tcpserver`              | `TcpClientDispatcher` *(modified)* | Adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
+| `aisafe.tcpserver.collaborator` | `CollaboratorSessionHandler`       | ATCC command loop: `LIST_FLEET`, `LIST_ROUTES`, `DEACTIVATE_ROUTE`, `CREATE_ROUTE`, `EXIT` |
+| `aisafe.app.collaborator`       | `RemoteAccessLogger`               | Client-side UDP logger; sends datagrams to US090 on login/logout/disconnect                |
+| `aisafe.app.collaborator`       | `CollaboratorTcpClient`            | Client-side TCP communication                                                              |
+| `aisafe.app.collaborator`       | `CollaboratorTcpClientApp`         | Standalone client entry point; interactive ATCC menu; emits UDP log events                 |
+| `aisafe.app.console`            | `AiSafeConsoleApp` *(existing)*    | Already starts `AiSafeTcpServer` in a daemon thread                                        |
+
+The `ATCC` branch added to `TcpClientDispatcher` (the OCP extension point already present for `PILOT`):
+
+```java
+if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
+    out.println("OK");
+    new PilotSessionHandler(in, out).handle();
+} else if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {     // US078
+    out.println("OK");
+    new CollaboratorSessionHandler(in, out).handle();
+} else {
+    out.println("UNAUTHORIZED");
+}
+```
+
+Each command delegates to an existing controller — no business logic is duplicated:
+
+```java
+// DEACTIVATE_ROUTE <routeName> <YYYY-MM-DD>
+final FlightRoute saved = new DeactivateFlightRouteController()
+        .deactivateFlightRoute(new RouteName(routeName), LocalDate.parse(date));
+out.println("OK " + saved.identity() + " deactivated from " + date);
+```
+
+The UDP event is emitted client-side, fire-and-forget:
+
+```java
+// RemoteAccessLogger (aisafe.app.collaborator) — invoked by CollaboratorTcpClientApp
+public void log(String username, String localIp, int localPort, String service, String event) {
+    final String payload = String.join(" | ",
+            LocalDateTime.now().toString(), username, localIp,
+            String.valueOf(localPort), service, event);
+    try (DatagramSocket socket = new DatagramSocket()) {
+        final byte[] data = payload.getBytes(StandardCharsets.US_ASCII);
+        socket.send(new DatagramPacket(data, data.length, serverAddress, serverPort));
+    } catch (IOException ignored) {
+        // fire-and-forget — never block the client on logging
+    }
+}
+```
+
+---
+
+## 6. Integration/Demonstration
+
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap creates `atcc1 / Password1` (role `ATCC`, company TAP) automatically. The US090 logging server should be running to observe the UDP events (optional).
+
+**Start the server:**
+
+1. Run `AiSafeConsoleApp` — the TCP server starts on port 9999 automatically.
+
+**Connect and authenticate:**
+
+2. Run `CollaboratorTcpClientApp` in a separate terminal.
+3. Enter host `localhost` and port `9999`.
+4. Enter credentials `atcc1` / `Password1`.
+5. The server responds `OK`, the client emits a `LOGIN_SUCCESS` UDP event, and the collaborator menu is displayed:
+   ```
+   === Air Transport Company Remote Menu ===
+   1. List Fleet
+   2. List Flight Routes
+   3. Deactivate Flight Route
+   4. Create Flight Route
+   0. Exit
+   ```
+
+**Deactivate a route:**
+
+6. Select option `3`, enter `TP100` and `2026-08-01`.
+7. The server responds:
+   ```
+   OK TP100 deactivated from 2026-08-01
+   ```
+
+**Authentication / authorization failure scenarios:**
+
+- Wrong credentials → server responds `FAIL invalid credentials` and closes; the client emits a `LOGIN_FAILED` UDP event.
+- Non-ATCC account (e.g. `pilot1`) → server responds `UNAUTHORIZED` and closes.
+
+---
+
+## 7. Observations
+
+- The TCP server is shared across US044, US078 and US086. Each role dispatches to a dedicated session handler (`CollaboratorSessionHandler` for US078), keeping role-specific logic isolated — this is the OCP extension point already present in `TcpClientDispatcher`.
+- `CollaboratorSessionHandler` contains no business logic; it delegates every command to an existing application controller. The controllers enforce the `ATCC` role and resolve the company from the authenticated session, so remote ownership rules match the console exactly (AC078.3/AC078.4).
+- `CollaboratorTcpClientApp` is a standalone application with only JDK imports — it has no dependency on any JPA or repository class; all persistence is performed exclusively server-side (AC078.2).
+- The UDP remote-access events are emitted by the **client** (`CollaboratorTcpClientApp`): `LOGIN_SUCCESS`/`LOGIN_FAILED` after the login reply, `LOGOUT` on clean exit, `CONNECTION_LOST` on `IOException`. A brutally killed client cannot report — an accepted limitation; only detectable disconnects are logged. The datagram format is shared by US044/US078/US086 and consumed by US090/US091.
+- `TcpClientDispatcher` always calls `AuthenticationContext.clear()` in a `finally` block so the thread-local EAPLI session is released even on an unexpected disconnect.
+
