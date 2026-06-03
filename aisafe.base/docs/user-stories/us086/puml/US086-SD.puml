@@ -101,8 +101,9 @@ else authenticated with PILOT role
     activate CLIENT
     CLIENT -> TCP : EXIT
     activate TCP
-    TCP -> DISP : read line
-    DISP -> TCP : BYE
+    TCP -> HANDLER : read line (EXIT)
+    HANDLER -> TCP : BYE
+    deactivate HANDLER
     deactivate DISP
     TCP --> CLIENT : BYE
     deactivate TCP

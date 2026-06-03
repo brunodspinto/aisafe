@@ -37,13 +37,6 @@ public final class PilotTcpClient implements Closeable {
     }
 
     /**
-     * Reads the last server response (used to retrieve FAIL/UNAUTHORIZED after a failed login).
-     */
-    public String lastResponse() throws IOException {
-        return in.readLine();
-    }
-
-    /**
      * Sends a DSL file to the server via the CREATE_FLIGHT_PLAN command.
      *
      * @param filePath path to the local DSL file
@@ -51,8 +44,7 @@ public final class PilotTcpClient implements Closeable {
      */
     public String createFlightPlanFromFile(final String filePath) throws IOException {
         final String dslContent = Files.readString(Path.of(filePath));
-        final byte[] bytes = dslContent.getBytes();
-        out.println("CREATE_FLIGHT_PLAN " + bytes.length);
+        out.println("CREATE_FLIGHT_PLAN " + dslContent.length());
         out.print(dslContent);
         out.flush();
         return in.readLine();

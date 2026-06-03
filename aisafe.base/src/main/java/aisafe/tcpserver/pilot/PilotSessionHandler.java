@@ -41,7 +41,7 @@ public final class PilotSessionHandler {
     private void handleCreateFlightPlan(final String commandLine) throws IOException {
         final String[] parts = commandLine.split(" ", 2);
         if (parts.length < 2) {
-            out.println("ERROR usage: CREATE_FLIGHT_PLAN <byteLength>");
+            out.println("ERROR usage: CREATE_FLIGHT_PLAN <charLength>");
             return;
         }
 

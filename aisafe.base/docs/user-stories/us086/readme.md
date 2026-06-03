@@ -91,8 +91,8 @@ If authentication succeeds but the user does not have the `PILOT` role, the serv
 
 ```
 # Create a flight plan from DSL content
-C→S:  CREATE_FLIGHT_PLAN <byteLength>
-C→S:  <dsl_content>          (exactly byteLength bytes)
+C→S:  CREATE_FLIGHT_PLAN <charLength>
+C→S:  <dsl_content>          (exactly charLength characters)
 S→C:  OK <designator>
   or
 S→C:  ERROR <message>
@@ -156,7 +156,7 @@ The flow is divided into two phases: **authentication** and **command execution*
 **Command phase — `CREATE_FLIGHT_PLAN`:**
 
 7. The Pilot selects "Create Flight Plan from DSL File" in the client menu and provides a local DSL file path.
-8. `PilotTcpClient.createFlightPlanFromFile(filePath)` reads the file, computes its byte length, and sends `CREATE_FLIGHT_PLAN <byteLength>\n<dsl_content>`.
+8. `PilotTcpClient.createFlightPlanFromFile(filePath)` reads the file, computes its character length, and sends `CREATE_FLIGHT_PLAN <charLength>\n<dsl_content>`.
 9. `PilotSessionHandler` reads the DSL bytes and writes them to a temporary file via `Files.createTempFile(...)`.
 10. A new `CreateFlightPlanFromFileController` is instantiated and `createFromFile(tempPath)` is called — reusing the full 4-stage DSL validation pipeline without modification.
 11. The temp file is deleted after the controller returns.
@@ -223,7 +223,7 @@ void ensureMultipleUnknownCommandsAreEachRejected() throws IOException {
 
 ---
 
-**AC086.3 — CREATE_FLIGHT_PLAN with missing or invalid byte length returns ERROR**
+**AC086.3 — CREATE_FLIGHT_PLAN with missing or invalid char length returns ERROR**
 
 **Test:** `ensureCreateFlightPlanWithoutByteLengthReturnsError`
 
