@@ -14,11 +14,11 @@ It depends on US075 (Add Pilot) which must have registered at least one pilot, a
 
 **Acceptance Criteria:**
 
-- **AC076.1** The system displays all pilots (active and inactive) registered to the authenticated ATCC's company.
+- **AC076.1** The system displays all pilots (active and inactive) registered to the authenticated ATCC's company, where `isActive()` == true counts as active and `isActive()` == false counts as inactive.
 - **AC076.2** The ATCC may filter the list to show active pilots only.
-- **AC076.3** The ATCC may filter the list by certified aircraft model name (case-insensitive).
+- **AC076.3** The ATCC may filter the list by certified aircraft model name using a case-insensitive string comparison against `AircraftModel.modelName()`.
 - **AC076.4** Only an authenticated Air Transport Company Collaborator (ATCC) may perform this action.
-- **AC076.5** If no pilots match the applied filter, the system informs the user that no results were found.
+- **AC076.5** If no pilots match the applied filter, the system displays the message: `"No pilots found for the selected filter."`
 
 **Dependencies/References:**
 
