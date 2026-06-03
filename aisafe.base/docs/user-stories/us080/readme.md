@@ -177,7 +177,7 @@ The implementation extends the pre-existing `FlightPlan` aggregate (shared with 
 - **Menu** — `MainMenu.buildFlightPlanMenu()` exposes **Flight Plans > Create Flight Plan** for users with the `PILOT` role, alongside the existing DSL-file option.
 - **No `persistence.xml` change required** — the persistence unit uses `<exclude-unlisted-classes>false</exclude-unlisted-classes>`, so the new `FuelQuantity` `@Embeddable` and the extended `FlightPlan` are discovered automatically.
 
-The test suite comprises **9 tests for `FuelQuantity`**, **11 tests for `FlightPlanDesignator`**, and **9 form-based tests added to `FlightPlanTest`**; the full `aisafe.base` suite (548 tests) passes. The JPA mapping was additionally validated by booting Hibernate against H2 and confirming the generated `T_FLIGHT_PLAN` schema (the five form columns created as nullable).
+US080 adds **30 automated unit tests** — **9 for `FuelQuantity`**, **11 for `FlightPlanDesignator`**, and **10 form-based tests added to `FlightPlanTest`**; the full `aisafe.base` suite passes (601 tests at the time of writing). The JPA mapping was additionally validated by booting Hibernate against H2 and confirming the generated `T_FLIGHT_PLAN` schema: `designator`, `flight_type` and `status` are `NOT NULL`, while `dsl_content` and the five form columns (`route_name`, `aircraft_registration`, `assigned_pilot_id`, `departure_date_time`, `fuel_quantity`) are nullable.
 
 ---
 
