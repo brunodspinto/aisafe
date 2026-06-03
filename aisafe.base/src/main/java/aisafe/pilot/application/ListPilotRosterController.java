@@ -1,5 +1,6 @@
 package aisafe.pilot.application;
 
+import aisafe.aircraftmodel.domain.AircraftModel;
 import aisafe.aircraftmodel.repositories.AircraftModelRepository;
 import aisafe.airtransportcompany.domain.AirTransportCompany;
 import aisafe.airtransportcompany.repositories.AirTransportCompanyRepository;
@@ -11,12 +12,17 @@ import aisafe.usermanagement.domain.AiSafeRoles;
 import eapli.framework.application.UseCaseController;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Application-layer controller for the "List Company Pilot Roster" use case (US076).
  * Resolves the authenticated ATCC's company and provides filtered views of its pilot roster.
+ *
+ * <p>Filtering is applied in memory after loading the full roster from the repository.
+ * No new JPQL queries are introduced — consistent with the US072 approach.</p>
  */
 @UseCaseController
 public class ListPilotRosterController {
@@ -54,9 +60,10 @@ public class ListPilotRosterController {
     }
 
     /**
-     * Returns all pilots registered to the authenticated ATCC's company.
+     * Returns all pilots registered to the authenticated ATCC's company
+     * (both active and inactive).
      *
-     * @return full pilot roster (active and inactive)
+     * @return full pilot roster
      * @throws IllegalStateException if there is no active session or the user is not an ATCC
      */
     public List<Pilot> allPilots() {
@@ -70,9 +77,10 @@ public class ListPilotRosterController {
     }
 
     /**
-     * Returns only the active pilots of the authenticated ATCC's company.
+     * Returns only the active pilots ({@code isActive()} == true) of the authenticated
+     * ATCC's company.
      *
-     * @return pilots where {@code isActive()} == true
+     * @return active pilots
      * @throws IllegalStateException if there is no active session or the user is not an ATCC
      */
     public List<Pilot> activePilots() {
@@ -82,14 +90,18 @@ public class ListPilotRosterController {
 
     /** Package-private overload used by tests — bypasses auth and company resolution. */
     List<Pilot> activePilots(final AirTransportCompany company) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        final List<Pilot> result = new ArrayList<>();
+        for (final Pilot p : allPilots(company)) {
+            if (p.isActive()) result.add(p);
+        }
+        return result;
     }
 
     /**
-     * Returns pilots of the authenticated ATCC's company certified for the given aircraft model name.
-     * The comparison is case-insensitive.
+     * Returns pilots of the authenticated ATCC's company that are certified for the given
+     * aircraft model name. The comparison is case-insensitive.
      *
-     * @param modelName aircraft model name to filter by
+     * @param modelName aircraft model name to filter by (case-insensitive)
      * @return matching pilots
      * @throws IllegalStateException if there is no active session or the user is not an ATCC
      */
@@ -100,14 +112,61 @@ public class ListPilotRosterController {
 
     /** Package-private overload used by tests — bypasses auth and company resolution. */
     List<Pilot> pilotsByCertifiedModel(final AirTransportCompany company, final String modelName) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        final String trimmed = modelName.trim();
+        final List<Long> matchingIds = new ArrayList<>();
+        for (final AircraftModel m : modelRepo.findAll()) {
+            if (m.modelName().equalsIgnoreCase(trimmed)) {
+                matchingIds.add(m.identity());
+            }
+        }
+        final List<Pilot> result = new ArrayList<>();
+        for (final Pilot p : allPilots(company)) {
+            for (final Long id : matchingIds) {
+                if (p.isCertifiedFor(id)) {
+                    result.add(p);
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
+    /**
+     * Loads the full roster for the given company by streaming the repository result into a list.
+     * All three public filter methods delegate to this helper.
+     *
+     * @param company the company whose pilots to load
+     * @return mutable list of all pilots belonging to the company
+     */
     private List<Pilot> loadRoster(final AirTransportCompany company) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        final List<Pilot> result = new ArrayList<>();
+        for (final Pilot p : pilotRepo.findByAirTransportCompany(company)) {
+            result.add(p);
+        }
+        return result;
     }
 
+    /**
+     * Resolves the air transport company of the currently authenticated collaborator.
+     * Identical logic to {@code AddPilotController.authenticatedCollaboratorCompany()}.
+     *
+     * @return the authenticated collaborator's company
+     * @throws IllegalStateException if there is no active session or the user is not a company collaborator
+     */
     private AirTransportCompany authenticatedCollaboratorCompany() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        final SystemUser su = authz.session()
+                .orElseThrow(() -> new IllegalStateException("No active session."))
+                .authenticatedUser();
+        return collaboratorRepo.findBySystemUser(su)
+                .map(c -> {
+                    if (!c.isCompanyCollaborator())
+                        throw new IllegalStateException(
+                                "Authenticated user is not a company collaborator.");
+                    return companyRepo.ofIdentity(c.companyIataCode())
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "Company not found for IATA code: " + c.companyIataCode()));
+                })
+                .orElseThrow(() -> new IllegalStateException(
+                        "No collaborator found for authenticated user."));
     }
 }

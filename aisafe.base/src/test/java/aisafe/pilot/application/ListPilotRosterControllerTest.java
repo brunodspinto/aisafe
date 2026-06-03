@@ -50,7 +50,15 @@ class ListPilotRosterControllerTest {
     private IATACode iataB;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
+        // The eapli InMemoryRepository uses a shared static DATA map across all instances.
+        // Reset it before each test to ensure full isolation.
+        final var reset = Class.forName(
+                "eapli.framework.infrastructure.repositories.impl.inmemory.InMemoryRepository")
+                .getDeclaredMethod("reset");
+        reset.setAccessible(true);
+        reset.invoke(null);
+
         pilotRepo = new InMemoryPilotRepository();
         modelRepo = new InMemoryAircraftModelRepository();
         controller = new ListPilotRosterController(pilotRepo, modelRepo, null, null);
