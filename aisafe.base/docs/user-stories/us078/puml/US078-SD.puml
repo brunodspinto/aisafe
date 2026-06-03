@@ -1,0 +1,107 @@
+@startuml sd078
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Air Transport\nCompany Collaborator" as ATCC
+
+box "Client Application" #EBF5FB
+    participant ":CollaboratorTcpClientApp" as APP
+    participant ":CollaboratorTcpClient" as CLIENT
+    participant ":RemoteAccessLogger" as LOG
+end box
+
+participant "TCP" as TCP
+
+box "Server Application" #FEF9E7
+    participant ":TcpClientDispatcher" as DISP
+    participant ":CollaboratorSessionHandler" as HANDLER
+    participant ":DeactivateFlightRouteController" as CTRL
+end box
+
+participant "AuthenticationContext" as AUTH
+participant "US090 Logging Server" as UDP
+
+activate ATCC
+ATCC -> APP : run client application
+activate APP
+APP -> CLIENT** : new CollaboratorTcpClient(host, port)
+APP --> ATCC : requests credentials
+ATCC -> APP : enters username and password
+APP -> CLIENT : login(username, password)
+activate CLIENT
+CLIENT -> TCP : LOGIN <username> <password>
+activate TCP
+TCP -> DISP : read line
+activate DISP
+DISP -> AUTH : authenticate(username, password)
+activate AUTH
+AUTH --> DISP : authenticated
+deactivate AUTH
+
+alt invalid credentials
+    DISP -> TCP : FAIL invalid credentials
+    TCP --> CLIENT : FAIL ...
+    CLIENT --> APP : false
+    APP -> LOG : log(user, localIp, localPort, US78, LOGIN_FAILED)
+    LOG -> UDP : UDP datagram
+    APP --> ATCC : authentication failed
+else role != ATCC
+    DISP -> TCP : UNAUTHORIZED
+    TCP --> CLIENT : UNAUTHORIZED
+    CLIENT --> APP : false
+    APP --> ATCC : unauthorized
+else authenticated with ATCC role
+    DISP -> HANDLER** : new CollaboratorSessionHandler(in, out)
+    DISP -> TCP : OK
+    TCP --> CLIENT : OK
+    deactivate CLIENT
+    APP -> LOG : log(user, localIp, localPort, US78, LOGIN_SUCCESS)
+    LOG -> UDP : UDP datagram
+    APP --> ATCC : authenticated — shows menu
+    deactivate APP
+
+    ATCC -> APP : selects "Deactivate Flight Route"
+    activate APP
+    APP -> CLIENT : deactivateRoute("TP100", "2026-08-01")
+    activate CLIENT
+    CLIENT -> TCP : DEACTIVATE_ROUTE TP100 2026-08-01
+    TCP -> HANDLER : read command
+    activate HANDLER
+    HANDLER -> CTRL** : new DeactivateFlightRouteController()
+    HANDLER -> CTRL : deactivateFlightRoute(RouteName, LocalDate)
+    activate CTRL
+    CTRL --> HANDLER : savedFlightRoute
+    deactivate CTRL
+    HANDLER -> TCP : OK TP100 deactivated from 2026-08-01
+    deactivate HANDLER
+    TCP --> CLIENT : OK ...
+    CLIENT --> APP : result
+    deactivate CLIENT
+    APP --> ATCC : displays confirmation
+    deactivate APP
+
+    alt clean exit
+        ATCC -> APP : selects "Exit"
+        activate APP
+        APP -> CLIENT : exit()
+        activate CLIENT
+        CLIENT -> TCP : EXIT
+        TCP -> DISP : read line
+        DISP -> TCP : BYE
+        deactivate DISP
+        TCP --> CLIENT : BYE
+        deactivate TCP
+        deactivate CLIENT
+        APP -> LOG : log(user, localIp, localPort, US78, LOGOUT)
+        LOG -> UDP : UDP datagram
+        APP --> ATCC : session ended
+        deactivate APP
+    else connection lost (IOException)
+        APP -> LOG : log(user, localIp, localPort, US78, CONNECTION_LOST)
+        LOG -> UDP : UDP datagram
+    end
+end
+deactivate ATCC
+
+@enduml

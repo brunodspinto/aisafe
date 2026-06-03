@@ -173,3 +173,41 @@ The following domain model excerpt shows the aggregates touched by this use case
 
 ![Domain Model](svg/US078-domain-model.svg)
 
+## 4. Design
+
+### 4.1. Realization
+
+The flow has two phases: **authentication** and **command execution**.
+
+**Authentication phase:**
+
+1. `CollaboratorTcpClientApp` starts and creates a `CollaboratorTcpClient` connected to the server host and port.
+2. The user enters credentials; `CollaboratorTcpClient.login(username, password)` sends `LOGIN <username> <password>`.
+3. Server-side, `TcpClientDispatcher` reads the `LOGIN` line and calls `AuthenticationContext.authenticate(username, password)`.
+4. On failure, the server sends `FAIL invalid credentials` and closes; the **client** logs `LOGIN_FAILED` via `RemoteAccessLogger` after reading the reply.
+5. If authenticated but not an ATCC (`AuthenticationContext.hasRole(AiSafeRoles.ATCC)` is false), the server sends `UNAUTHORIZED` and closes.
+6. If authenticated as ATCC, the server sends `OK` and instantiates `CollaboratorSessionHandler`; the **client** logs `LOGIN_SUCCESS` after reading `OK`.
+
+**Command phase — `DEACTIVATE_ROUTE` (representative):**
+
+7. The ATCC selects "Deactivate Flight Route" and provides a route name and date.
+8. `CollaboratorTcpClient.deactivateRoute(name, date)` sends `DEACTIVATE_ROUTE <routeName> <date>`.
+9. `CollaboratorSessionHandler` parses the arguments and calls `DeactivateFlightRouteController.deactivateFlightRoute(new RouteName(name), LocalDate.parse(date))`.
+10. The controller verifies ATCC ownership and the planned-flight rule (AC074.3/AC074.4) and persists the change.
+11. On success the server responds `OK <routeName> deactivated from <date>`; on failure `ERROR <message>`.
+
+**Exit:**
+
+12. The ATCC selects "Exit"; `CollaboratorTcpClient.exit()` sends `EXIT`; the server responds `BYE`; the **client** logs `LOGOUT` on clean exit and `CONNECTION_LOST` if it catches an `IOException`.
+
+The following sequence diagram illustrates the full flow:
+
+![Sequence Diagram](svg/US078-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US078-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+All automated tests and manual acceptance scripts are documented in [tests.md](tests.md).

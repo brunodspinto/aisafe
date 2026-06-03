@@ -1,0 +1,84 @@
+@startuml class-diagram-us078
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Client Application" {
+    class CollaboratorTcpClientApp {
+        +main(args : String[]) : void
+        -showMenu() : void
+    }
+
+    class CollaboratorTcpClient {
+        -socket : Socket
+        -in : BufferedReader
+        -out : PrintWriter
+        +CollaboratorTcpClient(host : String, port : int)
+        +login(username : String, password : String) : boolean
+        +listFleet() : List<String>
+        +listRoutes() : List<String>
+        +deactivateRoute(routeName : String, date : String) : String
+        +createRoute(name : String, origin : String, dest : String) : String
+        +exit() : void
+        +close() : void
+    }
+
+    class RemoteAccessLogger {
+        +log(username : String, localIp : String, localPort : int, service : String, event : String) : void
+    }
+}
+
+package "Server Application" {
+    class AiSafeTcpServer {
+        -serverSocket : ServerSocket
+        +start(port : int) : void
+    }
+
+    class TcpClientDispatcher {
+        -socket : Socket
+        +TcpClientDispatcher(socket : Socket)
+        +run() : void
+    }
+
+    class CollaboratorSessionHandler {
+        -in : BufferedReader
+        -out : PrintWriter
+        +CollaboratorSessionHandler(in : BufferedReader, out : PrintWriter)
+        +handle() : void
+        -handleListFleet() : void
+        -handleListRoutes() : void
+        -handleDeactivateRoute(args : String[]) : void
+        -handleCreateRoute(args : String[]) : void
+    }
+}
+
+package "Application Layer (existing)" {
+    class ListFleetController <<UseCaseController>>
+    class DeactivateFlightRouteController <<UseCaseController>>
+    class CreateFlightRouteController <<UseCaseController>>
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthenticationContext {
+        +authenticate(username : String, password : String) : boolean
+        +hasRole(role : Role) : boolean
+        +clear() : void
+    }
+}
+
+package "Infrastructure" {
+    class AiSafeRoles {
+        {static} ATCC : Role
+    }
+}
+
+CollaboratorTcpClientApp ..> CollaboratorTcpClient : uses
+CollaboratorTcpClientApp ..> RemoteAccessLogger : logs login/logout/disconnect (UDP)
+AiSafeTcpServer ..> TcpClientDispatcher : spawns
+TcpClientDispatcher ..> AuthenticationContext : authenticates via
+TcpClientDispatcher ..> AiSafeRoles : checks ATCC role
+TcpClientDispatcher ..> CollaboratorSessionHandler : delegates to
+CollaboratorSessionHandler ..> ListFleetController : LIST_FLEET
+CollaboratorSessionHandler ..> DeactivateFlightRouteController : LIST_ROUTES / DEACTIVATE_ROUTE
+CollaboratorSessionHandler ..> CreateFlightRouteController : CREATE_ROUTE
+
+@enduml
