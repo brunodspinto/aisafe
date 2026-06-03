@@ -15,6 +15,7 @@ package "Presentation" {
 package "Application" {
     class ListPilotRosterController {
         - authenticatedCollaboratorCompany() : AirTransportCompany
+        - loadRoster(company: AirTransportCompany) : List<Pilot>
         + allPilots() : List<Pilot>
         + activePilots() : List<Pilot>
         + pilotsByCertifiedModel(modelName: String) : List<Pilot>

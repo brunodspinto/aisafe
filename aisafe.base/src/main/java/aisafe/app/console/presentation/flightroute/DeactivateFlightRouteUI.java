@@ -25,8 +25,8 @@ public class DeactivateFlightRouteUI extends AbstractUI {
         System.out.println("\n--- Active Flight Routes ---");
         int i = 1;
         for (final FlightRoute r : controller.activeRoutesByCompany()) {
-            System.out.printf("  [%d] %s -> %s  (%s)  — ACTIVE%n",
-                    i++, r.originAirport().code(), r.destinationAirport().code(),
+            System.out.printf("  [%d] %s  %s -> %s  (%s)  — ACTIVE%n",
+                    i++, r.identity(), r.originAirport().code(), r.destinationAirport().code(),
                     r.companyIataCode().code());
             routes.add(r);
         }
@@ -48,8 +48,9 @@ public class DeactivateFlightRouteUI extends AbstractUI {
         try {
             final FlightRoute saved = controller.deactivateFlightRoute(
                     routes.get(idx).identity(), date);
-            System.out.printf("%nRoute '%s' deactivated from %s onwards.%n",
-                    saved.identity(), date);
+            System.out.printf("%nRoute %s (%s -> %s) deactivated from %s onwards.%n",
+                    saved.identity(), saved.originAirport().code(),
+                    saved.destinationAirport().code(), date);
         } catch (final IllegalArgumentException | IllegalStateException e) {
             System.out.println("Error: " + e.getMessage());
         }

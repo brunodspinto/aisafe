@@ -14,11 +14,11 @@ It depends on US075 (Add Pilot) which must have registered at least one pilot, a
 
 **Acceptance Criteria:**
 
-- **AC076.1** The system displays all pilots (active and inactive) registered to the authenticated ATCC's company.
+- **AC076.1** The system displays all pilots (active and inactive) registered to the authenticated ATCC's company, where `isActive()` == true counts as active and `isActive()` == false counts as inactive.
 - **AC076.2** The ATCC may filter the list to show active pilots only.
-- **AC076.3** The ATCC may filter the list by certified aircraft model name (case-insensitive).
+- **AC076.3** The ATCC may filter the list by certified aircraft model name using a case-insensitive string comparison against `AircraftModel.modelName()`.
 - **AC076.4** Only an authenticated Air Transport Company Collaborator (ATCC) may perform this action.
-- **AC076.5** If no pilots match the applied filter, the system informs the user that no results were found.
+- **AC076.5** If no pilots match the applied filter, the system displays the message: `"No pilots found for the selected filter."`
 
 **Dependencies/References:**
 
@@ -29,7 +29,7 @@ It depends on US075 (Add Pilot) which must have registered at least one pilot, a
 
 ## 3. Analysis
 
-The `PilotRepository` already exposes `findByAirTransportCompany(company)`, which returns all pilots for a given company. The controller resolves the authenticated user's company (identical two-step pattern used by `AddPilotController`), retrieves the full pilot list, and applies the selected filter in memory.
+The `PilotRepository` already exposes `findByAirTransportCompany(company)`, which returns all pilots for a given company. The controller resolves the authenticated user's company via a two-step lookup — `CollaboratorRepository.findBySystemUser()` returns the collaborator's IATA code, then `AirTransportCompanyRepository.ofIdentity(iataCode)` resolves it to the `AirTransportCompany` aggregate root (identical pattern used by `AddPilotController`). The full pilot list is then retrieved and the selected filter is applied in memory.
 
 **Pilot ↔ AircraftModel relationship (DDD cross-aggregate reference by identity):**
 
@@ -49,7 +49,7 @@ The main classes involved are:
 | `AircraftModel` | Aggregate Root | `modelName()` + `identity()` used for certification-name filter |
 | `AirTransportCompany` | Aggregate Root | Required parameter for `findByAirTransportCompany()` |
 | `PilotRepository` | Repository Interface | `findByAirTransportCompany(company)` — reused, no new methods needed |
-| `AircraftModelRepository` | Repository Interface | `findAll()` — used to resolve model name → IDs for filter |
+| `AircraftModelRepository` | Repository Interface | `findAll()` — invoked **only** in the model-name filter branch; not called by `allPilots()` or `activePilots()` |
 | `CollaboratorRepository` | Repository Interface | Resolves the authenticated ATCC to their company IATA code |
 | `AirTransportCompanyRepository` | Repository Interface | Resolves `IATACode` → `AirTransportCompany` |
 | `ListPilotRosterController` | Application Controller | Orchestrates roster loading, enforces ATCC role, applies in-memory filters |
@@ -64,7 +64,7 @@ The main classes involved are:
 1. The UI (`ListPilotRosterUI`) presents the authenticated ATCC with a filter menu: all pilots, active only, or by certified aircraft model name.
 2. The controller calls `authz.ensureAuthenticatedUserHasAnyOf(ATCC)`.
 3. The controller resolves the authenticated user's `AirTransportCompany` via `CollaboratorRepository.findBySystemUser()` followed by `AirTransportCompanyRepository.ofIdentity(iataCode)`.
-4. The controller calls `pilotRepo.findByAirTransportCompany(company)` to retrieve the full roster.
+4. The private helper `loadRoster(company)` calls `pilotRepo.findByAirTransportCompany(company)` and collects the result into a `List<Pilot>`. All three public methods delegate to this helper so the repository call is written once.
 5. The applicable filter is applied in memory:
    - **All**: no filter, full list is returned.
    - **Active only**: `pilot.isActive()` predicate applied.
@@ -101,11 +101,13 @@ The following class diagram shows the classes involved:
 
 ### Key Implementation Details
 
-- `ListPilotRosterController.authenticatedCollaboratorCompany()` — resolves the authenticated user to their `AirTransportCompany` using `CollaboratorRepository.findBySystemUser()`. Identical pattern to `AddPilotController.authenticatedCollaboratorCompany()`. Throws `IllegalStateException` if the user is not a collaborator.
-- `ListPilotRosterController.allPilots()` — calls `pilotRepo.findByAirTransportCompany(company)` and returns the full list.
-- `ListPilotRosterController.activePilots()` — calls `allPilots()` and filters by `pilot.isActive()` in memory.
-- `ListPilotRosterController.pilotsByCertifiedModel(String modelName)` — loads all aircraft models via `AircraftModelRepository.findAll()`, collects the IDs of models whose name matches `modelName` (case-insensitive), then filters the pilot list by `pilot.isCertifiedFor(id)`.
-- Filtering is always applied in memory — no new JPQL queries are introduced.
+- `ListPilotRosterController` has two constructors: a public no-arg constructor for runtime (pulls repos from `PersistenceContext`) and a package-private constructor that accepts the four repositories for unit testing (avoids JPA and `AuthzRegistry`).
+- `authenticatedCollaboratorCompany()` — private method; resolves the authenticated `SystemUser` to their `AirTransportCompany` via `CollaboratorRepository.findBySystemUser()` → `AirTransportCompanyRepository.ofIdentity(iataCode)`. Identical logic to `AddPilotController.authenticatedCollaboratorCompany()`. Throws `IllegalStateException` if the user is not a company collaborator.
+- `loadRoster(company)` — private helper; iterates `PilotRepository.findByAirTransportCompany(company)` and collects results into a `List<Pilot>`. All three public filter methods delegate to this helper.
+- `allPilots()` — enforces `ATCC` role, then delegates to `allPilots(company)` → `loadRoster(company)`.
+- `activePilots()` — enforces `ATCC` role, then filters `allPilots(company)` by `pilot.isActive()` in memory.
+- `pilotsByCertifiedModel(String modelName)` — enforces `ATCC` role; loads all `AircraftModel` instances via `AircraftModelRepository.findAll()`, collects IDs of models whose name matches `modelName.trim()` (case-insensitive via `equalsIgnoreCase`), then filters `allPilots(company)` by `pilot.isCertifiedFor(id)`. `AircraftModelRepository.findAll()` is only called in this branch.
+- `ListPilotRosterUI.printRoster()` — prints the standard empty-result message `"No pilots found for the selected filter."` when the list is empty; otherwise renders a four-column table (username, status, company IATA, certifications count) with a total footer.
 
 ### Package Structure
 
@@ -113,8 +115,10 @@ The following class diagram shows the classes involved:
 |---------|-------|------|
 | `aisafe.pilot.domain` | `Pilot` | Existing — no changes needed |
 | `aisafe.pilot.repositories` | `PilotRepository` | Existing — `findByAirTransportCompany` reused |
-| `aisafe.pilot.application` | `ListPilotRosterController` | **New** — `allPilots()`, `activePilots()`, `pilotsByCertifiedModel(String)` |
-| `aisafe.app.console.presentation.pilot` | `ListPilotRosterUI` | **New** — filter menu + table render |
+| `aisafe.aircraftmodel.repositories` | `AircraftModelRepository` | Existing — `findAll()` used by model-name filter only |
+| `aisafe.pilot.application` | `ListPilotRosterController` | **New** — filtering logic + company resolution |
+| `aisafe.app.console.presentation.pilot` | `ListPilotRosterUI` | **New** — filter menu + table rendering |
+| `aisafe.app.console.presentation` | `MainMenu` | Updated — item 2 added to `buildPilotMenu()` |
 
 ---
 
@@ -137,10 +141,18 @@ The following class diagram shows the classes involved:
 # Password: Password1
 
 # Navigate to:
-# Pilots -> List Pilot Roster
+# Pilots > List Pilot Roster
 ```
 
-Demonstrate all three filter scenarios (all, active only, by model name) and the empty-result case.
+### Demonstration Scenarios
+
+| Scenario | Filter to select | Expected output |
+|----------|-----------------|-----------------|
+| All pilots | 1 — All pilots | Table with every pilot registered to `atcc1`'s company |
+| Active only | 2 — Active pilots only | Only rows where STATUS = ACTIVE |
+| By model name | 3 — By certified aircraft model name → enter `A320` | Only pilots certified for A320 |
+| Case-insensitive | 3 → enter `a320` | Same result as above |
+| Empty result | 2 — Active pilots only (all pilots inactive) | `No pilots found for the selected filter.` |
 
 ---
 

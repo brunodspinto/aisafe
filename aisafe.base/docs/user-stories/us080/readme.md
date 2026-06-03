@@ -151,3 +151,90 @@ The following class diagram shows the classes involved:
 ### 4.2. Acceptance Tests
 
 The `FlightPlan` aggregate invariants (fuel positivity, future departure, status starts at `DRAFT`, required identifiers non-null) and the `FuelQuantity` and `FlightPlanDesignator` value objects are covered by automated unit tests. The cross-aggregate rules (AC080.3, AC080.9, AC080.10) and the authorization constraint (AC080.1) are validated end-to-end by manual acceptance tests. All tests are documented in [tests.md](tests.md).
+
+---
+
+## 5. Implementation
+
+The implementation extends the pre-existing `FlightPlan` aggregate (shared with US081) and is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.flightplan.domain` | `FlightPlan` | Aggregate root, table `T_FLIGHT_PLAN`; extended with a form-based constructor and the form fields |
+| `aisafe.flightplan.domain` | `FuelQuantity` | **New** value object (`@Embeddable`) — fuel amount with positivity validation |
+| `aisafe.flightplan.domain` | `FlightPlanDesignator` | Identity value object — now validates the format `xxN(N)(N)(N)(a)` |
+| `aisafe.flightplan.domain` | `FlightPlanStatus` | Enum reused unchanged (`DRAFT` → `VALIDATED` → `TESTED`) |
+| `aisafe.flightplan.repositories` | `FlightPlanRepository` | Repository interface (unchanged) |
+| `aisafe.flightplan.application` | `CreateFlightPlanController` | **New** use case orchestrator |
+| `aisafe.app.console.presentation.flightplan` | `CreateFlightPlanUI` | **New** console UI |
+
+**Key implementation details:**
+
+- **Form-based constructor** — `FlightPlan(FlightPlanDesignator, FlightType, RouteName, RegistrationNumber, Long pilotId, LocalDateTime, FuelQuantity)` sets `status = DRAFT` and `dslContent = null`, and enforces the aggregate-owned invariants (all references non-null, departure in the future, fuel via `FuelQuantity`).
+- **Form fields are nullable columns** — The five form fields map to nullable columns (`route_name`, `aircraft_registration`, `assigned_pilot_id`, `departure_date_time`, `fuel_quantity`), so DSL-imported plans (which leave them null) and form-based plans (which leave `dslContent` null) share the same table without conflict. `RouteName`, `RegistrationNumber` and `FuelQuantity` are embedded via `@Embedded` + `@AttributeOverride`.
+- **Controller scoping** — `CreateFlightPlanController` resolves the authenticated pilot through `PilotRepository.findBySystemUser` and offers only the active routes, aircraft and pilots of that pilot's company (`availableRoutes()`, `availableAircraft()`, `availablePilots()`).
+- **Cross-aggregate validation** — `createFlightPlan(...)` enforces AC080.3 (assigned pilot of the route's company), AC080.9 (aircraft in the route company's `fleet()`), AC080.10 (`aircraft.isActive()`) and AC080.8 (designator unique) before constructing the aggregate. Because a single aggregate is written, no explicit transactional context is used — the single `FlightPlanRepository.save()` is atomic.
+- **Menu** — `MainMenu.buildFlightPlanMenu()` exposes **Flight Plans > Create Flight Plan** for users with the `PILOT` role, alongside the existing DSL-file option.
+- **No `persistence.xml` change required** — the persistence unit uses `<exclude-unlisted-classes>false</exclude-unlisted-classes>`, so the new `FuelQuantity` `@Embeddable` and the extended `FlightPlan` are discovered automatically.
+
+The test suite comprises **9 tests for `FuelQuantity`**, **11 tests for `FlightPlanDesignator`**, and **9 form-based tests added to `FlightPlanTest`**; the full `aisafe.base` suite (548 tests) passes. The JPA mapping was additionally validated by booting Hibernate against H2 and confirming the generated `T_FLIGHT_PLAN` schema (the five form columns created as nullable).
+
+---
+
+## 6. Integration/Demonstration
+
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap must have seeded an Air Transport Company, an ATCC, at least one aircraft in the company fleet, at least one pilot of the company (US075), and at least one active flight route of the company (US073).
+
+```bat
+REM For development and quick testing (data is lost on exit)
+run-inmemory.bat
+
+REM For demonstration with persistent data (requires H2 server in a separate terminal)
+start-h2.bat       REM Terminal 1 — keep running
+run-bootstrap.bat  REM Terminal 2 — first time only
+run-jpa.bat        REM Terminal 2 — every time
+```
+
+**To create a flight plan:**
+
+1. Login with Pilot credentials (e.g., username: `pilot1`, password: `Password1`).
+2. Select **Flight Plans > Create Flight Plan** from the main menu.
+3. From the listed routes of your company, enter the route name (e.g. `TP123`).
+4. From the listed aircraft, enter the registration (e.g. `CS-TUA`).
+5. From the listed pilots, enter the assigned pilot id.
+6. Choose the flight type (REGULAR / CHARTER).
+7. Enter the designator (e.g. `TP1234`), the departure date/time (e.g. `2026-07-01T14:30`), and the fuel quantity in kg.
+8. The system confirms with a summary, e.g.:
+   ```
+   Flight plan successfully created!
+     Designator : TP1234
+     Route      : TP123
+     Aircraft   : CS-TUA
+     Type       : REGULAR
+     Departure  : 2026-07-01T14:30
+     Fuel       : 15000.0 kg
+     Status     : DRAFT
+   ```
+
+**Validation scenarios:**
+
+- An unknown route / aircraft / pilot produces: `Flight route not found: ...` / `Aircraft not found: ...` / `Pilot not found: ...`.
+- A pilot not of the route's company produces: `The assigned pilot does not belong to the route's company.`
+- An aircraft not in the route company's fleet produces: `The aircraft does not belong to the route's company.`
+- A decommissioned aircraft produces: `The aircraft is not active and cannot be assigned to a flight plan.`
+- A non-positive fuel quantity produces: `Fuel quantity must be strictly positive.`
+- A past departure date/time produces: `Departure date/time must be in the future.`
+- A duplicate designator produces: `A flight plan with designator '...' already exists.`
+- A malformed designator produces a format error from `FlightPlanDesignator`.
+- A user without the `PILOT` role does not see the **Flight Plans** menu.
+
+---
+
+## 7. Observations
+
+- **Single aggregate, two creation paths** — `FlightPlan` is created either from a DSL file (US081) or via this form (US080). Keeping a single aggregate keeps the domain concept unified and lets downstream user stories (US083 validation, US085 testing) operate on one type. The trade-off is that the columns specific to each path are nullable; each constructor guarantees the fields relevant to its own path are non-null.
+- **References by identity** — The plan references its `FlightRoute`, `Aircraft` and `Pilot` by identity (`RouteName`, `RegistrationNumber`, `Long`), never by object reference, preserving low coupling between aggregates — consistent with the `Pilot` aggregate (US075).
+- **Flight type is a required input** — Although the user story lists only "aircraft, departure date/time, fuel quantity, pilot", the flight type (REGULAR / CHARTER) is a mandatory flight attribute (section 3.2) and a non-null column, so it is collected by the form.
+- **Status lifecycle untouched by US080** — The plan is created in `DRAFT`. The transitions to `VALIDATED` (US083) and `TESTED` (US085) are performed by the already-existing `markValidated()` / `markTested()` methods; US080 does not trigger them.
+- **`FlightPlanDesignator` format validation added** — Previously the designator only rejected blank values. It now enforces the `xxN(N)(N)(N)(a)` format from section 3.2. This change is backward-compatible with the DSL path (all existing DSL designators already match the format).
+- **Creator vs assigned pilot** — The acceptance criteria constrain only the *assigned* pilot to the route's company. The UI additionally scopes the selectable routes to the authenticated pilot's own company, so in practice a pilot creates plans within their company; the controller does not impose this as a hard rule beyond the AC, since the enunciado does not require it.
