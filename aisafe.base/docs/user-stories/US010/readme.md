@@ -101,7 +101,7 @@ For regular flights, the schedule is represented as days of the week with times 
 
 ### WeatherData Aggregate
 
-`WeatherData` is an entity that records meteorological conditions for a specific `AirControlArea` on a given date.
+`WeatherData` is an entity that records meteorological conditions for a specific air control area on a given date. It references the area through `AirControlAreaCode`, not through a direct `AirControlArea` object reference, preserving low coupling between aggregates.
 
 `WeatherSource` is a value object that describes the provider and format of the imported data. US042 states that weather data may come from multiple external providers.
 
