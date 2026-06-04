@@ -2,10 +2,16 @@ package aisafe.tcpserver.collaborator;
 
 import aisafe.aircraft.application.ListFleetController;
 import aisafe.aircraft.domain.Aircraft;
+import aisafe.flightroute.application.CreateFlightRouteController;
+import aisafe.flightroute.application.DeactivateFlightRouteController;
+import aisafe.flightroute.domain.FlightRoute;
+import aisafe.flightroute.domain.RouteName;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,8 +19,9 @@ import java.util.List;
  * TCP session (US078). Each command is delegated to an existing application controller —
  * this class contains no business logic (it is a delivery-mechanism adapter).
  *
- * <p>Phase 1 (walking skeleton) supports {@code LIST_FLEET}, {@code EXIT} and the
- * {@code UNKNOWN_COMMAND} fallback. Further commands are added in later phases.
+ * <p>Supported commands (Option A): {@code LIST_FLEET}, {@code LIST_ROUTES},
+ * {@code DEACTIVATE_ROUTE}, {@code CREATE_ROUTE}, {@code EXIT}, with the
+ * {@code UNKNOWN_COMMAND} fallback.
  */
 public final class CollaboratorSessionHandler {
 
@@ -35,13 +42,17 @@ public final class CollaboratorSessionHandler {
         String line;
         while ((line = in.readLine()) != null) {
             final String command = line.trim();
-            if (command.equals("LIST_FLEET")) {
-                handleListFleet();
-            } else if (command.equals("EXIT")) {
-                out.println("BYE");
-                return;
-            } else {
-                out.println("UNKNOWN_COMMAND");
+            final String verb = command.split(" ", 2)[0];
+            switch (verb) {
+                case "LIST_FLEET" -> handleListFleet();
+                case "LIST_ROUTES" -> handleListRoutes();
+                case "DEACTIVATE_ROUTE" -> handleDeactivateRoute(command);
+                case "CREATE_ROUTE" -> handleCreateRoute(command);
+                case "EXIT" -> {
+                    out.println("BYE");
+                    return;
+                }
+                default -> out.println("UNKNOWN_COMMAND");
             }
         }
     }
@@ -58,6 +69,55 @@ public final class CollaboratorSessionHandler {
                         a.yearOfManufacture(),
                         a.operationalStatus()));
             }
+        } catch (final Exception e) {
+            out.println("ERROR " + safeMessage(e));
+        }
+    }
+
+    private void handleListRoutes() {
+        try {
+            final List<FlightRoute> routes = new ArrayList<>();
+            new DeactivateFlightRouteController().activeRoutesByCompany().forEach(routes::add);
+            out.println("OK " + routes.size());
+            for (final FlightRoute r : routes) {
+                out.println(String.format("%s | %s | %s | ACTIVE",
+                        r.identity(),
+                        r.originAirport().code(),
+                        r.destinationAirport().code()));
+            }
+        } catch (final Exception e) {
+            out.println("ERROR " + safeMessage(e));
+        }
+    }
+
+    private void handleDeactivateRoute(final String commandLine) {
+        final String[] parts = commandLine.split(" ");
+        if (parts.length < 3) {
+            out.println("ERROR usage: DEACTIVATE_ROUTE <routeName> <yyyy-MM-dd>");
+            return;
+        }
+        try {
+            final RouteName routeName = new RouteName(parts[1].trim());
+            final LocalDate date = LocalDate.parse(parts[2].trim());
+            final FlightRoute saved = new DeactivateFlightRouteController()
+                    .deactivateFlightRoute(routeName, date);
+            out.println("OK " + saved.identity() + " deactivated from " + date);
+        } catch (final Exception e) {
+            out.println("ERROR " + safeMessage(e));
+        }
+    }
+
+    private void handleCreateRoute(final String commandLine) {
+        final String[] cmd = commandLine.split(" ", 2);
+        final String[] fields = cmd.length >= 2 ? cmd[1].split(";") : new String[0];
+        if (fields.length < 3) {
+            out.println("ERROR usage: CREATE_ROUTE <routeName>;<originIATA>;<destinationIATA>");
+            return;
+        }
+        try {
+            final FlightRoute saved = new CreateFlightRouteController()
+                    .createFlightRoute(fields[0].trim(), fields[1].trim(), fields[2].trim());
+            out.println("OK " + saved.identity());
         } catch (final Exception e) {
             out.println("ERROR " + safeMessage(e));
         }

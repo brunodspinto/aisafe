@@ -8,8 +8,8 @@ import java.util.Scanner;
  * Standalone TCP client application for Air Transport Company Collaborators (US078).
  * Connects to the AISafe TCP server and exposes ATCC commands interactively.
  *
- * <p>Phase 1 (walking skeleton): authentication + {@code List Fleet}. The UDP remote-access
- * logging and the remaining commands are added in later phases.
+ * <p>Supported commands (Option A): List Fleet, List Routes, Deactivate Route, Create Route.
+ * The UDP remote-access logging is added in a later phase.
  */
 public final class CollaboratorTcpClientApp {
 
@@ -58,24 +58,18 @@ public final class CollaboratorTcpClientApp {
             System.out.println();
             System.out.println("=== Air Transport Company Remote Menu ===");
             System.out.println("1. List Fleet");
+            System.out.println("2. List Flight Routes");
+            System.out.println("3. Deactivate Flight Route");
+            System.out.println("4. Create Flight Route");
             System.out.println("0. Exit");
             System.out.print("Option: ");
 
             final String option = scanner.nextLine().trim();
             switch (option) {
-                case "1" -> {
-                    try {
-                        final List<String> fleet = client.listFleet();
-                        if (fleet.isEmpty()) {
-                            System.out.println("No aircraft in your fleet.");
-                        } else {
-                            System.out.println("--- Fleet (" + fleet.size() + ") ---");
-                            fleet.forEach(System.out::println);
-                        }
-                    } catch (final IOException e) {
-                        System.out.println("Failed: " + e.getMessage());
-                    }
-                }
+                case "1" -> printList("Fleet", client.listFleet());
+                case "2" -> printList("Routes", client.listRoutes());
+                case "3" -> deactivateRoute(scanner, client);
+                case "4" -> createRoute(scanner, client);
                 case "0" -> {
                     client.exit();
                     running = false;
@@ -83,5 +77,34 @@ public final class CollaboratorTcpClientApp {
                 default -> System.out.println("Invalid option.");
             }
         }
+    }
+
+    private static void printList(final String title, final List<String> items) {
+        if (items.isEmpty()) {
+            System.out.println("No " + title.toLowerCase() + " found.");
+        } else {
+            System.out.println("--- " + title + " (" + items.size() + ") ---");
+            items.forEach(System.out::println);
+        }
+    }
+
+    private static void deactivateRoute(final Scanner scanner, final CollaboratorTcpClient client)
+            throws IOException {
+        System.out.print("Route name: ");
+        final String route = scanner.nextLine().trim();
+        System.out.print("Deactivation date (yyyy-MM-dd): ");
+        final String date = scanner.nextLine().trim();
+        System.out.println(client.deactivateRoute(route, date));
+    }
+
+    private static void createRoute(final Scanner scanner, final CollaboratorTcpClient client)
+            throws IOException {
+        System.out.print("Route name: ");
+        final String route = scanner.nextLine().trim();
+        System.out.print("Origin airport (IATA): ");
+        final String origin = scanner.nextLine().trim();
+        System.out.print("Destination airport (IATA): ");
+        final String destination = scanner.nextLine().trim();
+        System.out.println(client.createRoute(route, origin, destination));
     }
 }

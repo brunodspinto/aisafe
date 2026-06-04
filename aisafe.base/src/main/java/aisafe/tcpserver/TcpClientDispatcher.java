@@ -36,28 +36,39 @@ public final class TcpClientDispatcher implements Runnable {
                 return;
             }
 
-            final String[] parts = line.split(" ", 3);
+            final String[] parts = line.split(" ", 4);
             if (parts.length < 3) {
-                out.println("FAIL usage: LOGIN <username> <password>");
+                out.println("FAIL usage: LOGIN <username> <password> [service]");
                 return;
             }
 
             final String username = parts[1];
             final String password = parts[2];
+            // Optional 4th token: the service the client app requests (e.g. "ATCC").
+            // Absent for the US086 pilot client (3-token LOGIN), which keeps the legacy path.
+            final String service = parts.length >= 4 ? parts[3].trim() : "";
 
             if (!AuthenticationContext.authenticate(username, password)) {
                 out.println("FAIL invalid credentials");
                 return;
             }
 
-            if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
-                out.println("OK");
-                new PilotSessionHandler(in, out).handle();
-            } else if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
-                out.println("OK");
-                new CollaboratorSessionHandler(in, out).handle();
+            if ("ATCC".equals(service)) {
+                // Air Transport Company App (US078): only ATCC collaborators are allowed.
+                if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
+                    out.println("OK");
+                    new CollaboratorSessionHandler(in, out).handle();
+                } else {
+                    out.println("UNAUTHORIZED");
+                }
             } else {
-                out.println("UNAUTHORIZED");
+                // Pilot App (US086) or no service declared: only Pilots are allowed.
+                if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
+                    out.println("OK");
+                    new PilotSessionHandler(in, out).handle();
+                } else {
+                    out.println("UNAUTHORIZED");
+                }
             }
 
         } catch (final IOException e) {

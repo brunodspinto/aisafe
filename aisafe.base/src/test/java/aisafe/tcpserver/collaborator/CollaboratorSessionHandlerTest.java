@@ -48,4 +48,19 @@ class CollaboratorSessionHandlerTest {
         assertTrue(response.contains("UNKNOWN_COMMAND"));
         assertTrue(response.contains("BYE"));
     }
+
+    @Test
+    void ensureDeactivateRouteWithoutArgumentsReturnsError() throws IOException {
+        assertTrue(runSession("DEACTIVATE_ROUTE\nEXIT").contains("ERROR"));
+    }
+
+    @Test
+    void ensureDeactivateRouteWithInvalidDateReturnsError() throws IOException {
+        assertTrue(runSession("DEACTIVATE_ROUTE TP100 not-a-date\nEXIT").contains("ERROR"));
+    }
+
+    @Test
+    void ensureCreateRouteWithMissingFieldsReturnsError() throws IOException {
+        assertTrue(runSession("CREATE_ROUTE TP500;LIS\nEXIT").contains("ERROR"));
+    }
 }
