@@ -3,6 +3,7 @@ package aisafe.app.console.presentation;
 import aisafe.app.console.presentation.aircontrolarea.RegisterAirControlAreaUI;
 import aisafe.app.console.presentation.airtransportcompany.RegisterAirTransportCompanyUI;
 import aisafe.app.console.presentation.authz.AddUserUI;
+import aisafe.app.console.presentation.weatherdata.ConsultWeatherDataUI;
 import aisafe.app.console.presentation.weatherdata.ImportBulkWeatherDataUI;
 import aisafe.app.console.presentation.weatherdata.RegisterWeatherDataUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
@@ -107,7 +108,7 @@ public class MainMenu extends AbstractUI {
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
-        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.WEATHER_PERSON)) {
+        if (canConsultWeatherData()) {
             menu.addSubMenu(option++, buildWeatherMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
@@ -149,10 +150,20 @@ public class MainMenu extends AbstractUI {
 
     private Menu buildWeatherMenu() {
         final var menu = new Menu("Weather >");
-        menu.addItem(1, "Register Weather Data", new RegisterWeatherDataUI()::show);
-        menu.addItem(2, "Import Bulk Weather Data", new ImportBulkWeatherDataUI()::show);
+        int option = 1;
+        menu.addItem(option++, "Consult Weather Data", new ConsultWeatherDataUI()::show);
+        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.WEATHER_PERSON)) {
+            menu.addItem(option++, "Register Weather Data", new RegisterWeatherDataUI()::show);
+            menu.addItem(option++, "Import Bulk Weather Data", new ImportBulkWeatherDataUI()::show);
+        }
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
+    }
+
+    private boolean canConsultWeatherData() {
+        return authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.WEATHER_PERSON)
+                || authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.PILOT)
+                || authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.FLIGHT_CONTROL_OPERATOR);
     }
 
     private Menu buildFlightPlanMenu() {

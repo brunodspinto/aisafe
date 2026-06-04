@@ -86,7 +86,20 @@ The following class diagram shows the classes involved:
 
 ## 5. Implementation
 
-*(To be detailed in a future phase)*
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.weatherdata.repositories` | `WeatherDataRepository` | Adds the day-and-area query contract. |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryWeatherDataRepository` | Filters weather records by `LocalDate` and `AirControlAreaCode`. |
+| `aisafe.infrastructure.persistence.jpa` | `JpaWeatherDataRepository` | Executes the equivalent JPA query using a day interval. |
+| `aisafe.weatherdata.application` | `ConsultWeatherDataController` | Enforces authorized roles, validates the area, and delegates the query. |
+| `aisafe.app.console.presentation.weatherdata` | `ConsultWeatherDataUI` | Lists areas, reads date/code input, and displays weather data in a table. |
+| `aisafe.app.console.presentation` | `MainMenu` | Exposes consultation to Weather Person, Pilot, and Flight Control Operator. |
+
+The repository receives a `LocalDate` and converts it into day semantics. The JPA implementation queries from the selected date at `00:00` inclusive to the following day at `00:00` exclusive, so every record for that calendar day is included regardless of its time.
+
+The Weather menu is available to all roles that can consult weather data. The write operations from US041 and US042 remain visible only to `WEATHER_PERSON`.
 
 ---
 
