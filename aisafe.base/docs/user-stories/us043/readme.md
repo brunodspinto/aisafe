@@ -78,6 +78,8 @@ The following class diagram shows the classes involved:
 
 All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
 
+The design principles and patterns applied in this user story are documented in [principles.md](principles.md).
+
 ---
 
 ## 5. Implementation
