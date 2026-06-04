@@ -64,12 +64,13 @@ void ensureDeactivateRouteWithInvalidDateReturnsError() throws IOException {
 }
 ```
 
-**Test:** `ensureCreateRouteWithMissingArgumentsReturnsError`
+**Test:** `ensureCreateRouteWithMissingFieldsReturnsError`
 
 ```java
 @Test
-void ensureCreateRouteWithMissingArgumentsReturnsError() throws IOException {
-    final String response = runSession("CREATE_ROUTE TP500 LIS\nEXIT");
+void ensureCreateRouteWithMissingFieldsReturnsError() throws IOException {
+    // CREATE_ROUTE fields are semicolon-separated: <routeName>;<originIATA>;<destinationIATA>
+    final String response = runSession("CREATE_ROUTE TP500;LIS\nEXIT");
     assertTrue(response.contains("ERROR"));
 }
 ```
@@ -122,6 +123,20 @@ void ensureUnknownCommandOverRealSocketReturnsUnknownCommand() throws Exception 
 void ensureDeactivateRouteWithInvalidDateOverRealSocketReturnsError() throws Exception {
     clientOut.println("DEACTIVATE_ROUTE TP100 not-a-date");
     assertTrue(clientIn.readLine().startsWith("ERROR"));
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+**Test:** `ensureCreateRouteWithMissingFieldsOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureCreateRouteWithMissingFieldsOverRealSocketReturnsError() throws Exception {
+    clientOut.println("CREATE_ROUTE TP500;LIS");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
 }
 ```
 
@@ -152,11 +167,13 @@ Verifies the client-side UDP datagram payload format (US090). A `DatagramSocket`
 ```java
 @Test
 void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
-    logger.log("atcc1", "127.0.0.1", 50231, "US78", "LOGIN_SUCCESS");
-    final String payload = receiveOnePacket();           // blocks on the test DatagramSocket
-    final String[] fields = payload.split("\\|");
+    // serviceId "US78" is set in the RemoteAccessLogger constructor, not passed to log()
+    logger.log("atcc1", "127.0.0.1", 50231, "LOGIN_SUCCESS");
+    final String[] fields = receiveOnePacket().split("\\|");   // blocks on the test DatagramSocket
     assertEquals(6, fields.length);
     assertEquals("atcc1", fields[1].trim());
+    assertEquals("127.0.0.1", fields[2].trim());
+    assertEquals("50231", fields[3].trim());
     assertEquals("US78", fields[4].trim());
     assertEquals("LOGIN_SUCCESS", fields[5].trim());
 }
@@ -168,7 +185,7 @@ void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
 
 - **AC078.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
 - **AC078.2** (no direct DB access from client): structural — `CollaboratorTcpClientApp` has only JDK imports; verified by code inspection
-- **AC078.3** (ATCC USs available remotely): `ensureDeactivateRouteWithoutArgumentsReturnsError`, `ensureDeactivateRouteWithInvalidDateReturnsError`, `ensureCreateRouteWithMissingArgumentsReturnsError` + manual tests (valid LIST_FLEET / DEACTIVATE_ROUTE flows)
+- **AC078.3** (ATCC USs available remotely): `ensureDeactivateRouteWithoutArgumentsReturnsError`, `ensureDeactivateRouteWithInvalidDateReturnsError`, `ensureCreateRouteWithMissingFieldsReturnsError` + manual tests (valid LIST_FLEET / DEACTIVATE_ROUTE flows)
 - **AC078.4** (authentication and authorization): manual tests (wrong password → `FAIL`; non-ATCC role → `UNAUTHORIZED`)
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 - **Client-side UDP logging (US090 dependency)**: `ensureLoginSuccessDatagramHasExpectedFormat`
@@ -206,7 +223,7 @@ void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
 **AC078.3 — LIST_FLEET**
 
 1. Authenticate as `atcc1`, select "List Fleet".
-2. Expected: the client prints the TAP fleet (e.g. `CS-TUA 737-800 ACTIVE`).
+2. Expected: the client prints the TAP fleet, pipe-delimited (e.g. `CS-TUA | 737-800 | Boeing | 2018 | ACTIVE`).
 
 ---
 

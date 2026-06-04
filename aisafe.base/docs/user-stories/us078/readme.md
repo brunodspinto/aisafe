@@ -87,7 +87,7 @@ The protocol is text-based and line-oriented (UTF-8, `\n` terminated), identical
 **Authentication phase:**
 
 ```
-C→S:  LOGIN <username> <password>
+C→S:  LOGIN <username> <password> ATCC
 S→C:  OK
   or
 S→C:  FAIL <reason>          (invalid credentials)
@@ -100,15 +100,13 @@ S→C:  UNAUTHORIZED           (authenticated but not an ATCC)
 ```
 # List the company's fleet
 C→S:  LIST_FLEET
-S→C:  FLEET <count>
-S→C:  <registration> <model> <status>      (one line per aircraft)
-S→C:  END
+S→C:  OK <count>
+S→C:  <registration> | <model> | <maker> | <year> | <status>   (one line per aircraft)
 
 # List active flight routes
 C→S:  LIST_ROUTES
-S→C:  ROUTES <count>
-S→C:  <routeName> <origin> <destination>   (one line per active route)
-S→C:  END
+S→C:  OK <count>
+S→C:  <routeName> | <origin> | <destination> | ACTIVE           (one line per active route)
 
 # Deactivate a flight route
 C→S:  DEACTIVATE_ROUTE <routeName> <YYYY-MM-DD>
@@ -117,7 +115,7 @@ S→C:  OK <routeName> deactivated from <date>
 S→C:  ERROR <message>
 
 # Create a flight route
-C→S:  CREATE_ROUTE <routeName> <originIATA> <destinationIATA>
+C→S:  CREATE_ROUTE <routeName>;<originIATA>;<destinationIATA>
 S→C:  OK <routeName>
   or
 S→C:  ERROR <message>
@@ -182,7 +180,7 @@ The flow has two phases: **authentication** and **command execution**.
 **Authentication phase:**
 
 1. `CollaboratorTcpClientApp` starts and creates a `CollaboratorTcpClient` connected to the server host and port.
-2. The user enters credentials; `CollaboratorTcpClient.login(username, password)` sends `LOGIN <username> <password>`.
+2. The user enters credentials; `CollaboratorTcpClient.login(username, password)` sends `LOGIN <username> <password> ATCC` — the service token declares to the shared server that this connection expects the ATCC handler (AC078.4).
 3. Server-side, `TcpClientDispatcher` reads the `LOGIN` line and calls `AuthenticationContext.authenticate(username, password)`.
 4. On failure, the server sends `FAIL invalid credentials` and closes; the **client** logs `LOGIN_FAILED` via `RemoteAccessLogger` after reading the reply.
 5. If authenticated but not an ATCC (`AuthenticationContext.hasRole(AiSafeRoles.ATCC)` is false), the server sends `UNAUTHORIZED` and closes.
@@ -254,15 +252,16 @@ out.println("OK " + saved.identity() + " deactivated from " + date);
 The UDP event is emitted client-side, fire-and-forget:
 
 ```java
-// RemoteAccessLogger (aisafe.app.collaborator) — invoked by CollaboratorTcpClientApp
-public void log(String username, String localIp, int localPort, String service, String event) {
+// RemoteAccessLogger (aisafe.app.collaborator) — invoked by CollaboratorTcpClientApp.
+// host, port and serviceId ("US78") are set in the constructor.
+public void log(String username, String clientIp, int clientPort, String event) {
     final String payload = String.join(" | ",
-            LocalDateTime.now().toString(), username, localIp,
-            String.valueOf(localPort), service, event);
+            LocalDateTime.now().format(TIMESTAMP), username, clientIp,
+            String.valueOf(clientPort), serviceId, event);
     try (DatagramSocket socket = new DatagramSocket()) {
         final byte[] data = payload.getBytes(StandardCharsets.US_ASCII);
-        socket.send(new DatagramPacket(data, data.length, serverAddress, serverPort));
-    } catch (IOException ignored) {
+        socket.send(new DatagramPacket(data, data.length, InetAddress.getByName(host), port));
+    } catch (Exception ignored) {
         // fire-and-forget — never block the client on logging
     }
 }
@@ -315,4 +314,4 @@ public void log(String username, String localIp, int localPort, String service, 
 - `CollaboratorTcpClientApp` is a standalone application with only JDK imports — it has no dependency on any JPA or repository class; all persistence is performed exclusively server-side (AC078.2).
 - The UDP remote-access events are emitted by the **client** (`CollaboratorTcpClientApp`): `LOGIN_SUCCESS`/`LOGIN_FAILED` after the login reply, `LOGOUT` on clean exit, `CONNECTION_LOST` on `IOException`. A brutally killed client cannot report — an accepted limitation; only detectable disconnects are logged. The datagram format is shared by US044/US078/US086 and consumed by US090/US091.
 - `TcpClientDispatcher` always calls `AuthenticationContext.clear()` in a `finally` block so the thread-local EAPLI session is released even on an unexpected disconnect.
-
+- The LOGIN command includes a service token (ATCC) as a 4th token. This allows the shared `TcpClientDispatcher` to route to `CollaboratorSessionHandler` only for users with the `ATCC` role, regardless of which other handlers are active (e.g. `PILOT` for US086). The US086 pilot client omits the token (3-token LOGIN), preserving backward compatibility.
