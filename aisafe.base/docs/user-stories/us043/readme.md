@@ -76,11 +76,7 @@ The following class diagram shows the classes involved:
 
 ### 4.2. Acceptance Tests
 
-| Test ID | Description | Expected Result |
-|---------|-------------|-----------------|
-| AC043.1 | Query with a valid date and area with existing data. | Weather data for that day and area is displayed. |
-| AC043.1b| Query for a date/area with no data. | "No weather data found" message is shown. |
-| AC043.3 | A user without the required role attempts to access. | Access is denied with an authorization error. |
+All automated tests and manual acceptance test scripts are documented in [tests.md](tests.md).
 
 ---
 
@@ -105,10 +101,21 @@ The Weather menu is available to all roles that can consult weather data. The wr
 
 ## 6. Integration/Demonstration
 
-*(To be detailed in a future phase)*
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21.
+
+**To consult Weather Data:**
+
+1. Login as a Weather Person, Pilot, or Flight Control Operator.
+2. Select **Weather > Consult Weather Data** from the main menu.
+3. Choose one of the listed Air Control Area codes.
+4. Enter the date in `yyyy-MM-dd` format.
+5. The system displays weather data for that day and area, including source, date/time, temperature, wind speed, wind direction, pressure, and visibility.
+6. If no records match the selected filters, the system displays `No weather data found for the selected date and Air Control Area.`
 
 ---
 
 ## 7. Observations
 
-*(To be detailed in a future phase)*
+- US043 is read-only. It does not create or modify `WeatherData`.
+- The query uses a day interval rather than string/date truncation, preserving precise `LocalDateTime` values while still fulfilling the day-based requirement.
+- The controller validates the area through `AirControlAreaRepository` before querying weather data, keeping the cross-aggregate reference explicit.
