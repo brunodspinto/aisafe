@@ -11,5 +11,9 @@ bin/
 .vscode/settings.json
 aisafe.base/db
 
-# C simulation binary
+# C simulation binaries and build artefacts
 aisafe.base/simulation/simulation
+aisafe.base/simulation/flight_simulator
+aisafe.base/simulation/test_validation
+aisafe.base/simulation/*.o
+aisafe.base/simulation/simulation_report.txt

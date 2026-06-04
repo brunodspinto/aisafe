@@ -130,6 +130,16 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
                             current_segment->alt_to_meters = altitude->valuedouble;
                         }
 
+                        cJSON *mode_json = cJSON_GetObjectItemCaseSensitive(segment_json, "mode");
+                        if (cJSON_IsString(mode_json) && mode_json->valuestring) {
+                            strncpy(current_segment->mode, mode_json->valuestring,
+                                    sizeof(current_segment->mode) - 1);
+                        } else {
+                            /* Default to cruise when mode is not specified in JSON */
+                            strncpy(current_segment->mode, "cruise",
+                                    sizeof(current_segment->mode) - 1);
+                        }
+
                         k++;
                     }
                 }
