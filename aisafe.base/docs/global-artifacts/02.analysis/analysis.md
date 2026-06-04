@@ -22,7 +22,7 @@ The analysis groups the domain in five bounded contexts. Each context owns its a
 | **Backoffice Configuration** | `Airport`, `AirControlArea`, `Maker`, `AircraftModel`, `EngineModel` | Uniqueness of codes and names, certified-engine compatibility, removal restrictions |
 | **Air Transport Companies** | `AirTransportCompany`, `Collaborator` | Company identity (IATA/ICAO), collaborator activation, contact-info edits |
 | **Fleet & Flights** | `Aircraft` | Registration uniqueness, cabin vs cargo rules, decommission lifecycle |
-| **Weather** | `WeatherData`, `WeatherSource` | Air-control-area scoping of measurements, provenance tracking |
+| **Weather** | `WeatherData`, `WeatherSource` | Air-control-area scoping of measurements by `AirControlAreaCode`, provenance tracking |
 
 ## 3. Key aggregates and invariants
 
@@ -32,6 +32,8 @@ The justification of each aggregate boundary lives in [US011](../../user-stories
 - **`AircraftModel`** — `(modelName, maker)` must be globally unique; at least one certified engine model must be associated; engines on the same model must share the engine type.
 - **`AirTransportCompany`** — `IATA` (2 letters) and `ICAO` (2–3 letters) are globally unique; the company owns its fleet as a set of registration strings (low coupling between aircraft and company).
 - **`Airport`** — both IATA and ICAO codes are globally unique; an airport is associated with exactly one `AirControlArea`.
+- **`AirControlArea`** — area code is the identity; geographic boundaries must be valid and are represented by `GeoBoundary`.
+- **`WeatherData`** — records are scoped to an `AirControlAreaCode` external reference, include timestamped meteorological readings, and keep provider provenance through `WeatherSource`.
 - **`SecurityClearance`** — level + expiration date; expiration must be today or in the future.
 
 ## 4. Concepts added in Sprint 2 / deferred to later sprints

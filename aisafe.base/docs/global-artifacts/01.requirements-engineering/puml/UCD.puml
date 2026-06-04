@@ -55,6 +55,7 @@ FCO --> UC42
 FCO --> UC43
 WP --> UC30
 WP --> UC31
+WP --> UC32
 FCO --> UC32
 
 @enduml

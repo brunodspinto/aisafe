@@ -137,9 +137,12 @@ package "Aircraft Aggregate" <<Rectangle>> {
 package "AirControlArea Aggregate" <<Rectangle>> {
 
     class AirControlArea <<entity, aggregate root>> {
-        areaCode
         name
         minimumFuelRequired
+    }
+
+    class AirControlAreaCode <<value object>> {
+        value
     }
 
     class GeoBoundary <<value object>> {
@@ -234,6 +237,7 @@ package "Flight Aggregate" <<Rectangle>> {
 package "WeatherData Aggregate" <<Rectangle>> {
 
     class WeatherData <<entity, aggregate root>> {
+        areaCode
         date
         windSpeed
         windDirection
@@ -314,6 +318,7 @@ Aircraft "1" *-- "0..1" CabinConfiguration : "has"
 Aircraft "1" --> "1" AircraftModel : "defined by"
 Aircraft "1" --> "1" OperationalStatus : "has"
 
+AirControlArea "1" *-- "1" AirControlAreaCode : "identified by"
 AirControlArea "1" *-- "1" GeoBoundary : "bounded by"
 
 Airport "1" *-- "1" AirportIATACode : "identified by"
@@ -338,7 +343,8 @@ FlightPlan "1" --> "0..1" User : "reviewed by"
 
 FlightSegment "1" *-- "2" Node : "has"
 
-WeatherData "1" --> "1" AirControlArea : "recorded for"
+WeatherData "1" --> "1" AirControlAreaCode : "recorded for"
+WeatherData "1" ..> "1" AirControlArea : "area exists"
 WeatherData "1" *-- "1" WeatherSource : "imported from"
 
 Simulation "1" --> "1" AirControlArea : "covers"
