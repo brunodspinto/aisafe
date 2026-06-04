@@ -24,17 +24,25 @@ This user story allows authorized users (Weather Person, Pilot, Flight Control O
 ---
 ## 3. Analysis
 
-This feature is a query-based capability that allows users to retrieve specific weather information based on filters. The `WeatherDataRepository` will be extended to support querying by date and `AirControlArea`.
+This feature is a query-based capability that allows authorized operational users to retrieve weather records already stored in the system. It reuses the `WeatherData` aggregate created in US041 and the bulk import capability from US042 as upstream data sources. No new domain aggregate is required for US043.
+
+Following the existing DDD model, `WeatherData` remains the aggregate root for meteorological readings and stores an `AirControlAreaCode` as an external reference instead of holding an `AirControlArea` entity. This keeps the weather data aggregate independent from the air control area aggregate while still allowing queries by area code. The application layer is responsible for validating that the requested area exists before executing the query.
+
+The query is day-based, while `WeatherData` stores a `LocalDateTime`. Therefore, the repository contract must retrieve all records whose timestamp falls within the selected day, from `00:00` inclusive to the following day at `00:00` exclusive.
+
+Authorization is handled in the application controller using the existing `AuthorizationService`. Access is granted only to `WEATHER_PERSON`, `PILOT`, and `FLIGHT_CONTROL_OPERATOR`, as required by AC043.3.
 
 The main classes involved are:
 
 | Class | Type | Responsibility |
 |-------|------|----------------|
-| `WeatherData` | Aggregate Root | Represents meteorological data for a specific time and area. |
-| `AirControlArea` | Aggregate Root | Represents a geographical area for which weather data is recorded. |
-| `WeatherDataRepository` | Repository | **New Method**: `findByDateAndAirControlArea(date, area)`. |
-| `ConsultWeatherDataController` | Application Controller | Orchestrates the query, including role validation. |
-| `ConsultWeatherDataUI` | UI | Presents the query form and displays the results. |
+| `WeatherData` | Entity / Aggregate Root | Existing - represents meteorological readings for one air control area at a specific timestamp. |
+| `AirControlAreaCode` | Value Object | Existing - identifies the air control area referenced by the weather record. |
+| `AirControlArea` | Entity / Aggregate Root | Existing - provides the selectable list of valid air control areas. |
+| `AirControlAreaRepository` | Repository Interface | Existing - validates area existence and lists available areas. |
+| `WeatherDataRepository` | Repository Interface | Extended with `findByDateAndAirControlArea(date, areaCode)`. |
+| `ConsultWeatherDataController` | Application Controller | New - enforces role access, validates area existence, and delegates the weather query. |
+| `ConsultWeatherDataUI` | UI | New - prompts for date/area and displays all relevant meteorological information. |
 
 ---
 
