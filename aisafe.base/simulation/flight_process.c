@@ -1,9 +1,12 @@
 /*
- * flight_process.c - Flight process execution (second-by-second simulation)
+ * flight_process.c - Flight child process execution (US105: shared memory IPC)
  *
- * Physics: altitude-dependent speed and vertical rate from Flight Profile tables.
- * Synchronisation: after each position write, child blocks until parent sends
- *   'G' (go - safe, continue) or 'S' (stop - collision detected, exit).
+ * Physics:  altitude-dependent speed/vz from Flight Profile tables (inalterado).
+ * IPC:      posição escrita em shared memory → sem_post(pos_sem) sinaliza coordinator.
+ *           sem_wait(ctrl_sem) bloqueia até coordinator postar GO(ctrl=1)/STOP(ctrl=0).
+ * Sinais:   SIGUSR1 define collision_alert; voo termina na próxima verificação ctrl.
+ *
+ * Padrão SCOMP: ex1-3.c / ex1-4.c (SIGUSR1 + SA_RESTART), ex1-7.c (sem_open/post/wait).
  */
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -13,18 +16,21 @@
 #include <signal.h>
 #include <time.h>
 #include <math.h>
+#include <semaphore.h>
+#include <sys/mman.h>
 #include "types.h"
+#include "shared_memory.h"
 #include "flight_process.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-/* Set by SIGUSR1 handler — checked in the step loop for graceful exit.
- * Must be volatile sig_atomic_t (POSIX requirement for signal-modified vars). */
+/* Definida como volatile sig_atomic_t — requisito POSIX para variáveis modificadas
+ * em signal handlers (ex1-3.c / ex1-4.c do professor). */
 static volatile sig_atomic_t collision_alert = 0;
 
-/* Async-signal-safe handler: only write() is permitted inside (no printf). */
+/* Async-signal-safe: apenas write() é permitido dentro do handler. */
 static void handle_sigusr1(int sig) {
     (void)sig;
     const char msg[] = "[FLIGHT] SIGUSR1 received: collision alert, stopping.\n";
@@ -32,11 +38,10 @@ static void handle_sigusr1(int sig) {
     collision_alert = 1;
 }
 
-#define STEP_SECONDS   1        /* simulation seconds per step (second-by-second) */
-#define DEG_TO_RAD     (M_PI / 180.0)
-#define KNOTS_TO_MPS   0.51444  /* 1 knot = 0.51444 m/s */
+#define STEP_SECONDS  1
+#define DEG_TO_RAD    (M_PI / 180.0)
+#define KNOTS_TO_MPS  0.51444
 
-/* Equirectangular distance between two coordinates in meters */
 static double horiz_distance_m(double lat1, double lon1, double lat2, double lon2) {
     double lat_mid = (lat1 + lat2) / 2.0 * DEG_TO_RAD;
     double dlat    = (lat2 - lat1) * 110574.0;
@@ -44,10 +49,6 @@ static double horiz_distance_m(double lat1, double lon1, double lat2, double lon
     return sqrt(dlat * dlat + dlon * dlon);
 }
 
-/*
- * Linearly interpolate speed_knots and vertical_rate_mps from a performance
- * table at the given altitude. Clamps to the table boundaries.
- */
 static void lookup_perf(const perf_point_t *table, int count, double alt_m,
                         double *speed_kt_out, double *vz_out) {
     if (count <= 0) { *speed_kt_out = 250.0; *vz_out = 0.0; return; }
@@ -76,21 +77,29 @@ static void lookup_perf(const perf_point_t *table, int count, double alt_m,
     *vz_out       = table[count - 1].vertical_rate_mps;
 }
 
-void flight_process_main(int flight_idx, const flight_plan_t *plan, int pos_write_fd, int ctrl_read_fd, const simulation_params_t *params) {
-    (void)flight_idx; // Unused for now
-    (void)params; // Unused for now
-    int leg, seg;
-    time_t sim_time;
-    aircraft_position_t pos;
+/* Sinaliza ao coordinator que este voo terminou e liberta os recursos de IPC.
+ * Padrão ex1-7.c: filho chama munmap antes de sair. */
+static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem) {
+    shm->active[idx] = 0;
+    sem_post(pos_sem);   /* acorda coordinator para que veja active[idx]=0 */
+    sem_close(pos_sem);
+    sem_close(ctrl_sem);
+    munmap(shm, sizeof(sim_shm_t));  /* padrão ex1-7.c: filho desliga a memória partilhada */
+}
+
+void flight_process_main(int flight_idx, const flight_plan_t *plan,
+                         sim_shm_t *shm,
+                         sem_t *pos_sem, sem_t *ctrl_sem,
+                         const simulation_params_t *params) {
+    (void)params;
 
     if (!plan) {
         fprintf(stderr, "[Flight] Error: flight plan is NULL\n");
         exit(1);
     }
 
-    /* Install SIGUSR1 handler (professor pattern: ex1-3.c / ex1-4.c).
-     * SA_RESTART: resume blocked syscalls after signal where possible.
-     * sigfillset: block all other signals while handler runs (ex1-4.c). */
+    /* Instalar handler SIGUSR1 (padrão ex1-3.c / ex1-4.c).
+     * SA_RESTART: sem_wait() é reiniciado após o sinal, evitando EINTR. */
     struct sigaction act;
     memset(&act, 0, sizeof(act));
     act.sa_handler = handle_sigusr1;
@@ -100,30 +109,29 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan, int pos_writ
 
     printf("[Flight %s] Starting simulation\n", plan->identifier);
     fflush(stdout);
-    sim_time = time(NULL);
 
-    for (leg = 0; leg < plan->leg_count; leg++) {
-        const leg_t *leg_data = &plan->legs[leg];
-        const flight_profile_t *prof = &leg_data->profile;
+    time_t sim_time = time(NULL);
 
-        for (seg = 0; seg < leg_data->segment_count; seg++) {
+    for (int leg = 0; leg < plan->leg_count; leg++) {
+        const leg_t          *leg_data = &plan->legs[leg];
+        const flight_profile_t *prof   = &leg_data->profile;
+
+        for (int seg = 0; seg < leg_data->segment_count; seg++) {
             const segment_t *segment = &leg_data->segments[seg];
 
-            double lat = segment->from.latitude;
-            double lon = segment->from.longitude;
-            double alt = segment->alt_from_meters;
+            double lat        = segment->from.latitude;
+            double lon        = segment->from.longitude;
+            double alt        = segment->alt_from_meters;
             double alt_target = segment->alt_to_meters;
 
-            /* Horizontal direction unit vector (in degrees, normalised) */
-            double dlat  = segment->to.latitude  - segment->from.latitude;
-            double dlon  = segment->to.longitude - segment->from.longitude;
+            double dlat = segment->to.latitude  - segment->from.latitude;
+            double dlon = segment->to.longitude - segment->from.longitude;
             double dist_total_m = horiz_distance_m(segment->from.latitude,
                                                    segment->from.longitude,
                                                    segment->to.latitude,
                                                    segment->to.longitude);
             if (dist_total_m < 1.0) dist_total_m = 1.0;
 
-            /* Heading: true bearing from segment vector */
             double heading = atan2(dlon, dlat) * 180.0 / M_PI;
             if (heading < 0.0) heading += 360.0;
 
@@ -134,40 +142,36 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan, int pos_writ
             double dist_covered_m = 0.0;
 
             while (1) {
-                /* Check segment completion */
+                /* Verificar fim do segmento */
                 if (is_climb   && alt >= alt_target) break;
                 if (is_descend && alt <= alt_target) break;
                 if (is_cruise  && dist_covered_m >= dist_total_m) break;
 
-                /* Look up speed and vertical rate at current altitude */
                 double speed_kt, vz;
                 if (is_cruise) {
-                    speed_kt = prof->cruise_speed_knots;
+                    /* Default a 250kt se o plano de voo não tiver perfil de performance */
+                    speed_kt = prof->cruise_speed_knots > 0.0
+                               ? prof->cruise_speed_knots : 250.0;
                     vz       = 0.0;
                 } else if (is_climb) {
                     lookup_perf(prof->climb, prof->climb_count, alt, &speed_kt, &vz);
-                } else { /* descend */
+                } else {
                     lookup_perf(prof->descend, prof->descend_count, alt, &speed_kt, &vz);
                 }
 
                 double speed_mps    = speed_kt * KNOTS_TO_MPS;
                 double horiz_step_m = speed_mps * STEP_SECONDS;
 
-                /* Advance horizontally along segment direction */
-                double lat_mid_rad  = lat * DEG_TO_RAD;
-                lat += (dlat / dist_total_m) * (horiz_step_m / 110574.0);
-                lon += (dlon / dist_total_m) * (horiz_step_m /
-                        (111320.0 * cos(lat_mid_rad)));
+                lat += (dlat / dist_total_m) * horiz_step_m;
+                lon += (dlon / dist_total_m) * horiz_step_m;
                 dist_covered_m += horiz_step_m;
 
-                /* Advance vertically */
                 alt += vz * STEP_SECONDS;
-
-                /* Clamp to segment altitude bounds */
                 if (is_climb   && alt > alt_target) alt = alt_target;
                 if (is_descend && alt < alt_target) alt = alt_target;
 
-                /* Build and send position to parent */
+                /* US105: escrever posição em shared memory e sinalizar coordinator */
+                aircraft_position_t pos;
                 memset(&pos, 0, sizeof(pos));
                 pos.latitude        = lat;
                 pos.longitude       = lon;
@@ -178,24 +182,22 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan, int pos_writ
                 pos.timestamp       = sim_time;
                 strncpy(pos.flight_id, plan->identifier, sizeof(pos.flight_id) - 1);
 
-                write(pos_write_fd, &pos, sizeof(pos));
+                shm->positions[flight_idx] = pos;
+                sem_post(pos_sem);
                 sim_time += STEP_SECONDS;
 
-                /* Wait for parent's GO ('G') or STOP ('S').
-                 * Also exit if SIGUSR1 set collision_alert flag. */
-                char token = 0;
-                ssize_t r = read(ctrl_read_fd, &token, 1);
-                if (collision_alert || r <= 0 || token == 'S') {
-                    close(pos_write_fd);
-                    close(ctrl_read_fd);
+                /* US105: aguardar GO(ctrl=1) ou STOP(ctrl=0) do coordinator.
+                 * SA_RESTART garante que sem_wait() é retomado após SIGUSR1. */
+                sem_wait(ctrl_sem);
+                if (shm->ctrl[flight_idx] == 0 || collision_alert) {
+                    flight_done(flight_idx, shm, pos_sem, ctrl_sem);
                     exit(1);
                 }
-                /* token == 'G': safe to continue */
             }
         }
     }
 
-    close(pos_write_fd);
-    close(ctrl_read_fd);
+    /* Todos os segmentos e legs concluídos — voo terminou normalmente. */
+    flight_done(flight_idx, shm, pos_sem, ctrl_sem);
     exit(0);
 }
