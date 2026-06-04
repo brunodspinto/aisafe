@@ -1,0 +1,80 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title US043 - Class Diagram
+
+package "Presentation" {
+    class ConsultWeatherDataUI {
+        # doShow() : boolean
+        + headline() : String
+    }
+}
+
+package "Application" {
+    class ConsultWeatherDataController {
+        + activeAirControlAreas() : Iterable<AirControlArea>
+        + consultWeatherData(date: LocalDate, areaCode: String) : Iterable<WeatherData>
+    }
+}
+
+package "Domain" {
+    class WeatherData <<entity>> <<aggregate root>> {
+        - id : Long
+        - areaCode : AirControlAreaCode
+        - source : WeatherSource
+        - date : LocalDateTime
+        - temperature : double
+        - windSpeed : double
+        - windDirection : String
+        - pressure : double
+        - visibility : double
+    }
+
+    class WeatherSource <<value object>> {
+        - provider : String
+        - format : String
+    }
+
+    class AirControlAreaCode <<value object>> {
+        - value : String
+    }
+
+    class AirControlArea <<entity>> <<aggregate root>> {
+        - areaCode : AirControlAreaCode
+        - name : String
+    }
+}
+
+package "Persistence" {
+    interface WeatherDataRepository <<interface>> {
+        + findByDateAndAirControlArea(date: LocalDate, areaCode: AirControlAreaCode) : Iterable<WeatherData>
+    }
+
+    interface AirControlAreaRepository <<interface>> {
+        + findAll() : Iterable<AirControlArea>
+        + ofIdentity(code: AirControlAreaCode) : Optional<AirControlArea>
+    }
+}
+
+package "eapli.framework.infrastructure.authz" {
+    class AuthorizationService {
+        + ensureAuthenticatedUserHasAnyOf(roles: Role...)
+    }
+}
+
+ConsultWeatherDataUI ..> ConsultWeatherDataController
+
+ConsultWeatherDataController ..> AuthorizationService
+ConsultWeatherDataController ..> WeatherDataRepository
+ConsultWeatherDataController ..> AirControlAreaRepository
+ConsultWeatherDataController ..> WeatherData
+ConsultWeatherDataController ..> AirControlAreaCode
+ConsultWeatherDataController ..> AirControlArea
+
+WeatherData "1" *-- "1" WeatherSource : contains >
+WeatherData "1" *-- "1" AirControlAreaCode : references area >
+AirControlArea "1" *-- "1" AirControlAreaCode : identified by >
+
+@enduml

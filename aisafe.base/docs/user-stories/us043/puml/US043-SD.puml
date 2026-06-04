@@ -1,0 +1,68 @@
+@startuml
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+autonumber
+actor "Weather Person / Pilot /\nFlight Control Operator" as USER
+
+participant ":ConsultWeatherDataUI" as UI
+participant ":ConsultWeatherDataController" as CTRL
+participant "authz\n:AuthorizationService" as AUTHZ
+participant "areaRepo\n:AirControlAreaRepository" as AREAREPO
+participant "weatherRepo\n:WeatherDataRepository" as WREPO
+
+activate USER
+USER -> UI : requests to consult weather data
+activate UI
+
+UI -> CTRL** : create()
+UI -> CTRL : activeAirControlAreas()
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(WEATHER_PERSON,\nPILOT, FLIGHT_CONTROL_OPERATOR)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AREAREPO : findAll()
+activate AREAREPO
+AREAREPO --> CTRL : Iterable<AirControlArea>
+deactivate AREAREPO
+
+CTRL --> UI : available areas
+deactivate CTRL
+
+UI --> USER : shows areas and asks for date
+USER -> UI : enters area code and day
+
+UI -> CTRL : consultWeatherData(date, areaCode)
+activate CTRL
+
+CTRL -> AUTHZ : ensureAuthenticatedUserHasAnyOf(WEATHER_PERSON,\nPILOT, FLIGHT_CONTROL_OPERATOR)
+activate AUTHZ
+AUTHZ --> CTRL : (ok)
+deactivate AUTHZ
+
+CTRL -> AREAREPO : ofIdentity(areaCode)
+activate AREAREPO
+AREAREPO --> CTRL : Optional<AirControlArea>
+deactivate AREAREPO
+
+alt area exists
+    CTRL -> WREPO : findByDateAndAirControlArea(date, areaCode)
+    activate WREPO
+    WREPO --> CTRL : Iterable<WeatherData>
+    deactivate WREPO
+    CTRL --> UI : weather data records
+    UI --> USER : displays weather table
+else area does not exist
+    CTRL --> UI : IllegalArgumentException
+    UI --> USER : displays validation error
+end
+
+deactivate CTRL
+deactivate UI
+deactivate USER
+
+@enduml

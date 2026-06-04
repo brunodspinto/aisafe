@@ -1,0 +1,44 @@
+@startuml
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title US043 - Sub-Domain Model (Consult Weather Data)
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+    }
+
+    class AirControlAreaCode <<value object>> {
+        value
+    }
+}
+
+package "WeatherData Aggregate" <<Rectangle>> {
+    class WeatherData <<entity, aggregate root>> {
+        date
+        temperature
+        windSpeed
+        windDirection
+        pressure
+        visibility
+    }
+
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+}
+
+AirControlArea "1" *-- "1" AirControlAreaCode : "identified by"
+WeatherData "1" *-- "1" WeatherSource : "reported by"
+WeatherData "1" ..> "1" AirControlArea : "queried for\n(by areaCode)"
+
+note bottom of WeatherData
+  US043 does not create weather records.
+  It queries existing WeatherData by day
+  and AirControlAreaCode.
+end note
+
+@enduml

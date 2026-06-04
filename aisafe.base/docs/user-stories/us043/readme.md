@@ -44,41 +44,35 @@ The main classes involved are:
 | `ConsultWeatherDataController` | Application Controller | New - enforces role access, validates area existence, and delegates the weather query. |
 | `ConsultWeatherDataUI` | UI | New - prompts for date/area and displays all relevant meteorological information. |
 
+The following domain model excerpt shows the aggregate structure:
+
+![Domain Model](svg/US043-domain-model.svg)
+> Source: [puml/US043-domain-model.puml](puml/US043-domain-model.puml)
+
 ---
 
 ## 4. Design
 
 ### 4.1. Realization
 
-1.  The `ConsultWeatherDataUI` will first call the controller to get a list of all available `AirControlArea`s to present to the user.
-2.  The user selects an area and provides a date.
-3.  The controller validates that the authenticated user has one of the required roles (`WEATHER_PERSON`, `PILOT`, `FLIGHT_CONTROL_OPERATOR`).
-4.  The controller then calls a new method in the `WeatherDataRepository` to fetch the data.
-5.  The UI renders the results in a formatted table.
+1. The `ConsultWeatherDataUI` calls `ConsultWeatherDataController.activeAirControlAreas()` so the user can select a valid area.
+2. The controller checks that the authenticated user has one of the allowed roles: `WEATHER_PERSON`, `PILOT`, or `FLIGHT_CONTROL_OPERATOR`.
+3. The UI displays the available air control areas and prompts for an area code and a day in `yyyy-MM-dd` format.
+4. The UI calls `ConsultWeatherDataController.consultWeatherData(date, areaCode)`.
+5. The controller repeats the authorization check, converts the area code to `AirControlAreaCode`, and validates area existence through `AirControlAreaRepository`.
+6. The controller delegates to `WeatherDataRepository.findByDateAndAirControlArea(date, areaCode)`.
+7. The repository implementation returns every `WeatherData` record for that area whose timestamp falls within the selected day.
+8. The UI prints a compact table containing date/time, source, temperature, wind speed, wind direction, pressure, and visibility. If there are no records, the UI displays a clear "No weather data found" message.
 
 The following sequence diagram illustrates the flow:
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI
-    participant ConsultWeatherDataController
-    participant WeatherDataRepository
+![Sequence Diagram](svg/US043-SD.svg)
+> Source: [puml/US043-SD.puml](puml/US043-SD.puml)
 
-    User->>UI: Selects "Consult Weather Data"
-    UI->>ConsultWeatherDataController: getAirControlAreas()
-    ConsultWeatherDataController->>WeatherDataRepository: findAllAirControlAreas()
-    WeatherDataRepository-->>ConsultWeatherDataController: returns List<AirControlArea>
-    ConsultWeatherDataController-->>UI: returns List<AirControlArea>
-    UI->>User: Shows list of areas and asks for date
-    User->>UI: Selects area and provides date
-    UI->>ConsultWeatherDataController: getWeatherData(date, area)
-    ConsultWeatherDataController->>ConsultWeatherDataController: Authorize user role
-    ConsultWeatherDataController->>WeatherDataRepository: findByDateAndAirControlArea(date, area)
-    WeatherDataRepository-->>ConsultWeatherDataController: Returns List<WeatherData>
-    ConsultWeatherDataController-->>UI: Displays weather data
-    UI-->>User: Shows formatted weather information
-```
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US043-class-diagram.svg)
+> Source: [puml/US043-class-diagram.puml](puml/US043-class-diagram.puml)
 
 ### 4.2. Acceptance Tests
 
