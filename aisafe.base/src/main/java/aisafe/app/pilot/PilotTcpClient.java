@@ -26,6 +26,20 @@ public final class PilotTcpClient implements Closeable {
     }
 
     /**
+     * @return the local address of the underlying TCP socket (the client's IP)
+     */
+    public java.net.InetAddress getLocalAddress() {
+        return socket.getLocalAddress();
+    }
+
+    /**
+     * @return the local (client) TCP port of the underlying socket
+     */
+    public int getLocalPort() {
+        return socket.getLocalPort();
+    }
+
+    /**
      * Sends LOGIN and reads the server response.
      *
      * @return {@code true} if the server responded {@code OK}

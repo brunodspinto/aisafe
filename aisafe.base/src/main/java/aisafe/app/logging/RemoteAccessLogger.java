@@ -1,4 +1,4 @@
-package aisafe.app.collaborator;
+package aisafe.app.logging;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -9,7 +9,10 @@ import java.time.format.DateTimeFormatter;
 
 /**
  * Client-side emitter of remote-access events to the US090 Remote Accesses Logging Server,
- * using UDP datagrams (US078 → US090 dependency).
+ * using UDP datagrams (US044 / US078 / US086 → US090 dependency).
+ *
+ * <p>Shared by every remote-access client application; each client supplies its own
+ * {@code serviceId} (e.g. {@code "US44"}, {@code "US78"}, {@code "US86"}).
  *
  * <p>The payload is ASCII, pipe-delimited:
  * <pre>{@code <timestamp> | <username> | <clientIP> | <clientPort> | <serviceId> | <EVENT>}</pre>

@@ -1,4 +1,4 @@
-package aisafe.app.collaborator;
+package aisafe.app.logging;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Tests for {@link RemoteAccessLogger} (US078 → US090).
+ * Tests for {@link RemoteAccessLogger} (US044 / US078 / US086 → US090).
  * Binds a UDP receiver on a loopback port and asserts the pipe-delimited payload format.
  */
 class RemoteAccessLoggerTest {
@@ -58,5 +58,13 @@ class RemoteAccessLoggerTest {
         logger.log("atcc2", "10.0.0.5", 40000, "CONNECTION_LOST");
 
         assertEquals("CONNECTION_LOST", receiveOnePacket().split("\\|")[5].trim());
+    }
+
+    @Test
+    void ensureServiceIdIsCarriedInPayload() throws Exception {
+        final RemoteAccessLogger logger = new RemoteAccessLogger("127.0.0.1", port, "US86");
+        logger.log("pilot1", "10.0.0.9", 41000, "LOGIN_SUCCESS");
+
+        assertEquals("US86", receiveOnePacket().split("\\|")[4].trim());
     }
 }

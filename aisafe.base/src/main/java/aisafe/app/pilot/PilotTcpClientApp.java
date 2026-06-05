@@ -1,13 +1,23 @@
 package aisafe.app.pilot;
 
+import aisafe.app.logging.RemoteAccessLogger;
+
 import java.io.IOException;
 import java.util.Scanner;
 
 /**
  * Standalone TCP client application for Pilots (US086).
  * Connects to the AISafe TCP server and exposes Pilot commands interactively.
+ *
+ * <p>Remote-access events (login/logout/disconnect) are emitted to the US090 logging server
+ * via UDP using {@link RemoteAccessLogger}, identifying this service as {@code US86}.
  */
 public final class PilotTcpClientApp {
+
+    /** US090 Remote Accesses Logging Server (UDP) — change to point at the cloud node. */
+    private static final String LOG_HOST = "localhost";
+    private static final int LOG_PORT = 9090;
+    private static final String SERVICE_ID = "US86";
 
     private PilotTcpClientApp() {}
 
@@ -33,15 +43,29 @@ public final class PilotTcpClientApp {
         System.out.print("Password: ");
         final String password = scanner.nextLine().trim();
 
+        final RemoteAccessLogger logger = new RemoteAccessLogger(LOG_HOST, LOG_PORT, SERVICE_ID);
+
         try (final PilotTcpClient client = new PilotTcpClient(host, port)) {
 
+            final String clientIp = client.getLocalAddress().getHostAddress();
+            final int clientPort = client.getLocalPort();
+
             if (!client.login(username, password)) {
+                logger.log(username, clientIp, clientPort, "LOGIN_FAILED");
                 System.out.println("Authentication failed.");
                 return;
             }
+            logger.log(username, clientIp, clientPort, "LOGIN_SUCCESS");
 
             System.out.println("Authenticated. Welcome, " + username + ".");
-            showMenu(scanner, client);
+
+            try {
+                showMenu(scanner, client);
+                logger.log(username, clientIp, clientPort, "LOGOUT");
+            } catch (final IOException e) {
+                logger.log(username, clientIp, clientPort, "CONNECTION_LOST");
+                System.out.println("Connection lost: " + e.getMessage());
+            }
 
         } catch (final IOException e) {
             System.out.println("Connection error: " + e.getMessage());
