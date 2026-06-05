@@ -238,3 +238,117 @@ The following diagram shows the domain model excerpt relevant to this US (no str
 change — the status lifecycle was already modelled by US080/US081):
 
 ![Domain Model](svg/US085-domain-model.svg)
+
+---
+
+## 4. Design
+
+### 4.1 Realization
+
+The use case follows the same layered flow as US080/US081: the UI collects the selection,
+the controller orchestrates auth + business logic, and the repository handles persistence.
+The key difference is that the controller delegates the actual simulation to a C binary
+(`flight_tester`) via `ProcessBuilder`, never implementing simulation logic itself (AC085.7).
+
+**Phase 1 — List testable plans (`validatedDslPlans`):**
+
+1. `TestFlightPlanUI.doShow()` calls `controller.validatedDslPlans()`.
+2. Controller calls `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT)` (AC085.1).
+3. Controller calls `flightPlanRepo.findAllValidated()` (new JPQL query: `e.status = :status`
+   with `FlightPlanStatus.VALIDATED`).
+4. Results are filtered in the controller to retain only plans where `dslContent != null`
+   (AC085.3) — form-based plans are silently excluded.
+5. UI displays the filtered list; if empty, shows `"No validated DSL flight plans available
+   for testing."` and returns.
+
+**Phase 2 — Run the test (`testFlightPlan`):**
+
+6. Pilot enters a designator; UI calls `controller.testFlightPlan(designator)`.
+7. Controller re-checks auth (AC085.1) and loads the plan via `flightPlanRepo.ofIdentity`.
+8. Guards: `status == VALIDATED` (AC085.2) and `dslContent != null` (AC085.3); throws
+   `IllegalStateException` if either fails.
+9. Controller re-parses `dslContent` via `FlightPlanParserFacade.parse()` → `FlightPlanAst`.
+10. `FlightPlanJsonSerializer.toTempFile(ast)` serialises the AST to a temporary UTF-8 JSON
+    file (`Files.createTempFile("aisafe-fp-", ".json")`).
+11. `ProcessBuilder(binary, tempPath).redirectErrorStream(true).start()` invokes the C
+    binary; `process.waitFor(30, TimeUnit.SECONDS)` bounds execution time.
+12. Stdout is read line-by-line and parsed as JSON: `status` field drives the branch.
+13. Temp file is deleted in a `finally` block regardless of outcome.
+14. **PASS path:** `plan.markTested()` (status: `VALIDATED` → `TESTED`) + `repo.save(plan)`;
+    controller returns `FlightPlan` (AC085.5).
+15. **FAIL path:** `IllegalStateException(reason)` is thrown; plan status stays `VALIDATED`
+    (AC085.6).
+16. **Timeout/IOException:** process destroyed forcibly; `RuntimeException` is thrown with a
+    descriptive message.
+17. UI catches exceptions and displays the failure reason; on success it prints the designator
+    and confirmed `TESTED` status.
+
+Unlike US075 (which creates two coordinated aggregates), US085 modifies a **single**
+aggregate (`FlightPlan`) in a single `save()`, so no explicit transactional context is
+needed.
+
+The following sequence diagram illustrates the full flow:
+
+![Sequence Diagram](svg/US085-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US085-class-diagram.svg)
+
+### 4.2 Acceptance Tests
+
+Automated unit tests cover the controller and serializer in isolation (process invocation is
+stubbed). C unit tests cover the binary independently. Manual acceptance tests verify the
+end-to-end integration. All tests are documented in [tests.md](tests.md).
+
+**AC085.1 — Authorization enforcement**
+
+```java
+@Test
+void ensureNonPilotCannotTestFlightPlan() {
+    // given: session authenticated with a non-PILOT role
+    // when: controller.testFlightPlan(designator) is called
+    // then: AuthorizationException is thrown
+}
+```
+
+**AC085.2 + AC085.3 — Guard: only VALIDATED DSL plans**
+
+```java
+@Test
+void ensureDraftPlanCannotBeTested() {
+    // given: a FlightPlan in DRAFT status
+    // then: IllegalStateException("Cannot test a plan that is not VALIDATED")
+}
+
+@Test
+void ensureFormBasedPlanCannotBeTested() {
+    // given: a VALIDATED FlightPlan with dslContent == null
+    // then: IllegalStateException("Flight plan has no DSL content to test")
+}
+```
+
+**AC085.5 — Successful test transitions status to TESTED**
+
+```java
+@Test
+void ensureSuccessfulTestMarksFlightPlanAsTested() {
+    // given: a VALIDATED DSL FlightPlan
+    //   and: C binary stubbed to return {"status":"PASS","steps":10}
+    // then: plan.status() == FlightPlanStatus.TESTED
+    //   and: repository.save() was called with the updated plan
+}
+```
+
+**AC085.6 — Failed test leaves status unchanged**
+
+```java
+@Test
+void ensureFailedTestDoesNotChangeStatus() {
+    // given: a VALIDATED DSL FlightPlan
+    //   and: C binary stubbed to return {"status":"FAIL","reason":"invalid altitude"}
+    // then: IllegalStateException("invalid altitude") is thrown
+    //   and: plan.status() == FlightPlanStatus.VALIDATED
+    //   and: repository.save() was NOT called
+}
+```

@@ -1,0 +1,101 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram — US085 Test/Validate Flight Plan
+
+package "Presentation" {
+    class TestFlightPlanUI {
+        +doShow() : boolean
+        +headline() : String
+    }
+}
+
+package "Application" {
+    class TestFlightPlanController {
+        -authz : AuthorizationService
+        -flightPlanRepo : FlightPlanRepository
+        -parser : FlightPlanParserFacade
+        -serializer : FlightPlanJsonSerializer
+        -settings : AppSettings
+        +validatedDslPlans() : Iterable<FlightPlan>
+        +testFlightPlan(designator : String) : FlightPlan
+    }
+}
+
+package "Domain" {
+    class FlightPlan <<entity, aggregate root>> {
+        -dslContent : String
+        -status : FlightPlanStatus
+        +markTested()
+        +status() : FlightPlanStatus
+        +dslContent() : String
+    }
+
+    class FlightPlanDesignator <<value object>> {
+        -value : String
+        +{static} valueOf(value : String) : FlightPlanDesignator
+    }
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+}
+
+package "DSL" {
+    class FlightPlanParserFacade {
+        +parse(dslContent : String) : ParseResult
+    }
+
+    class FlightPlanJsonSerializer {
+        +toTempFile(ast : FlightPlanAst) : Path
+    }
+
+    class FlightPlanAst <<record>> {
+        identifier : String
+        flightType : FlightType
+        legs : List<LegAst>
+    }
+}
+
+package "Repository" {
+    interface FlightPlanRepository <<interface>> {
+        +ofIdentity(id : FlightPlanDesignator) : Optional<FlightPlan>
+        +save(plan : FlightPlan) : FlightPlan
+        +findAllValidated() : Iterable<FlightPlan>
+    }
+
+    class JpaFlightPlanRepository {
+        +findAllValidated() : Iterable<FlightPlan>
+    }
+}
+
+package "Infrastructure / Settings" {
+    class AppSettings {
+        +flightTesterBinary() : String
+    }
+}
+
+note "C binary (POSIX)\nflight_tester_main.c\n• fork() + pipe\n• shm_open\n• sem_open\n• pthread + mutex + condvar\n• SIGUSR1 handler\n→ JSON result to stdout" as CNote
+
+TestFlightPlanUI    ..>  TestFlightPlanController  : uses
+TestFlightPlanController ..> FlightPlanRepository  : queries & saves
+TestFlightPlanController ..> FlightPlanParserFacade : re-parses dslContent
+TestFlightPlanController ..> FlightPlanJsonSerializer : serialises AST
+TestFlightPlanController ..> AppSettings            : reads binary path
+TestFlightPlanController ..> FlightPlan             : calls markTested()
+TestFlightPlanController ..  CNote
+
+FlightPlanParserFacade ..> FlightPlanAst            : produces
+FlightPlanJsonSerializer ..> FlightPlanAst          : reads
+
+FlightPlan *--  FlightPlanDesignator : "identified by"
+FlightPlan -->  FlightPlanStatus     : "is in"
+
+JpaFlightPlanRepository ..|> FlightPlanRepository
+
+@enduml

@@ -1,0 +1,108 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Sequence Diagram — US085 Test/Validate Flight Plan
+
+actor "Pilot" as pilot
+participant "TestFlightPlanUI" as ui
+participant "TestFlightPlanController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "FlightPlanRepository" as repo
+participant "FlightPlanParserFacade" as parser
+participant "FlightPlanJsonSerializer" as serializer
+participant "ProcessBuilder\n/ Process" as proc
+participant "plan : FlightPlan" as plan
+
+pilot -> ui : test flight plan
+activate ui
+
+' --- Phase 1: list testable plans ---
+ui -> ctrl : validatedDslPlans()
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+ctrl -> repo : findAllValidated()
+activate repo
+repo --> ctrl : VALIDATED plans
+deactivate repo
+ctrl -> ctrl : filter dslContent != null
+ctrl --> ui : testable plans
+deactivate ctrl
+ui --> pilot : show list of VALIDATED DSL plans
+
+alt no testable plans available
+    ui --> pilot : "No validated DSL flight plans available for testing."
+else plans available
+    pilot -> ui : enter designator
+    ui -> ctrl : testFlightPlan(designator)
+    activate ctrl
+
+    ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+    activate authz
+    authz --> ctrl : ok
+    deactivate authz
+
+    ctrl -> repo : ofIdentity(designator)
+    activate repo
+    repo --> ctrl : flightPlan
+    deactivate repo
+
+    ctrl -> ctrl : guard: status == VALIDATED  (AC085.2)
+    ctrl -> ctrl : guard: dslContent != null   (AC085.3)
+
+    ctrl -> parser : parse(dslContent)
+    activate parser
+    parser --> ctrl : FlightPlanAst
+    deactivate parser
+
+    ctrl -> serializer : toTempFile(ast)
+    activate serializer
+    serializer --> ctrl : tempFilePath
+    deactivate serializer
+
+    ctrl -> proc : ProcessBuilder(binary, tempFilePath).start()
+    activate proc
+    note right of proc
+      C binary: flight_tester_main.c
+      • fork() child
+      • pipe + shared memory
+      • named semaphore (step sync)
+      • coordinator pthread
+        (mutex + condvar)
+      • SIGUSR1 handler
+    end note
+    proc --> ctrl : stdout JSON
+    deactivate proc
+
+    ctrl -> ctrl : delete tempFile (finally)
+
+    alt status == "PASS"
+        ctrl -> plan : markTested()
+        activate plan
+        plan --> ctrl : status = TESTED
+        deactivate plan
+        ctrl -> repo : save(plan)
+        activate repo
+        repo --> ctrl : savedPlan
+        deactivate repo
+        ctrl --> ui : savedPlan  (AC085.5)
+        ui --> pilot : "Flight plan TP123 tested successfully.\nStatus: TESTED  Steps: N"
+    else status == "FAIL"
+        ctrl --> ui : IllegalStateException(reason)  (AC085.6)
+        ui --> pilot : "Simulation failed: <reason>"
+    else timeout / IOException
+        ctrl --> ui : RuntimeException
+        ui --> pilot : "Flight tester timed out or could not be started."
+    end
+
+    deactivate ctrl
+end
+
+deactivate ui
+
+@enduml
