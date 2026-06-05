@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <math.h>
+#include <string.h>
 #include <time.h>
 #include "safety_monitor.h"
 
@@ -94,11 +95,17 @@ int predict_future_collisions(flight_plan_t *const *plans,
 int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_positions,
                                aircraft_position_t *current_positions, int *has_position,
                                int *pipe_open, pid_t *pids, int n_flights, int *total_violations,
-                               double safe_dist_horiz_m, double safe_dist_vert_m, int max_violations) {
+                               sim_shm_t *shm, pthread_mutex_t *notification_mutex,
+                               pthread_cond_t *notification_cond, double safe_dist_horiz_m,
+                               double safe_dist_vert_m, int max_violations) {
     int i = updated_flight_idx;
 
     for (int j = i + 1; j < n_flights; j++) {
         if (has_position[j] < 2 || !pipe_open[j]) continue;
+
+        double d_horiz, d_vert;
+        calculate_cylinder_distances(&current_positions[i], &current_positions[j],
+                                     &d_horiz, &d_vert);
 
         if (check_trajectory_intersection(&prev_positions[i], &current_positions[i],
                                           &prev_positions[j], &current_positions[j],
@@ -113,6 +120,26 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
             kill(pids[j], SIGUSR1);
 
             (*total_violations)++;
+
+            pthread_mutex_lock(notification_mutex);
+            shm->total_violations = *total_violations;
+            if (shm->violation_event_count < MAX_VIOLATION_EVENTS) {
+                violation_event_t *event =
+                    &shm->violation_events[shm->violation_event_count++];
+                event->timestamp = now;
+                strncpy(event->flight_a, current_positions[i].flight_id,
+                        sizeof(event->flight_a) - 1);
+                event->flight_a[sizeof(event->flight_a) - 1] = '\0';
+                strncpy(event->flight_b, current_positions[j].flight_id,
+                        sizeof(event->flight_b) - 1);
+                event->flight_b[sizeof(event->flight_b) - 1] = '\0';
+                event->position_a = current_positions[i];
+                event->position_b = current_positions[j];
+                event->horizontal_distance_m = d_horiz;
+                event->vertical_distance_m = d_vert;
+            }
+            pthread_cond_signal(notification_cond);
+            pthread_mutex_unlock(notification_mutex);
 
             if (*total_violations >= max_violations) {
                 printf("\n[CRITICAL] Violation limit reached (%d). Aborting...\n",

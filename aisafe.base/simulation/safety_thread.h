@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include "types.h"
+#include "shared_memory.h"
 
 /*
  * US106 — Canal de handoff "ping-pong" entre a coordinator_thread (produtor do
@@ -46,6 +47,9 @@ typedef struct {
     simulation_params_t  params;
     pid_t               *pids;
     int                  n_flights;
+    sim_shm_t           *shm;
+    pthread_mutex_t     *g_notification_mutex;
+    pthread_cond_t      *g_report_cond;
 } safety_ctx_t;
 
 void *safety_thread(void *arg);

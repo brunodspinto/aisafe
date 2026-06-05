@@ -57,8 +57,8 @@ typedef struct {
     pid_t               *pids;
     flight_plan_t       *plans;
     safety_channel_t    *chan;        /* US106 — handoff p/ safety_thread */
-    pthread_mutex_t     *g_mutex;
-    pthread_cond_t      *g_done_cond;
+    pthread_mutex_t     *g_notification_mutex;
+    pthread_cond_t      *g_report_cond;
     int                 *g_sim_done;
 } coordinator_ctx_t;
 
@@ -66,8 +66,8 @@ typedef struct {
     sim_shm_t        *shm;
     flight_history_t *histories;
     int               n_flights;
-    pthread_mutex_t  *g_mutex;
-    pthread_cond_t   *g_done_cond;
+    pthread_mutex_t  *g_notification_mutex;
+    pthread_cond_t   *g_report_cond;
     int              *g_sim_done;
 } report_ctx_t;
 
@@ -180,6 +180,8 @@ static void *coordinator_thread(void *arg) {
         int abort_sim    = chan->abort_sim;
         total_violations = chan->total_violations;
         pthread_mutex_unlock(&chan->mutex);
+        /* Previsão de colisões futuras (aviso único por par) */
+        /* US102: verificação de segurança */
 
         if (abort_sim) {
             sim_aborted = 1;
@@ -218,12 +220,13 @@ static void *coordinator_thread(void *arg) {
      * US105 — Lado produtor da variável de condição (mutex + cond var).
      * O coordenador escreve os resultados finais e acorda a report_thread.
      */
-    pthread_mutex_lock(ctx->g_mutex);
+    /* Guardar contadores finais em shm e notificar report_thread */
+    pthread_mutex_lock(ctx->g_notification_mutex);
     shm->total_violations = total_violations;
     shm->sim_aborted      = sim_aborted;
     *ctx->g_sim_done      = 1;
-    pthread_cond_signal(ctx->g_done_cond);   /* wake report_thread */
-    pthread_mutex_unlock(ctx->g_mutex);
+    pthread_cond_signal(ctx->g_report_cond);
+    pthread_mutex_unlock(ctx->g_notification_mutex);
 
     pthread_exit(NULL);
 }
@@ -233,17 +236,40 @@ static void *coordinator_thread(void *arg) {
 /* ------------------------------------------------------------------ */
 static void *report_thread(void *arg) {
     report_ctx_t *ctx = (report_ctx_t *)arg;
+    int processed_events = 0;
 
     /*
      * US105 — Lado consumidor da variável de condição. Bloqueia até g_sim_done
      * == 1; o while-loop re-verifica o predicado (spurious/lost-wakeup).
      */
-    pthread_mutex_lock(ctx->g_mutex);
-    while (!*ctx->g_sim_done)
-        pthread_cond_wait(ctx->g_done_cond, ctx->g_mutex);
+    reset_live_violation_log();
+
+    pthread_mutex_lock(ctx->g_notification_mutex);
+    while (processed_events < ctx->shm->violation_event_count || !*ctx->g_sim_done) {
+        while (processed_events >= ctx->shm->violation_event_count && !*ctx->g_sim_done)
+            pthread_cond_wait(ctx->g_report_cond, ctx->g_notification_mutex);
+
+        while (processed_events < ctx->shm->violation_event_count) {
+            violation_event_t event = ctx->shm->violation_events[processed_events++];
+            char log_buf[256];
+            int log_len;
+            pthread_mutex_unlock(ctx->g_notification_mutex);
+
+            append_violation_event_to_log(&event);
+            log_len = snprintf(log_buf, sizeof(log_buf),
+                               "[REPORT US107] Logged violation between %s and %s at %ld\n",
+                               event.flight_a, event.flight_b, (long)event.timestamp);
+            write(STDOUT_FILENO, log_buf, log_len);
+
+            pthread_mutex_lock(ctx->g_notification_mutex);
+        }
+
+        if (*ctx->g_sim_done && processed_events >= ctx->shm->violation_event_count)
+            break;
+    }
     int total_violations = ctx->shm->total_violations;
     int sim_aborted      = ctx->shm->sim_aborted;
-    pthread_mutex_unlock(ctx->g_mutex);
+    pthread_mutex_unlock(ctx->g_notification_mutex);
 
     /* Padrão ex1-9.c: write() em vez de printf() em threads POSIX */
     write(STDOUT_FILENO,
@@ -362,11 +388,11 @@ int main(int argc, char *argv[]) {
     }
 
     /* US105 — Inicializar mutex e variável de condição do processo pai */
-    pthread_mutex_t g_mutex;
-    pthread_cond_t  g_done_cond;
+    pthread_mutex_t g_notification_mutex;
+    pthread_cond_t  g_report_cond;
     int             g_sim_done  = 0;
-    pthread_mutex_init(&g_mutex, NULL);
-    pthread_cond_init(&g_done_cond, NULL);
+    pthread_mutex_init(&g_notification_mutex, NULL);
+    pthread_cond_init(&g_report_cond, NULL);
 
     /* US106 — Inicializar o canal de handoff coordinator ↔ safety.
      * pthread_mutex_init/pthread_cond_init (não os _INITIALIZER) porque a
@@ -386,8 +412,8 @@ int main(int argc, char *argv[]) {
     coord_ctx.pids       = pids;
     coord_ctx.plans      = plans;
     coord_ctx.chan       = &chan;
-    coord_ctx.g_mutex    = &g_mutex;
-    coord_ctx.g_done_cond = &g_done_cond;
+    coord_ctx.g_notification_mutex = &g_notification_mutex;
+    coord_ctx.g_report_cond = &g_report_cond;
     coord_ctx.g_sim_done = &g_sim_done;
     for (int i = 0; i < n_flights; i++) {
         coord_ctx.pos_sems[i]  = pos_sems[i];
@@ -401,14 +427,17 @@ int main(int argc, char *argv[]) {
     safety_ctx.params    = params;
     safety_ctx.pids      = pids;
     safety_ctx.n_flights = n_flights;
+    safety_ctx.shm       = shm;
+    safety_ctx.g_notification_mutex = &g_notification_mutex;
+    safety_ctx.g_report_cond = &g_report_cond;
 
     /* Contexto para report_thread */
     report_ctx_t rep_ctx;
     rep_ctx.shm        = shm;
     rep_ctx.histories  = histories;
     rep_ctx.n_flights  = n_flights;
-    rep_ctx.g_mutex    = &g_mutex;
-    rep_ctx.g_done_cond = &g_done_cond;
+    rep_ctx.g_notification_mutex = &g_notification_mutex;
+    rep_ctx.g_report_cond = &g_report_cond;
     rep_ctx.g_sim_done = &g_sim_done;
 
     /* US106 — Lançar as TRÊS threads função-específicas do processo pai.
@@ -442,10 +471,10 @@ int main(int argc, char *argv[]) {
     }
 
     /* Limpeza de recursos IPC e sincronização */
-    pthread_mutex_destroy(&g_mutex);
-    pthread_cond_destroy(&g_done_cond);
     pthread_mutex_destroy(&chan.mutex);   /* US106 — canal coordinator ↔ safety */
     pthread_cond_destroy(&chan.cond);
+    pthread_mutex_destroy(&g_notification_mutex);
+    pthread_cond_destroy(&g_report_cond);
 
     for (int i = 0; i < n_flights; i++) {
         sem_close(pos_sems[i]);

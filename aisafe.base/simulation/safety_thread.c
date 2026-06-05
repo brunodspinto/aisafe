@@ -71,6 +71,8 @@ void *safety_thread(void *arg) {
             if (monitor_safety_violations(
                     i, prev, curr, has_position,
                     local_active, ctx->pids, n_flights, &total_violations,
+                    ctx->shm,
+                    ctx->g_notification_mutex, ctx->g_report_cond,
                     ctx->params.safe_dist_horiz_m, ctx->params.safe_dist_vert_m,
                     ctx->params.max_violations)) {
                 abort_sim = 1;
