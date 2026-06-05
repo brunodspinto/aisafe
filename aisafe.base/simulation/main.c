@@ -214,12 +214,30 @@ static void *coordinator_thread(void *arg) {
 
     print_history(ctx->histories, MAX_FLIGHTS);
 
-    /* Guardar contadores finais em shm e notificar report_thread via cond var */
+    /*
+     * US105 — Condition-variable producer side (mutex + cond var pattern).
+     *
+     * The coordinator thread acts as *producer*: it writes the final
+     * simulation results into shared memory and into the g_sim_done flag,
+     * then wakes the report_thread via pthread_cond_signal().
+     *
+     * Protocol (textbook producer/consumer with a predicate):
+     *   1. Acquire the mutex so the flag update and the signal are atomic
+     *      from the consumer's point of view.
+     *   2. Set the predicate (g_sim_done = 1) while holding the lock.
+     *   3. Signal the condition variable.
+     *   4. Release the mutex.
+     *
+     * Using a condition variable here (rather than a plain pthread_join) is
+     * deliberate: report_thread must start setting up the report as soon as
+     * the simulation logic is finished, not after the coordinator's thread
+     * stack is cleaned up — the two phases overlap intentionally.
+     */
     pthread_mutex_lock(ctx->g_mutex);
     shm->total_violations = total_violations;
     shm->sim_aborted      = sim_aborted;
     *ctx->g_sim_done      = 1;
-    pthread_cond_signal(ctx->g_done_cond);
+    pthread_cond_signal(ctx->g_done_cond);   /* wake report_thread */
     pthread_mutex_unlock(ctx->g_mutex);
 
     pthread_exit(NULL);
@@ -231,7 +249,24 @@ static void *coordinator_thread(void *arg) {
 static void *report_thread(void *arg) {
     report_ctx_t *ctx = (report_ctx_t *)arg;
 
-    /* Bloquear até coordinator sinalizar via variável de condição (US107 padrão) */
+    /*
+     * US105 — Condition-variable consumer side (mutex + cond var pattern).
+     *
+     * The report_thread acts as *consumer*: it blocks here until the
+     * coordinator_thread signals that the simulation has finished.
+     *
+     * Protocol (textbook producer/consumer with a predicate):
+     *   1. Acquire the mutex before inspecting the predicate.
+     *   2. Loop on pthread_cond_wait() — handles spurious wake-ups; the
+     *      loop re-checks g_sim_done each time it returns.
+     *   3. pthread_cond_wait() atomically releases the mutex and suspends
+     *      the thread; on wake-up it reacquires the mutex before returning.
+     *   4. Once g_sim_done == 1, read the results and release the mutex.
+     *
+     * This is the canonical POSIX condition-variable usage from the SCOMP
+     * T7/T8 slides: always pair cond_wait with a mutex and a while-loop
+     * predicate to avoid lost-wake and spurious-wake bugs.
+     */
     pthread_mutex_lock(ctx->g_mutex);
     while (!*ctx->g_sim_done)
         pthread_cond_wait(ctx->g_done_cond, ctx->g_mutex);
@@ -334,6 +369,17 @@ int main(int argc, char *argv[]) {
         pids[i] = fork();
         if (pids[i] == -1) { perror("fork"); exit(1); }
         if (pids[i] == 0) {
+            /*
+             * US105 GAP-1 FIX: Each child inherits all semaphore handles
+             * that the parent opened before fork().  Close them all here so
+             * the child holds no stale references.  The child then opens its
+             * own fresh handles for exactly its own flight index.
+             */
+            for (int j = 0; j < n_flights; j++) {
+                sem_close(pos_sems[j]);
+                sem_close(ctrl_sems[j]);
+            }
+
             /* Processo filho: ligar-se ao shm e abrir os seus dois semáforos */
             sim_shm_t *child_shm  = shm_attach();
             sem_t     *my_pos_sem  = open_pos_sem(i, 0);

@@ -221,7 +221,7 @@ flag and calls only `write()` (async-signal-safe).
 | `simulation/flight_process.h` | Signature updated from pipe fds to `(int idx, plan, sim_shm_t*, pos_sem, ctrl_sem, params)` |
 | `simulation/flight_process.c` | Position write changed to `shm->positions[i]=pos; sem_post(pos_sem)`; control wait changed to `sem_wait(ctrl_sem); if(ctrl[i]==0)`; `flight_done()` helper added; `munmap` called before exit; `#include <sys/mman.h>` added |
 | `simulation/flight_parser.c` | Bug fix: segment `mode` field was never parsed from JSON; added parsing with default `"cruise"` — without this, all three `is_climb/is_cruise/is_descend` flags were false and the simulation loop never terminated |
-| `simulation/main.c` | Full refactor — pipes removed; `shm_create` + named semaphores; `fork` per flight with `shm_attach`; `pthread_mutex_init` + `pthread_cond_init`; `pthread_create` for both threads; `pthread_join`; `waitpid`; full cleanup; `write()+snprintf()` in threads |
+| `simulation/main.c` | Full refactor — pipes removed; `shm_create` + named semaphores; `fork` per flight with `shm_attach`; child closes all inherited semaphore handles immediately after `fork()` before opening its own; `pthread_mutex_init` + `pthread_cond_init`; `pthread_create` for both threads; `pthread_join`; `waitpid`; full cleanup; `write()+snprintf()` in threads |
 | `simulation/Makefile` | Added `shared_memory.c` to `SRCS`; added `-lpthread`; conditional `-lrt` for Linux |
 | `.gitignore` | Added `flight_simulator`, `test_validation`, `*.o`, `simulation_report.txt` — compiled artefacts must not be committed |
 
@@ -276,6 +276,31 @@ breaks out of the loop. Each child's `sem_wait(ctrl_sems[i])` returns, sees `ctr
 and calls `flight_done()` which posts `pos_sems[i]`. Since the coordinator has already
 exited its loop, no one waits on those `pos_sems` — the semaphores are left with value 1
 and are released when `cleanup_sems()` calls `sem_unlink`. No deadlock occurs.
+
+**Semaphore fd leak prevention** — The parent opens `pos_sems[i]` and
+`ctrl_sems[i]` for all `n_flights` before any `fork()`. Each child therefore
+inherits all `2 × n_flights` semaphore handles in its file-descriptor table.
+Because the child immediately opens its own fresh handles (`open_pos_sem(i, 0)` +
+`open_ctrl_sem(i, 0)`), all inherited handles are redundant and must be closed:
+
+```c
+if (pids[i] == 0) {
+    /* Close all parent semaphore handles inherited by this child */
+    for (int j = 0; j < n_flights; j++) {
+        sem_close(pos_sems[j]);
+        sem_close(ctrl_sems[j]);
+    }
+    sim_shm_t *child_shm  = shm_attach();
+    sem_t     *my_pos_sem  = open_pos_sem(i, 0);
+    sem_t     *my_ctrl_sem = open_ctrl_sem(i, 0);
+    flight_process_main(i, &plans[i], child_shm, my_pos_sem, my_ctrl_sem, &params);
+}
+```
+
+Without this loop, every child process holds `2 × n_flights` open semaphore
+references it never uses. Although not a hard correctness bug on most systems,
+it wastes kernel resources and may cause unexpected behaviour when
+`sem_unlink` is called while handles are still open.
 
 ---
 
