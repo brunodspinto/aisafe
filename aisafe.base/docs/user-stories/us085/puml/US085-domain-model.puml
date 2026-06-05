@@ -1,0 +1,42 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt — US085 Test/Validate Flight Plan
+
+package "FlightPlan Aggregate" <<Rectangle>> {
+
+    class FlightPlan <<entity, aggregate root>> {
+        dslContent : String
+    }
+
+    class FlightPlanDesignator <<value object>> {
+        value : String
+    }
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        <b>TESTED</b>
+    }
+}
+
+package "Pilot Aggregate" <<Rectangle>> {
+
+    class Pilot <<entity, aggregate root>> {
+        id : Long
+        active : boolean
+    }
+}
+
+note bottom of FlightPlanStatus
+  US085 completes the lifecycle:
+  VALIDATED ──markTested()──► TESTED
+end note
+
+FlightPlan *-- FlightPlanDesignator : "identified by"
+FlightPlan --> FlightPlanStatus    : "is in"
+FlightPlan ..> Pilot               : "assigned to\n(by Long id)"
+
+@enduml
