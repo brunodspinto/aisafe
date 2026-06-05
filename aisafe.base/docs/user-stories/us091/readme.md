@@ -177,16 +177,15 @@ All classes are under `src/main/java/aisafe/app/loggingserver/`:
 
 ## 6. Integration/Demonstration
 
-**Prerequisites:** Java 21, Maven 3.9+. Run from the `aisafe.base` directory after `mvn compile`.
+**Prerequisites:** Java 21, Maven 3.9+. Run from the `aisafe.base` directory.
 
 **Start the server:**
 
 ```bash
-java -cp "target/classes:$(mvn dependency:build-classpath -DforceStdout -q 2>/dev/null)" \
-  aisafe.app.loggingserver.RemoteAccessLoggingServerApp
+./run-us91.sh
 ```
 
-Expected output:
+The script compiles the project and starts the server. Expected output:
 ```
 [US91] HTTP visualization server running on port 8080
 [US90] Remote Accesses Logging Server listening on UDP 9090
