@@ -1,6 +1,6 @@
-package aisafe.app.logging.server.udp;
+package aisafe.app.loggingserver.udp;
 
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -14,9 +14,7 @@ import java.util.Optional;
  * <pre>{@code <timestamp> | <username> | <clientIp> | <clientPort> | <service> | <event>}</pre>
  *
  * <p>Parsing is defensive: a malformed datagram yields {@link Optional#empty()} instead of
- * throwing, so one bad packet can never break the receive loop. Timestamp and port are parsed
- * leniently (a bad timestamp falls back to the server's current time; a bad port to {@code -1})
- * so a real access event is never dropped over a minor formatting issue.
+ * throwing, so one bad packet can never break the receive loop.
  */
 public final class LogEventParser {
 
@@ -25,11 +23,6 @@ public final class LogEventParser {
 
     private LogEventParser() {}
 
-    /**
-     * @param payload     the raw datagram text
-     * @param sourceUdpIp the UDP datagram's source IP (verification only); may be {@code null}
-     * @return the parsed event, or empty if the payload is not a valid 6-field record
-     */
     public static Optional<RemoteAccessEvent> parse(final String payload, final String sourceUdpIp) {
         if (payload == null || payload.isBlank()) {
             return Optional.empty();

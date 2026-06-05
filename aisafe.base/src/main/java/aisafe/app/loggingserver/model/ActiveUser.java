@@ -1,4 +1,4 @@
-package aisafe.app.logging.server.model;
+package aisafe.app.loggingserver.model;
 
 import java.time.LocalDateTime;
 

@@ -6,13 +6,13 @@ This US is being implemented for the first time in Sprint 3. It adds an **HTTP s
 
 The Remote Accesses Logging Server is a standalone application that runs on a dedicated cloud node (see the deployment diagram in the RCOMP project description). It receives remote-access events via UDP (US90, teammate's responsibility) and exposes them via HTTP (US91).
 
-US90 and US91 share the same in-memory store (`AccessEventStore`) and the same `AccessEvent` model. US90 fills the store; US91 reads from it.
+US90 and US91 share the same in-memory store (`RemoteAccessLogStore`) and the same `RemoteAccessEvent` model. US90 fills the store; US91 reads from it.
 
 ### 1.1 List of issues
 
 - **Analysis:** Identify the data to be displayed (last events + active users), the HTTP endpoints needed, and the AJAX update strategy.
-- **Design:** Define the class structure — `AccessEvent`, `AccessEventStore`, `LoggingHttpServer`, `UdpLogReceiver` stub, `RemoteAccessLoggingServerApp`.
-- **Implement:** Implement the HTTP server with two HTML pages and two JSON API endpoints. Leave `UdpLogReceiver` as a stub for US90.
+- **Design:** Define the class structure across sub-packages `model/`, `store/`, `udp/`.
+- **Implement:** Implement the HTTP server with two HTML pages and two JSON API endpoints, integrated with the US90 UDP receiver.
 - **Test:** Start the server and open both pages in a browser; verify AJAX auto-refresh via browser DevTools.
 
 ---
@@ -34,7 +34,7 @@ US90 and US91 share the same in-memory store (`AccessEventStore`) and the same `
 
 | Dependency | Reason |
 |-----------|--------|
-| US90 | US90 is responsible for receiving UDP datagrams and populating `AccessEventStore`. Without US90, the tables are empty but the pages are fully functional. |
+| US90 | US90 is responsible for receiving UDP datagrams and populating `RemoteAccessLogStore`. Without US90, the tables are empty but the pages are fully functional. |
 
 ---
 
@@ -45,13 +45,12 @@ US91 requires an HTTP server embedded in the same JVM as the UDP receiver. The H
 ### Architecture overview
 
 ```
-[Web Browser]  ──HTTP GET /events──►  [LoggingHttpServer]  ──reads──►  [AccessEventStore]
-[Web Browser]  ──HTTP GET /active──►  [LoggingHttpServer]              ◄──writes──  [UdpLogReceiver]
-[Web Browser]  ──HTTP GET /api/events►[LoggingHttpServer]
-[Web Browser]  ──HTTP GET /api/active►[LoggingHttpServer]
+[US78/US86 clients] ──UDP 9090──► UdpLogReceiver ──► RemoteAccessLogStore
+                                                               │
+[Web Browser] ──HTTP 8080──► LoggingHttpServer (US91) ──reads─┘
 ```
 
-The `AccessEventStore` is a thread-safe singleton shared between `UdpLogReceiver` (writer, US90) and `LoggingHttpServer` (reader, US91).
+The `RemoteAccessLogStore` is thread-safe and shared between `UdpLogReceiver` (writer, US90) and `LoggingHttpServer` (reader, US91).
 
 ### Data displayed
 
@@ -59,42 +58,45 @@ The `AccessEventStore` is a thread-safe singleton shared between `UdpLogReceiver
 
 | Field | Source |
 |-------|--------|
-| Timestamp | `AccessEvent.getTimestamp()` |
-| Username | `AccessEvent.getUsername()` |
-| Client IP | `AccessEvent.getClientIp()` |
-| Port | `AccessEvent.getClientPort()` |
-| Service | `AccessEvent.getServiceId()` (US44, US78, or US86) |
-| Event | `AccessEvent.getEventType()` (LOGIN_SUCCESS, LOGOUT, etc.) |
+| Timestamp | `RemoteAccessEvent.timestamp()` |
+| Username | `RemoteAccessEvent.username()` |
+| Client IP | `RemoteAccessEvent.clientIp()` |
+| Port | `RemoteAccessEvent.clientPort()` |
+| Service | `RemoteAccessEvent.service()` (US44, US78, or US86) |
+| Event | `RemoteAccessEvent.event()` (LOGIN_SUCCESS, LOGOUT, etc.) |
 
 **Active Users page (`/active`)** — users with an open session (LOGIN_SUCCESS received, no LOGOUT or CONNECTION_LOST yet):
 
 | Field | Source |
 |-------|--------|
-| Username | `AccessEvent.getUsername()` |
-| Client IP | `AccessEvent.getClientIp()` |
-| Port | `AccessEvent.getClientPort()` |
-| Service | `AccessEvent.getServiceId()` |
-| Login Time | `AccessEvent.getTimestamp()` (of the LOGIN_SUCCESS event) |
+| Username | `ActiveUser.username()` |
+| Client IP | `ActiveUser.clientIp()` |
+| Port | `ActiveUser.clientPort()` |
+| Service | `ActiveUser.service()` |
+| Login Time | `ActiveUser.since()` (timestamp of the LOGIN_SUCCESS event) |
 
 ### Key design decisions
 
 **Built-in `com.sun.net.httpserver.HttpServer`** — no external Maven dependency is needed. This keeps the logging server application self-contained and easy to deploy on any cloud node with a standard JRE.
 
-**In-memory store only** — events are not persisted to disk. The store holds up to 500 events (FIFO). This is sufficient for the prototype and avoids the complexity of a database on the logging node.
+**Durability across restarts** — events are appended to a file (`logs.txt`) by `LogFileWriter`. On startup, `RemoteAccessLoggingServerApp` reloads the file via `LogEventParser` so previously recorded events are preserved.
 
-**Thread safety** — `AccessEventStore` uses `CopyOnWriteArrayList` for the event history and `ConcurrentHashMap` for the active sessions map. Both allow concurrent reads (HTTP server threads) and writes (UDP receiver thread) without explicit synchronisation.
+**Thread safety** — `RemoteAccessLogStore` uses `ConcurrentLinkedDeque` for the event history and `ConcurrentHashMap` for the active sessions map. Both allow concurrent reads (HTTP server threads) and writes (UDP receiver thread) without explicit synchronisation.
 
 **AJAX with `fetch()` + `setInterval(5000)`** — the HTML is served inline as Java strings; no external static files are required. The JavaScript polls `/api/events` and `/api/active` every 5 seconds and rebuilds the table body without a page reload.
 
 ### Main classes identified
 
-| Class | Responsibility |
-|-------|----------------|
-| `AccessEvent` | Immutable record for one remote-access event; static `parse(String)` for pipe-delimited format |
-| `AccessEventStore` | Thread-safe singleton; stores up to 500 events (FIFO); tracks active sessions |
-| `LoggingHttpServer` | Embedded HTTP server on port 8080; serves HTML pages and JSON API |
-| `UdpLogReceiver` | Stub — receives `AccessEventStore` in constructor; US90 fills in the UDP logic |
-| `RemoteAccessLoggingServerApp` | Entry point; wires the components together and blocks |
+| Class | Package | Responsibility |
+|-------|---------|----------------|
+| `RemoteAccessEvent` | `model` | Immutable record for one remote-access event |
+| `ActiveUser` | `model` | Immutable record for a currently active session |
+| `RemoteAccessLogStore` | `store` | Thread-safe store; tracks events and active sessions |
+| `LogFileWriter` | `store` | Appends events as pipe-delimited lines to a file |
+| `LogEventParser` | `udp` | Parses pipe-delimited payload into `RemoteAccessEvent` |
+| `UdpLogReceiver` | `udp` | US90 — receives UDP datagrams, populates the store |
+| `LoggingHttpServer` | (root) | Embedded HTTP server on port 8080; serves HTML + JSON |
+| `RemoteAccessLoggingServerApp` | (root) | Entry point; wires US90 + US91 together |
 
 ---
 
@@ -107,18 +109,18 @@ The `AccessEventStore` is a thread-safe singleton shared between `UdpLogReceiver
 | GET | `/` | 302 → `/events` | Root redirect |
 | GET | `/events` | HTML | Last recorded events page (AJAX) |
 | GET | `/active` | HTML | Currently active users page (AJAX) |
-| GET | `/api/events` | JSON array | Last 100 events, used by `/events` AJAX |
-| GET | `/api/active` | JSON array | Active sessions, used by `/active` AJAX |
+| GET | `/api/events` | JSON array | Last 100 events, polled by `/events` |
+| GET | `/api/active` | JSON array | Active sessions, polled by `/active` |
 
-### 4.2. AccessEvent wire format
+### 4.2. Wire format
 
-Pipe-delimited, produced by `RemoteAccessLogger` (US90 sender side):
+Pipe-delimited, produced by `RemoteAccessLogger` and also used as the file persistence format:
 
 ```
-2026-06-04 14:32:01 | joana | 127.0.0.1 | 54321 | US78 | LOGIN_SUCCESS
+2026-06-04 14:32:01 | atcc1 | 10.0.0.5 | 54321 | US78 | LOGIN_SUCCESS
 ```
 
-Fields: `timestamp | username | clientIp | clientPort | serviceId | eventType`
+Fields: `timestamp | username | clientIp | clientPort | service | event`
 
 ### 4.3. Class diagram
 
@@ -127,44 +129,55 @@ RemoteAccessLoggingServerApp
         │ creates
         ├──► LoggingHttpServer (port 8080)
         │           │ reads
-        │           └──► AccessEventStore (singleton)
+        │           └──► RemoteAccessLogStore
         │                       ▲
-        └──► UdpLogReceiver ────┘ (writes — stub, US90)
-                    uses
-                AccessEvent.parse(String)
+        ├──► UdpLogReceiver ────┘ (writes — US90)
+        │           uses LogEventParser
+        └──► LogFileWriter (appends to logs.txt)
 ```
 
 ### 4.4. Acceptance Tests
 
-Testing is manual (no JUnit for the HTTP/AJAX layer):
-
 | Test | Expected |
 |------|----------|
-| Start `RemoteAccessLoggingServerApp`, open `http://localhost:8080/events` | Page loads, shows table with 0 events, status line updates every 5 s |
-| Open `http://localhost:8080/active` | Page loads, shows table with 0 active users |
+| Start `RemoteAccessLoggingServerApp`, open `http://localhost:8080/events` | Page loads, table shown, status line updates every 5 s |
+| Open `http://localhost:8080/active` | Page loads, active users table shown |
 | Navigate to `/` | Browser redirects to `/events` |
 | Open browser DevTools → Network tab | Requests to `/api/events` and `/api/active` appear every 5 s |
-| Call `AccessEventStore.getInstance().addEvent(...)` programmatically | Tables update on next AJAX poll without page reload |
+| Send a UDP datagram with LOGIN_SUCCESS | Event appears in `/events`; user appears in `/active` on next AJAX poll |
+| Send a UDP datagram with LOGOUT for same user | User disappears from `/active` on next AJAX poll |
 
 ---
 
 ## 5. Implementation
 
-All classes are in `src/main/java/aisafe/app/loggingserver/`:
+All classes are under `src/main/java/aisafe/app/loggingserver/`:
 
 | Class | Key implementation notes |
 |-------|--------------------------|
-| `AccessEvent` | Immutable; `parse()` splits on `\s*\|\s*`, returns `null` for malformed lines |
-| `AccessEventStore` | `addEvent()` enforces MAX_EVENTS=500 FIFO; updates `activeSessions` map on LOGIN_SUCCESS / LOGOUT / CONNECTION_LOST |
-| `LoggingHttpServer` | `HttpServer.create()` on port 8080; inline HTML built with Java string concatenation; JSON built with `StringBuilder` (no external library) |
-| `UdpLogReceiver` | Skeleton only — constructor accepts `AccessEventStore`; TODO comment guides US90 implementer |
-| `RemoteAccessLoggingServerApp` | Starts HTTP server, creates UDP receiver stub, blocks with `Thread.currentThread().join()` |
+| `RemoteAccessEvent` | Record with 7 fields; `sessionKey()` builds a unique key for active-session tracking; `toLogLine()` produces the pipe-delimited persistence format |
+| `ActiveUser` | Record with 5 fields; built from a `RemoteAccessEvent` when LOGIN_SUCCESS is received |
+| `RemoteAccessLogStore` | `ConcurrentLinkedDeque` (newest first via `addFirst`); `ConcurrentHashMap` keyed by `sessionKey()`; LOGIN_SUCCESS adds, LOGOUT/CONNECTION_LOST removes |
+| `LogFileWriter` | `synchronized append()`; `BufferedWriter` opened in append mode; implements `Closeable` |
+| `LogEventParser` | Splits on `\|`; bad timestamp falls back to `LocalDateTime.now()`; bad port falls back to `-1`; returns `Optional.empty()` for malformed input |
+| `UdpLogReceiver` | `DatagramSocket` loop on configurable port; `volatile boolean running` + `volatile DatagramSocket socket` for clean shutdown via `stop()` |
+| `LoggingHttpServer` | `HttpServer.create()` on port 8080; inline HTML with JavaScript `fetch()` + `setInterval(5000)`; JSON built with `StringBuilder` (no external library) |
+| `RemoteAccessLoggingServerApp` | Parses `--port` and `--file` args; reloads events from file on startup; starts HTTP server (US91) then blocks on UDP receiver (US90); shutdown hook closes writer |
+
+### Unit tests
+
+| Test class | What it tests |
+|------------|---------------|
+| `LogEventParserTest` | Valid parse, null/blank, wrong field count, empty mandatory fields, bad timestamp fallback, bad port fallback |
+| `RemoteAccessLogStoreTest` | Newest-first ordering, limit, LOGIN_SUCCESS activates, LOGOUT/CONNECTION_LOST deactivates, LOGIN_FAILED not active, clear |
+| `LogFileWriterTest` | Event appended as correct pipe-delimited line |
+| `UdpLogReceiverIT` | Real UDP datagram sent over loopback is received, parsed, and stored |
 
 ---
 
 ## 6. Integration/Demonstration
 
-**Prerequisites:** Java 21, Maven 3.9+. Run from the `aisafe.base` directory.
+**Prerequisites:** Java 21, Maven 3.9+. Run from the `aisafe.base` directory after `mvn compile`.
 
 **Start the server:**
 
@@ -175,25 +188,24 @@ java -cp "target/classes:$(mvn dependency:build-classpath -DforceStdout -q 2>/de
 
 Expected output:
 ```
-[Logging Server] HTTP running on port 8080
+[US91] HTTP visualization server running on port 8080
+[US90] Remote Accesses Logging Server listening on UDP 9090
 ```
 
 **Open in browser:**
 
-- `http://localhost:8080/events` — last events table (empty until US90 is implemented)
-- `http://localhost:8080/active` — active users table
+- `http://localhost:8080/events` — last 100 events, newest first, auto-refreshed every 5 s
+- `http://localhost:8080/active` — currently active users, auto-refreshed every 5 s
 
-**Verify AJAX:**
+**Verify AJAX:** Open browser DevTools (F12) → Network tab. Requests to `/api/events` and `/api/active` appear every 5 seconds automatically.
 
-Open browser DevTools (F12) → Network tab. Requests to `/api/events` and `/api/active` appear every 5 seconds automatically.
-
-**Stop the server:** `Ctrl+C` in the terminal.
+**Stop the server:** `Ctrl+C` — shutdown hook prints the total number of events recorded.
 
 ---
 
 ## 7. Observations
 
-- `UdpLogReceiver` is intentionally left as a stub. The class exists and accepts `AccessEventStore` in its constructor so that the integration point with US90 is clear and the main application compiles cleanly. The US90 implementer only needs to fill in the UDP receiver loop inside this class.
 - The HTTP server uses `com.sun.net.httpserver` (built-in since Java 6), so no extra entry in `pom.xml` is required.
-- The JSON serialisation is manual (`StringBuilder`) to avoid adding an external JSON library dependency to the logging server module.
-- During the demonstration, the Remote Accesses Logging Server must run on a **different network node** from the Main Application, as required by the deployment diagram in the RCOMP project description. The HTTP server binds to all interfaces (`0.0.0.0`) by default, so it is accessible from any machine on the network.
+- The JSON serialisation is manual (`StringBuilder`) to avoid adding an external JSON library dependency.
+- Events are persisted to `logs.txt` (pipe-delimited, same format as the UDP wire format) so the store survives server restarts.
+- During the demonstration, the Remote Accesses Logging Server must run on a **different network node** from the Main Application, as required by the deployment diagram in the RCOMP project description. The client applications (`CollaboratorTcpClientApp`, `PilotTcpClientApp`) have `LOG_HOST` hardcoded to `"localhost"` — this must be changed to the cloud node IP before the demo.

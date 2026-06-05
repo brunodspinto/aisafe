@@ -1,6 +1,6 @@
-package aisafe.app.logging.server.store;
+package aisafe.app.loggingserver.store;
 
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 
 import java.io.BufferedWriter;
 import java.io.Closeable;
@@ -19,22 +19,11 @@ public final class LogFileWriter implements Closeable {
 
     private final BufferedWriter writer;
 
-    /**
-     * Opens (creating if needed) the given file for appending.
-     *
-     * @param file the log file path
-     * @throws IOException if the file cannot be opened
-     */
     public LogFileWriter(final Path file) throws IOException {
         this.writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8,
                 StandardOpenOption.CREATE, StandardOpenOption.APPEND);
     }
 
-    /**
-     * Appends one event and flushes immediately so nothing is lost if the process is killed.
-     *
-     * @param event the event to persist
-     */
     public synchronized void append(final RemoteAccessEvent event) {
         try {
             writer.write(event.toLogLine());

@@ -1,6 +1,6 @@
-package aisafe.app.logging.server.udp;
+package aisafe.app.loggingserver.udp;
 
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -11,10 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for {@link LogEventParser} (US090): parsing of the pipe-delimited UDP payload,
- * including defensive handling of malformed input.
- */
 class LogEventParserTest {
 
     @Test
