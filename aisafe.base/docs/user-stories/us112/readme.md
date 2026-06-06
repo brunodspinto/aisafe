@@ -154,3 +154,108 @@ The main design direction emerging from the analysis is:
 
 This is enough to satisfy the user story while keeping the solution small, explainable, and
 consistent with the project's existing architecture.
+
+---
+
+## 4. Design
+
+### 4.1 Realization Overview
+
+The proposed realization follows the same layered approach already used in the Java
+application:
+
+- a console UI collects the month and year to report;
+- an application controller validates the authenticated role and orchestrates the use case;
+- a report service gathers monthly operational data from repositories;
+- a report builder formats the result using a shared report structure;
+- a renderer/writer outputs the final report in a consistent textual format.
+
+This keeps the solution simple and avoids introducing unnecessary infrastructure.
+
+### 4.2 Proposed Responsibilities
+
+| Layer | Element | Responsibility |
+|------|---------|----------------|
+| Presentation | `GenerateMonthlyReportUI` | Ask the operator for month/year and trigger report generation |
+| Application | `GenerateMonthlyReportController` | Enforce authorization and coordinate the use case |
+| Application/Service | `MonthlyReportService` | Query repositories and compute monthly statistics |
+| Application/Service | `OperationalReportBuilder` | Assemble the branded, section-based report structure |
+| Output | `ReportWriter` | Persist or print the generated report in a consistent format |
+
+The names above are intentionally simple and aligned with the style already present in the
+project.
+
+### 4.3 Report Structure
+
+To satisfy AC112.2, all future report types should share the same basic structure.
+
+The monthly report should contain:
+
+1. **Header**
+   Includes system name, report type, generation date, and reporting month.
+2. **Executive Summary**
+   Short list of the main monthly totals.
+3. **Operational Statistics**
+   Counts grouped by relevant operational categories.
+4. **Visual/Graphic Section**
+   Simple graphics representation for the monthly numbers.
+5. **Footer**
+   Generation context, operator, and consistency notes.
+
+For a second-year project, the "graphics" requirement should be interpreted in a lightweight
+way. A simple textual bar chart, grouped counters, or fixed-width tabular summary is enough
+to establish the concept without overengineering the solution.
+
+### 4.4 Monthly Data Collection Rules
+
+The monthly report type must define its own data collection method.
+
+For the first version, the `MonthlyReportService` should:
+
+- query flight-plan data for the selected month;
+- group flight plans by relevant status values;
+- query weather-data records for the selected month;
+- prepare simple aggregates for inclusion in the final report.
+
+This satisfies AC112.3 because the monthly report has:
+
+- its own data sources;
+- its own section contents;
+- its own statistics calculation rules.
+
+### 4.5 Authorization and Interaction Flow
+
+The interaction flow should remain straightforward:
+
+1. The Flight Control Operator selects the monthly report option in the console.
+2. The UI asks for the target month and year.
+3. The controller checks the authenticated user's role.
+4. The service gathers repository data and computes the monthly statistics.
+5. The builder assembles the common report structure with monthly-specific contents.
+6. The writer outputs the final report.
+7. The UI informs the operator that the report was generated successfully.
+
+This is consistent with the existing controller/UI patterns in the repository.
+
+### 4.6 Design Constraints
+
+The design should respect the following constraints:
+
+- no dependency on external BI or dashboard frameworks;
+- no complex reporting engine;
+- no artificial domain layer created only for formatting concerns;
+- reuse of repository data already managed by the Java application.
+
+This keeps the design aligned with the course scope and with the user's request to avoid
+anything too fancy.
+
+### 4.7 Expected Evolution Path
+
+This design also leaves a clear path for future reports:
+
+- the common report structure can be reused by compliance and incident reports;
+- each new report type can introduce its own service or collector;
+- richer graphics can be added later without changing the core use-case flow.
+
+That gives the project a reusable reporting foundation while keeping US112 manageable as a
+first reporting feature.
