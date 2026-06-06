@@ -237,6 +237,7 @@ static void *coordinator_thread(void *arg) {
 static void *report_thread(void *arg) {
     report_ctx_t *ctx = (report_ctx_t *)arg;
     int processed_events = 0;
+    int last_reported_drop_count = 0;
 
     /*
      * US105 — Lado consumidor da variável de condição. Bloqueia até g_sim_done
@@ -264,10 +265,28 @@ static void *report_thread(void *arg) {
             pthread_mutex_lock(ctx->g_notification_mutex);
         }
 
+        if (ctx->shm->dropped_violation_events > last_reported_drop_count) {
+            int new_drop_count = ctx->shm->dropped_violation_events;
+            char warn_buf[160];
+            int warn_len;
+            pthread_mutex_unlock(ctx->g_notification_mutex);
+
+            append_violation_drop_notice(new_drop_count - last_reported_drop_count);
+            warn_len = snprintf(
+                warn_buf, sizeof(warn_buf),
+                "[REPORT US107] Live violation queue overflowed; %d events were dropped\n",
+                new_drop_count);
+            write(STDOUT_FILENO, warn_buf, warn_len);
+
+            pthread_mutex_lock(ctx->g_notification_mutex);
+            last_reported_drop_count = new_drop_count;
+        }
+
         if (*ctx->g_sim_done && processed_events >= ctx->shm->violation_event_count)
             break;
     }
     int total_violations = ctx->shm->total_violations;
+    int dropped_events   = ctx->shm->dropped_violation_events;
     int sim_aborted      = ctx->shm->sim_aborted;
     pthread_mutex_unlock(ctx->g_notification_mutex);
 
@@ -276,7 +295,7 @@ static void *report_thread(void *arg) {
           "\n[SYSTEM] Simulation concluded. Spawning report generation process...\n",
           71);
     generate_final_report(ctx->histories, ctx->n_flights,
-                          total_violations, sim_aborted);
+                          total_violations, dropped_events, sim_aborted);
 
     pthread_exit(NULL);
 }

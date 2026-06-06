@@ -27,6 +27,7 @@ typedef struct {
     int sim_aborted;
     violation_event_t violation_events[MAX_VIOLATION_EVENTS];
     int violation_event_count;
+    int dropped_violation_events;
 } sim_shm_t;
 
 /* Parent creates the segment; sets n_flights and initialises active[] to 1. */

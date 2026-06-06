@@ -137,6 +137,8 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
                 event->position_b = current_positions[j];
                 event->horizontal_distance_m = d_horiz;
                 event->vertical_distance_m = d_vert;
+            } else {
+                shm->dropped_violation_events++;
             }
             pthread_cond_signal(notification_cond);
             pthread_mutex_unlock(notification_mutex);

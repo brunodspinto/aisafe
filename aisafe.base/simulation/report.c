@@ -46,8 +46,22 @@ void append_violation_event_to_log(const violation_event_t *event) {
     fclose(file);
 }
 
+void append_violation_drop_notice(int dropped_count) {
+    FILE *file = fopen(LIVE_VIOLATION_LOG, "a");
+    if (!file) {
+        perror("fopen error");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file,
+            "[WARNING] %d safety violation events were not written to the live queue because the buffer was full.\n\n",
+            dropped_count);
+    fclose(file);
+}
+
 void generate_final_report(const flight_history_t *histories, int n_flights,
-                           int total_violations, int was_aborted) {
+                           int total_violations, int dropped_events,
+                           int was_aborted) {
     pid_t pid;
     int status;
 
@@ -88,6 +102,7 @@ void generate_final_report(const flight_history_t *histories, int n_flights,
         fprintf(file, "Simulation End Status: %s\n",
                 was_aborted ? "ABORTED (Threshold Reached)" : "COMPLETED (Normal)");
         fprintf(file, "Total Safety Violations Detected: %d\n", total_violations);
+        fprintf(file, "Dropped Live Violation Events: %d\n", dropped_events);
         fprintf(file, "Live Safety Violation Log: %s\n", LIVE_VIOLATION_LOG);
         fprintf(file, "Total Aircraft Records: %d\n", n_flights);
         fprintf(file, "==================================================\n\n");
