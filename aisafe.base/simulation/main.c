@@ -1,19 +1,22 @@
 /*
- * main.c - Flight Simulation entry point (US105: hybrid environment)
+ * main.c - Flight Simulation entry point (US105 + US106)
  *
- * US105 refactoring: pipes substituídos por shared memory + named semaphores.
- * O processo pai é agora multi-threaded:
- *   - coordinator_thread: loop de sincronização passo-a-passo (lê posições,
- *     verifica segurança, envia GO/STOP via shared memory + semáforos).
- *   - report_thread:      aguarda variável de condição no fim da simulação
- *                         e gera o relatório final (US109).
+ * US105: pipes substituídos por shared memory + named semaphores; processo pai
+ *        multi-threaded (coordinator_thread + report_thread).
+ *
+ * US106 - Separação de funcionalidades por threads. A verificação de segurança
+ * (US102) foi extraída para a sua própria thread função-específica, que vive no
+ * módulo separado safety_thread.{c,h}. A coordinator_thread e a report_thread
+ * permanecem aqui (US105/US101/US109). coordinator_thread e safety_thread
+ * cooperam, em cada passo, por um handoff "ping-pong" (mutex + variável de
+ * condição) através do safety_channel_t (definido em safety_thread.h).
  *
  * Padrões SCOMP usados:
- *   shm_open + ftruncate + mmap  →  ex1-7.c, ex2-6.c
- *   sem_open / sem_post / sem_wait → ex1-7.c, ex2-5.c
- *   pthread_create / pthread_join  → ex1-9.c
- *   mutex + cond var               → T7/T8 slides
- *   SIGUSR1                        → ex1-3.c, ex1-4.c (em flight_process.c)
+ *   shm_open + ftruncate + mmap   →  ex1-7.c, ex2-6.c
+ *   sem_open / sem_post / sem_wait →  ex1-7.c, ex2-5.c
+ *   pthread_create / pthread_join  →  ex1-9.c
+ *   mutex + cond var (while-pred)  →  T7/T8 slides
+ *   SIGUSR1                        →  ex1-3.c, ex1-4.c (em flight_process.c)
  */
 #define _POSIX_C_SOURCE 200809L
 #include <unistd.h>
@@ -31,9 +34,9 @@
 #include "aca_filter.h"
 #include "flight_parser.h"
 #include "flight_process.h"
-#include "safety_monitor.h"
 #include "report.h"
 #include "shared_memory.h"
+#include "safety_thread.h"   /* US106 — safety_thread + safety_channel_t */
 
 #define FLIGHT_PLANS_FILE "flight_plans.json"
 #define CONFIG_FILE       "simulation.conf"
@@ -53,6 +56,7 @@ typedef struct {
     int                  n_flights;
     pid_t               *pids;
     flight_plan_t       *plans;
+    safety_channel_t    *chan;        /* US106 — handoff p/ safety_thread */
     pthread_mutex_t     *g_mutex;
     pthread_cond_t      *g_done_cond;
     int                 *g_sim_done;
@@ -83,9 +87,6 @@ static void *coordinator_thread(void *arg) {
     int local_active[MAX_FLIGHTS];
     int n_active = n_flights;
     for (int i = 0; i < n_flights; i++) local_active[i] = 1;
-
-    int prediction_done[MAX_FLIGHTS][MAX_FLIGHTS];
-    memset(prediction_done, 0, sizeof(prediction_done));
 
     int total_violations = 0;
     int sim_aborted      = 0;
@@ -158,37 +159,27 @@ static void *coordinator_thread(void *arg) {
 
         if (n_active == 0) break;
 
-        /* Previsão de colisões futuras (aviso único por par) */
-        flight_plan_t *plan_ptrs[MAX_FLIGHTS];
-        for (int k = 0; k < n_flights; k++) plan_ptrs[k] = &ctx->plans[k];
-
-        for (int i = 0; i < n_flights; i++) {
-            if (!local_active[i] || has_position[i] < 1) continue;
-            for (int j = i + 1; j < n_flights; j++) {
-                if (!local_active[j] || has_position[j] < 1) continue;
-                if (!prediction_done[i][j]) {
-                    prediction_done[i][j] = 1;
-                    predict_future_collisions(
-                        (flight_plan_t *const *)plan_ptrs, i, 0, j, 0,
-                        ctx->params.safe_dist_horiz_m,
-                        ctx->params.safe_dist_vert_m);
-                }
-            }
-        }
-
-        /* US102: verificação de segurança */
-        int abort_sim = 0;
-        for (int i = 0; i < n_flights; i++) {
-            if (!local_active[i] || has_position[i] < 2) continue;
-            if (monitor_safety_violations(
-                    i, prev_positions, current_positions, has_position,
-                    local_active, ctx->pids, n_flights, &total_violations,
-                    ctx->params.safe_dist_horiz_m, ctx->params.safe_dist_vert_m,
-                    ctx->params.max_violations)) {
-                abort_sim = 1;
-                break;
-            }
-        }
+        /*
+         * US106 — Handoff para a safety_thread. O coordenador entrega o snapshot
+         * deste passo e bloqueia até o veredicto de segurança estar pronto
+         * (ping-pong com mutex + variável de condição, padrão T7/T8). A previsão
+         * de colisões e a verificação do cilindro de segurança (US102) correm
+         * agora na sua própria thread (safety_thread.c).
+         */
+        safety_channel_t *chan = ctx->chan;
+        pthread_mutex_lock(&chan->mutex);
+        memcpy(chan->prev_positions,    prev_positions,    sizeof(prev_positions));
+        memcpy(chan->current_positions, current_positions, sizeof(current_positions));
+        memcpy(chan->has_position,      has_position,      sizeof(has_position));
+        memcpy(chan->local_active,      local_active,      sizeof(local_active));
+        chan->verdict_ready = 0;
+        chan->step_ready    = 1;
+        pthread_cond_broadcast(&chan->cond);          /* acorda safety_thread */
+        while (!chan->verdict_ready)                  /* while-pred: spurious/lost-wakeup */
+            pthread_cond_wait(&chan->cond, &chan->mutex);
+        int abort_sim    = chan->abort_sim;
+        total_violations = chan->total_violations;
+        pthread_mutex_unlock(&chan->mutex);
 
         if (abort_sim) {
             sim_aborted = 1;
@@ -212,26 +203,20 @@ static void *coordinator_thread(void *arg) {
         }
     }
 
+    /*
+     * US106 — A simulação terminou: desbloquear a safety_thread para que saia
+     * do seu cond_wait e possa ser juntada (pthread_join) sem ficar pendente.
+     */
+    pthread_mutex_lock(&ctx->chan->mutex);
+    ctx->chan->sim_finished = 1;
+    pthread_cond_broadcast(&ctx->chan->cond);
+    pthread_mutex_unlock(&ctx->chan->mutex);
+
     print_history(ctx->histories, MAX_FLIGHTS);
 
     /*
-     * US105 — Condition-variable producer side (mutex + cond var pattern).
-     *
-     * The coordinator thread acts as *producer*: it writes the final
-     * simulation results into shared memory and into the g_sim_done flag,
-     * then wakes the report_thread via pthread_cond_signal().
-     *
-     * Protocol (textbook producer/consumer with a predicate):
-     *   1. Acquire the mutex so the flag update and the signal are atomic
-     *      from the consumer's point of view.
-     *   2. Set the predicate (g_sim_done = 1) while holding the lock.
-     *   3. Signal the condition variable.
-     *   4. Release the mutex.
-     *
-     * Using a condition variable here (rather than a plain pthread_join) is
-     * deliberate: report_thread must start setting up the report as soon as
-     * the simulation logic is finished, not after the coordinator's thread
-     * stack is cleaned up — the two phases overlap intentionally.
+     * US105 — Lado produtor da variável de condição (mutex + cond var).
+     * O coordenador escreve os resultados finais e acorda a report_thread.
      */
     pthread_mutex_lock(ctx->g_mutex);
     shm->total_violations = total_violations;
@@ -250,22 +235,8 @@ static void *report_thread(void *arg) {
     report_ctx_t *ctx = (report_ctx_t *)arg;
 
     /*
-     * US105 — Condition-variable consumer side (mutex + cond var pattern).
-     *
-     * The report_thread acts as *consumer*: it blocks here until the
-     * coordinator_thread signals that the simulation has finished.
-     *
-     * Protocol (textbook producer/consumer with a predicate):
-     *   1. Acquire the mutex before inspecting the predicate.
-     *   2. Loop on pthread_cond_wait() — handles spurious wake-ups; the
-     *      loop re-checks g_sim_done each time it returns.
-     *   3. pthread_cond_wait() atomically releases the mutex and suspends
-     *      the thread; on wake-up it reacquires the mutex before returning.
-     *   4. Once g_sim_done == 1, read the results and release the mutex.
-     *
-     * This is the canonical POSIX condition-variable usage from the SCOMP
-     * T7/T8 slides: always pair cond_wait with a mutex and a while-loop
-     * predicate to avoid lost-wake and spurious-wake bugs.
+     * US105 — Lado consumidor da variável de condição. Bloqueia até g_sim_done
+     * == 1; o while-loop re-verifica o predicado (spurious/lost-wakeup).
      */
     pthread_mutex_lock(ctx->g_mutex);
     while (!*ctx->g_sim_done)
@@ -397,6 +368,14 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&g_mutex, NULL);
     pthread_cond_init(&g_done_cond, NULL);
 
+    /* US106 — Inicializar o canal de handoff coordinator ↔ safety.
+     * pthread_mutex_init/pthread_cond_init (não os _INITIALIZER) porque a
+     * estrutura é de armazenamento automático (stack), não estática. */
+    safety_channel_t chan;
+    memset(&chan, 0, sizeof(chan));
+    pthread_mutex_init(&chan.mutex, NULL);
+    pthread_cond_init(&chan.cond, NULL);
+
     /* Contexto para coordinator_thread */
     coordinator_ctx_t coord_ctx;
     coord_ctx.shm        = shm;
@@ -406,6 +385,7 @@ int main(int argc, char *argv[]) {
     coord_ctx.n_flights  = n_flights;
     coord_ctx.pids       = pids;
     coord_ctx.plans      = plans;
+    coord_ctx.chan       = &chan;
     coord_ctx.g_mutex    = &g_mutex;
     coord_ctx.g_done_cond = &g_done_cond;
     coord_ctx.g_sim_done = &g_sim_done;
@@ -413,6 +393,14 @@ int main(int argc, char *argv[]) {
         coord_ctx.pos_sems[i]  = pos_sems[i];
         coord_ctx.ctrl_sems[i] = ctrl_sems[i];
     }
+
+    /* US106 — Contexto para safety_thread */
+    safety_ctx_t safety_ctx;
+    safety_ctx.chan      = &chan;
+    safety_ctx.plans     = plans;
+    safety_ctx.params    = params;
+    safety_ctx.pids      = pids;
+    safety_ctx.n_flights = n_flights;
 
     /* Contexto para report_thread */
     report_ctx_t rep_ctx;
@@ -423,8 +411,14 @@ int main(int argc, char *argv[]) {
     rep_ctx.g_done_cond = &g_done_cond;
     rep_ctx.g_sim_done = &g_sim_done;
 
-    /* US105 — Lançar threads dedicadas para as funcionalidades do processo pai */
-    pthread_t coordinator_tid, report_tid;
+    /* US106 — Lançar as TRÊS threads função-específicas do processo pai.
+     * A safety_thread é criada primeiro para já estar à espera do primeiro
+     * snapshot quando o coordinator começar o loop. */
+    pthread_t coordinator_tid, safety_tid, report_tid;
+    if (pthread_create(&safety_tid, NULL, safety_thread, &safety_ctx) != 0) {
+        perror("pthread_create safety");
+        exit(1);
+    }
     if (pthread_create(&coordinator_tid, NULL, coordinator_thread, &coord_ctx) != 0) {
         perror("pthread_create coordinator");
         exit(1);
@@ -434,8 +428,9 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    /* Aguardar conclusão de ambas as threads */
+    /* Aguardar conclusão das três threads */
     pthread_join(coordinator_tid, NULL);
+    pthread_join(safety_tid, NULL);
     pthread_join(report_tid, NULL);
 
     /* Aguardar todos os processos filho */
@@ -449,6 +444,8 @@ int main(int argc, char *argv[]) {
     /* Limpeza de recursos IPC e sincronização */
     pthread_mutex_destroy(&g_mutex);
     pthread_cond_destroy(&g_done_cond);
+    pthread_mutex_destroy(&chan.mutex);   /* US106 — canal coordinator ↔ safety */
+    pthread_cond_destroy(&chan.cond);
 
     for (int i = 0; i < n_flights; i++) {
         sem_close(pos_sems[i]);
