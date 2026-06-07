@@ -8,7 +8,6 @@ import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.weatherdata.domain.WeatherData;
 import aisafe.weatherdata.repositories.WeatherDataRepository;
 import eapli.framework.application.UseCaseController;
-import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 import java.time.LocalDate;
 
@@ -18,13 +17,31 @@ import java.time.LocalDate;
 @UseCaseController
 public class ConsultWeatherDataController {
 
-    private final AuthorizationService authz = AuthzRegistry.authorizationService();
+    private final AirControlAreaRepository areaRepository;
 
-    private final AirControlAreaRepository areaRepository =
-            PersistenceContext.repositories().airControlAreas();
+    private final WeatherDataRepository weatherDataRepository;
 
-    private final WeatherDataRepository weatherDataRepository =
-            PersistenceContext.repositories().weatherData();
+    private final Runnable authorizationGuard;
+
+    public ConsultWeatherDataController() {
+        this(PersistenceContext.repositories().airControlAreas(),
+                PersistenceContext.repositories().weatherData(),
+                null);
+    }
+
+    ConsultWeatherDataController(final AirControlAreaRepository areaRepository,
+                                 final WeatherDataRepository weatherDataRepository,
+                                 final Runnable authorizationGuard) {
+        if (areaRepository == null) {
+            throw new IllegalArgumentException("Air Control Area repository cannot be null.");
+        }
+        if (weatherDataRepository == null) {
+            throw new IllegalArgumentException("Weather Data repository cannot be null.");
+        }
+        this.areaRepository = areaRepository;
+        this.weatherDataRepository = weatherDataRepository;
+        this.authorizationGuard = authorizationGuard != null ? authorizationGuard : this::ensureAuthenticatedUserRole;
+    }
 
     public Iterable<AirControlArea> activeAirControlAreas() {
         ensureAuthorized();
@@ -47,7 +64,11 @@ public class ConsultWeatherDataController {
     }
 
     private void ensureAuthorized() {
-        authz.ensureAuthenticatedUserHasAnyOf(
+        authorizationGuard.run();
+    }
+
+    private void ensureAuthenticatedUserRole() {
+        AuthzRegistry.authorizationService().ensureAuthenticatedUserHasAnyOf(
                 AiSafeRoles.WEATHER_PERSON,
                 AiSafeRoles.PILOT,
                 AiSafeRoles.FLIGHT_CONTROL_OPERATOR);

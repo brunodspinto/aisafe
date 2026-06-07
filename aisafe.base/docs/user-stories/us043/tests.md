@@ -1,6 +1,16 @@
 # US043 - Acceptance Tests
 
-## Automated Tests
+## Unit Tests
+
+| Test | Scope | Expected Result |
+|------|-------|-----------------|
+| `activeAirControlAreasReturnsRepositoryAreas` | Controller unit | The controller returns the injected repository's air control areas and invokes the authorization guard once. |
+| `consultWeatherDataReturnsOnlySelectedDateAndArea` | Controller unit | The controller validates the selected area and returns only weather records for the selected day and area. |
+| `consultWeatherDataRejectsNullDate` | Controller unit | A null date is rejected before querying weather data. |
+| `consultWeatherDataRejectsUnknownAreaCode` | Controller unit | An unknown air control area code is rejected before querying weather data. |
+| `consultWeatherDataStopsWhenAuthorizationFails` | Controller unit | A failing authorization guard stops the use case before validation/query execution. |
+
+## Acceptance/Integration Tests
 
 | Test | Acceptance Criteria | Expected Result |
 |------|---------------------|-----------------|
@@ -14,13 +24,14 @@
 ## Command
 
 ```bash
+mvn test -Dtest=ConsultWeatherDataControllerUnitTest
 mvn test -Dtest=ConsultWeatherDataControllerTest
 ```
 
 ## Execution Notes
 
 - `mvn -q -DskipTests compile` succeeds, confirming the US043 main implementation compiles.
-- `mvn test` succeeds with 635 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn test` succeeds with 656 tests run, 0 failures, 0 errors, and 0 skipped.
 
 ## Manual Scenario
 
