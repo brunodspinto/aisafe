@@ -2,6 +2,7 @@ package aisafe.reporting.application;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * Builds the shared textual structure used by operational reports.
@@ -9,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 public final class OperationalReportFormatter {
 
     private static final DateTimeFormatter MONTH_FORMAT =
-            DateTimeFormatter.ofPattern("MMMM yyyy");
+            DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH);
     private static final DateTimeFormatter GENERATED_AT_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 

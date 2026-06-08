@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -181,7 +182,8 @@ public final class MonthlyStatisticsReportStrategy implements ReportGenerationSt
         lines.add("");
         lines.add("By status:");
         for (final FlightPlanStatus status : FlightPlanStatus.values()) {
-            lines.add(String.format("  %-10s : %d", status.name(), stats.statusCounts.getOrDefault(status, 0)));
+            lines.add(String.format(Locale.ROOT, "  %-10s : %d", status.name(),
+                    stats.statusCounts.getOrDefault(status, 0)));
         }
         lines.add("");
         lines.add("By flight type:");
@@ -189,7 +191,7 @@ public final class MonthlyStatisticsReportStrategy implements ReportGenerationSt
             lines.add("  No flight plans found for the selected month.");
         } else {
             for (final Map.Entry<String, Integer> entry : stats.flightTypeCounts.entrySet()) {
-                lines.add(String.format("  %-10s : %d", entry.getKey(), entry.getValue()));
+                lines.add(String.format(Locale.ROOT, "  %-10s : %d", entry.getKey(), entry.getValue()));
             }
         }
         return new ReportSection("Flight Plan Statistics", lines);
@@ -198,9 +200,9 @@ public final class MonthlyStatisticsReportStrategy implements ReportGenerationSt
     private ReportSection buildWeatherSection(final WeatherStats stats) {
         final List<String> lines = new ArrayList<>();
         lines.add("Total records        : " + stats.totalRecords);
-        lines.add(String.format("Average temperature : %.1f C", stats.averageTemperature));
-        lines.add(String.format("Average wind speed  : %.1f", stats.averageWindSpeed));
-        lines.add(String.format("Lowest visibility   : %.1f", stats.lowestVisibility));
+        lines.add(String.format(Locale.ROOT, "Average temperature : %.1f C", stats.averageTemperature));
+        lines.add(String.format(Locale.ROOT, "Average wind speed  : %.1f", stats.averageWindSpeed));
+        lines.add(String.format(Locale.ROOT, "Lowest visibility   : %.1f", stats.lowestVisibility));
         return new ReportSection("Weather Summary", lines);
     }
 
@@ -210,7 +212,7 @@ public final class MonthlyStatisticsReportStrategy implements ReportGenerationSt
         lines.add("Flight plans by status:");
         for (final FlightPlanStatus status : FlightPlanStatus.values()) {
             final int count = stats.statusCounts.getOrDefault(status, 0);
-            lines.add(String.format("  %-10s | %s (%d)", status.name(), bar(count, max), count));
+            lines.add(String.format(Locale.ROOT, "  %-10s | %s (%d)", status.name(), bar(count, max), count));
         }
         return new ReportSection("Simple Graphics", lines);
     }
