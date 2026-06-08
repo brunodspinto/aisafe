@@ -12,6 +12,10 @@ repository-driven architecture. The expected outcome at this stage is not a comp
 module, but a structured report generation flow that can evolve later into compliance,
 incident, or other operational reports.
 
+Following the clarification provided by Professor Angelo Martins, the implementation should
+be explicitly related to a **calendar month**, may use a **text file** as output format,
+and should highlight the use of a **strategy pattern** to support future report types.
+
 ---
 
 ## 2. Requirements
@@ -35,6 +39,13 @@ that operational performance can be reviewed on a regular basis.
   introducing an isolated parallel model.
 - Existing operational repositories already present in the Java application should be the
   preferred data source for the first version of the report.
+- Professor clarification for US112:
+  - "Monthly" should be interpreted as a normal month-related report.
+  - The application of the strategy pattern is the key architectural concern.
+  - The implementation team may choose the data source.
+  - A plain text output file is sufficient.
+  - A Flight Control Operator should generate reports only for the Air Control Area he or
+    she works for.
 
 ---
 
@@ -94,8 +105,10 @@ a straightforward way.
 
 Reasonable monthly statistics include:
 
-- number of flight plans created in the selected month;
+- number of flight plans scheduled for the selected calendar month;
 - number of flight plans by status, especially approved and rejected;
+- number of route operations that depart from or arrive at airports inside the operator's
+  Air Control Area;
 - number of weather records added in the selected month;
 - breakdowns by simple categories when already available in the domain, such as flight type
   or approval status.
@@ -143,6 +156,7 @@ For US112 specifically, this means the "monthly statistics" report defines:
 - which repositories are queried;
 - which monthly counters are computed;
 - which sections appear in the final output.
+- which strategy implementation is responsible for collecting the data for this report type.
 
 ### 3.7 Main Architectural Insight
 
@@ -150,7 +164,8 @@ The main design direction emerging from the analysis is:
 
 - one **generic report structure**;
 - one **report generator flow**;
-- one **monthly statistics specialization** for the data collection rules.
+- one **monthly statistics specialization** for the data collection rules;
+- one **strategy-based extension point** for future report types.
 
 This is enough to satisfy the user story while keeping the solution small, explainable, and
 consistent with the project's existing architecture.
@@ -165,9 +180,10 @@ The proposed realization follows the same layered approach already used in the J
 application:
 
 - a console UI collects the month and year to report;
-- an application controller validates the authenticated role and orchestrates the use case;
-- a report service gathers monthly operational data from repositories;
-- a report builder formats the result using a shared report structure;
+- an application controller validates the authenticated role, resolves the operator's own
+  Air Control Area, and orchestrates the use case;
+- a report strategy gathers monthly operational data from repositories;
+- a report formatter builds the common branded structure;
 - a renderer/writer outputs the final report in a consistent textual format.
 
 This keeps the solution simple and avoids introducing unnecessary infrastructure.
@@ -178,9 +194,10 @@ This keeps the solution simple and avoids introducing unnecessary infrastructure
 |------|---------|----------------|
 | Presentation | `GenerateMonthlyReportUI` | Ask the operator for month/year and trigger report generation |
 | Application | `GenerateMonthlyReportController` | Enforce authorization and coordinate the use case |
-| Application/Service | `MonthlyReportService` | Query repositories and compute monthly statistics |
-| Application/Service | `OperationalReportBuilder` | Assemble the branded, section-based report structure |
-| Output | `ReportWriter` | Persist or print the generated report in a consistent format |
+| Application/Strategy | `ReportGenerationStrategy` | Common contract for report-specific data collection |
+| Application/Strategy | `MonthlyStatisticsReportStrategy` | Query repositories and compute monthly statistics |
+| Application/Service | `OperationalReportFormatter` | Assemble the branded, section-based report structure |
+| Output | `ReportWriter` | Persist the generated report as a text file |
 
 The names above are intentionally simple and aligned with the style already present in the
 project.
@@ -210,9 +227,10 @@ to establish the concept without overengineering the solution.
 
 The monthly report type must define its own data collection method.
 
-For the first version, the `MonthlyReportService` should:
+For the first version, the `MonthlyStatisticsReportStrategy` should:
 
-- query flight-plan data for the selected month;
+- query flight-plan data for the selected calendar month;
+- retain only the plans related to the authenticated operator's Air Control Area;
 - group flight plans by relevant status values;
 - query weather-data records for the selected month;
 - prepare simple aggregates for inclusion in the final report.
@@ -229,9 +247,10 @@ The interaction flow should remain straightforward:
 
 1. The Flight Control Operator selects the monthly report option in the console.
 2. The UI asks for the target month and year.
-3. The controller checks the authenticated user's role.
-4. The service gathers repository data and computes the monthly statistics.
-5. The builder assembles the common report structure with monthly-specific contents.
+3. The controller checks the authenticated user's role and resolves the operator's Air
+   Control Area from the collaborator record.
+4. The selected strategy gathers repository data and computes the monthly statistics.
+5. The formatter assembles the common report structure with monthly-specific contents.
 6. The writer outputs the final report.
 7. The UI informs the operator that the report was generated successfully.
 
@@ -254,7 +273,7 @@ anything too fancy.
 This design also leaves a clear path for future reports:
 
 - the common report structure can be reused by compliance and incident reports;
-- each new report type can introduce its own service or collector;
+- each new report type can introduce its own strategy implementation;
 - richer graphics can be added later without changing the core use-case flow.
 
 That gives the project a reusable reporting foundation while keeping US112 manageable as a
