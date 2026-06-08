@@ -21,17 +21,26 @@
 | `ensureUnauthorizedUserCannotConsultWeatherData` | AC043.3 | Users without the required roles receive an authorization exception. |
 | `ensureUnknownAreaCodeIsRejected` | AC043.1 | Unknown area codes are rejected before querying weather data. |
 
+## Implementation Tests
+
+| Test | Flow Covered | Expected Result |
+|------|--------------|-----------------|
+| `ensureWeatherPersonCanRunTheWholeConsultWeatherDataFlow` | Authenticated Weather Person lists areas, selects date/area, consults weather data, and receives full meteorological fields. | The selected area is available, only matching date/area records are returned, and all relevant fields are present. |
+| `ensurePilotCanRunTheConsultWeatherDataFlow` | Authenticated Pilot runs the same consult flow. | Pilot role can list areas and consult records for the selected day and area. |
+| `ensureUnauthorizedUserCannotRunTheConsultWeatherDataFlow` | Backoffice user attempts the consult flow. | The flow is stopped by authorization before area listing or data consultation. |
+
 ## Command
 
 ```bash
 mvn test -Dtest=ConsultWeatherDataControllerUnitTest
 mvn test -Dtest=ConsultWeatherDataControllerTest
+mvn test -Dtest=ConsultWeatherDataImplementationTest
 ```
 
 ## Execution Notes
 
 - `mvn -q -DskipTests compile` succeeds, confirming the US043 main implementation compiles.
-- `mvn test` succeeds with 656 tests run, 0 failures, 0 errors, and 0 skipped.
+- `mvn test` succeeds with 659 tests run, 0 failures, 0 errors, and 0 skipped.
 
 ## Manual Scenario
 
