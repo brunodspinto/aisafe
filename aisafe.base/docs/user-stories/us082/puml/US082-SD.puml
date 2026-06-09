@@ -69,12 +69,6 @@ deactivate wxRepo
 
 ctrl -> plan : addWeatherData(weatherDataId)
 activate plan
-note right of plan
-  adds id to the weather set (AC082.5);
-  if status == TESTED -> VALIDATED
-  (test voided, AC082.6),
-  otherwise unchanged (AC082.7)
-end note
 plan --> ctrl : (updated)
 deactivate plan
 
