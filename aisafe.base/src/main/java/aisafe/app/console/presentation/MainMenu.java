@@ -13,6 +13,7 @@ import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanUI;
 import aisafe.app.console.presentation.flightplan.TestFlightPlanUI;
+import aisafe.app.console.presentation.flightplan.InsertWeatherDataUI;
 import aisafe.app.console.presentation.airport.RegisterAirportUI;
 import aisafe.app.console.presentation.enginemodel.RegisterEngineModelUI;
 import aisafe.app.console.presentation.maker.RegisterMakerUI;
@@ -172,6 +173,7 @@ public class MainMenu extends AbstractUI {
         menu.addItem(1, "Create Flight Plan", new CreateFlightPlanUI()::show);
         menu.addItem(2, "Create Flight Plan from DSL File", new CreateFlightPlanFromFileUI()::show);
         menu.addItem(3, "Test Flight Plan", new TestFlightPlanUI()::show);
+        menu.addItem(4, "Insert Weather Data in a Flight", new InsertWeatherDataUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

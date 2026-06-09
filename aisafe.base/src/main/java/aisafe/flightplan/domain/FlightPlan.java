@@ -7,17 +7,24 @@ import aisafe.flightroute.domain.RouteName;
 import eapli.framework.domain.model.AggregateRoot;
 import eapli.framework.domain.model.DomainEntities;
 import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 
 /**
@@ -64,6 +71,12 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
     @Embedded
     @AttributeOverride(name = "amount", column = @Column(name = "fuel_quantity"))
     private FuelQuantity fuelQuantity;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "T_FLIGHT_PLAN_WEATHER_DATA",
+            joinColumns = @JoinColumn(name = "flight_plan_designator"))
+    @Column(name = "weather_data_id")
+    private Set<Long> weatherDataIds = new HashSet<>();
 
     /**
      * Protected constructor required by JPA.
@@ -227,6 +240,33 @@ public class FlightPlan implements AggregateRoot<FlightPlanDesignator> {
                     "Cannot mark a flight plan as tested unless it is in VALIDATED status. Current status: " + status);
         }
         this.status = FlightPlanStatus.TESTED;
+    }
+
+    /**
+     * Attaches weather data to this flight plan (US082).
+     * If the weather data id is genuinely new (it was not yet attached) and the plan had
+     * already been {@link FlightPlanStatus#TESTED}, the test is voided and the status reverts
+     * to {@link FlightPlanStatus#VALIDATED} — the new weather conditions invalidate the previous
+     * test. The DSL/semantic validation is preserved. For {@code DRAFT}/{@code VALIDATED} plans,
+     * or when the weather data was already attached, the status is unchanged.
+     *
+     * @param weatherDataId the identity of an existing {@code WeatherData} record (non-null)
+     * @throws IllegalArgumentException if {@code weatherDataId} is null
+     */
+    public void addWeatherData(final Long weatherDataId) {
+        if (weatherDataId == null)
+            throw new IllegalArgumentException("Weather data id cannot be null.");
+
+        final boolean added = this.weatherDataIds.add(weatherDataId);
+
+        if (added && this.status == FlightPlanStatus.TESTED) {
+            this.status = FlightPlanStatus.VALIDATED;
+        }
+    }
+
+    /** @return unmodifiable set of weather data identities attached to this flight plan */
+    public Set<Long> weatherDataIds() {
+        return Collections.unmodifiableSet(weatherDataIds);
     }
 
     @Override
