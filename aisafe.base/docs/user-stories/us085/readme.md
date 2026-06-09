@@ -352,3 +352,98 @@ void ensureFailedTestDoesNotChangeStatus() {
     //   and: repository.save() was NOT called
 }
 ```
+
+---
+
+## 5. Implementation
+
+| Package | Class/File | Role |
+|---------|-----------|------|
+| `aisafe.flightplan.repositories` | `FlightPlanRepository` | Add `findAllValidated()` |
+| `aisafe.infrastructure.persistence.jpa` | `JpaFlightPlanRepository` | Implement `findAllValidated()` via JPQL `match()` |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightPlanRepository` | Implement `findAllValidated()` by iterating in memory |
+| `aisafe.dsl` | `FlightPlanJsonSerializer` | **New** — `FlightPlanAst` → temp JSON file |
+| `aisafe.flightplan.application` | `TestFlightPlanController` | **New** — use case orchestrator |
+| `aisafe.app.console.presentation.flightplan` | `TestFlightPlanUI` | **New** — console UI |
+| `aisafe.app.console.presentation` | `MainMenu` | Add "Test Flight Plan" to PILOT Flight Plans submenu |
+| `aisafe.infrastructure.application` | `AppSettings` | Add `flightTesterBinary()` |
+| `simulation/` | `flight_tester_main.c` | **New** — C entry point |
+| `simulation/` | `Makefile` | Add `flight_tester` and `test_flight_tester` targets |
+| `simulation/tests/` | `test_flight_tester.c` | **New** — C unit tests |
+| `simulation/tests/fixtures/` | `valid_single.json`, `invalid_no_legs.json` | **New** — C test fixtures |
+| `src/main/resources/` | `application.properties` | Add `flight.tester.binary` |
+| `aisafe.app.console` | `AiSafeBootstrap` | Add `bootstrapValidatedDslFlightPlan()` |
+
+**Key implementation details:**
+
+- `findAllValidated()` uses the `JpaAutoTxRepository.match()` helper with
+  `"e.status = :status"` and `params.put("status", FlightPlanStatus.VALIDATED)` — same
+  pattern as `JpaPilotRepository.findByAirTransportCompany()`.
+- `FlightPlanJsonSerializer.toTempFile(ast)` writes a UTF-8 JSON file to
+  `Files.createTempFile("aisafe-fp-", ".json")` and returns the `Path`. Deletion is the
+  caller's responsibility (done in the controller's `finally` block).
+- `TestFlightPlanController` reads stdout into a background thread before calling
+  `process.waitFor(30, TimeUnit.SECONDS)` to prevent pipe-buffer deadlock; on timeout the
+  process is `destroyForcibly()` and an exception is thrown.
+- The C `flight_tester_main.c` links only against the lightweight object files:
+  `flight_parser.o`, `validation.o`, `cJSON.o`. It does not link `shared_memory.o` (which
+  is designed for the multi-flight simulator with a different shared memory layout).
+- Named semaphore and shared memory segment names are suffixed with `getpid()` to avoid
+  collisions in concurrent test runs.
+- `flight_parser.c` is patched (Gap G6) to parse the `"flight_type"` JSON field;
+  without this patch, `validate_flight_plan()` always returns 0 for parsed plans because
+  `flight_type` stays empty and fails the `REGULAR`/`CHARTER` check.
+
+---
+
+## 6. Integration / Demonstration
+
+**Prerequisites:** `flight_tester` binary compiled; at least one DSL-based flight plan in
+`VALIDATED` status exists (seeded by `AiSafeBootstrap` as `TP85`).
+
+```bash
+# Build C binary
+cd aisafe.base/simulation && make flight_tester
+
+# Start the application
+mvn -f aisafe.base/pom.xml exec:java
+```
+
+1. Login as Pilot (`pilot1` / `Password1`).
+2. Navigate: **Flight Plans → Test Flight Plan**.
+3. The system lists available VALIDATED DSL plans (including `TP85` from bootstrap).
+4. Enter `TP85`.
+5. The system invokes `flight_tester`, waits for the result, and displays:
+   ```
+   Flight plan TP85 tested successfully.
+   Status: TESTED
+   ```
+
+**Failure scenarios:**
+
+- No VALIDATED DSL plans → `No validated DSL flight plans available for testing.`
+- C binary not found → `Error: Flight tester binary not found. Check flight.tester.binary in application.properties.`
+- C binary returns FAIL → `Simulation failed: <reason from C output>`
+- Process timeout → `Error: Flight tester timed out after 30 seconds.`
+- Attempt to test a DRAFT plan → plan not shown in list (filtered by status).
+
+---
+
+## 7. Observations
+
+- **No domain changes** — `markTested()` and `FlightPlanStatus.TESTED` were designed for
+  this US by US080/US081. US085 completes the lifecycle without touching the aggregate
+  constructor or adding new value objects.
+- **DSL-only restriction** — Form-based plans (US080) are excluded because `FlightRoute`
+  stores only IATA airport codes, not waypoint coordinates. The C tester requires lat/lon
+  segments. Form-based plans with `dslContent == null` are silently filtered out in
+  `TestFlightPlanController.validatedDslPlans()`.
+- **Gap G6 fix** — `flight_parser.c` now parses the `"flight_type"` JSON field. Without
+  this fix, every parsed plan fails `validate_flight_plan()` and the tester always returns
+  FAIL.
+- **C binary separation** — Using a dedicated `flight_tester` binary (not the full
+  `flight_simulator`) keeps the US100 multi-flight simulation independent of the
+  single-plan test. The `flight_tester` links only the minimum set of object files.
+- **TCP integration deferred** — US086 specifies that all Pilot USs must be remotely
+  accessible. US085 will be added to `PilotSessionHandler` as a `TEST_FLIGHT_PLAN` command
+  in a future sprint, following the same temporary-file pattern used for `CREATE_FLIGHT_PLAN`.
