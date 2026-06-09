@@ -8,6 +8,7 @@ bin/
 # Logs and temporary files
 *.log
 *.tmp
+aisafe.base/logs.txt
 .vscode/settings.json
 aisafe.base/db
 

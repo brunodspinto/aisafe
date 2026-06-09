@@ -3,6 +3,7 @@ package aisafe.tcpserver;
 import aisafe.auth.AuthenticationContext;
 import aisafe.tcpserver.collaborator.CollaboratorSessionHandler;
 import aisafe.tcpserver.pilot.PilotSessionHandler;
+import aisafe.tcpserver.weatherperson.WeatherPersonSessionHandler;
 import aisafe.usermanagement.domain.AiSafeRoles;
 
 import java.io.BufferedReader;
@@ -58,6 +59,14 @@ public final class TcpClientDispatcher implements Runnable {
                 if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
                     out.println("OK");
                     new CollaboratorSessionHandler(in, out).handle();
+                } else {
+                    out.println("UNAUTHORIZED");
+                }
+            } else if ("WEATHER".equals(service)) {
+                // Weather Person App (US044): only Weather Persons are allowed.
+                if (AuthenticationContext.hasRole(AiSafeRoles.WEATHER_PERSON)) {
+                    out.println("OK");
+                    new WeatherPersonSessionHandler(in, out).handle();
                 } else {
                     out.println("UNAUTHORIZED");
                 }
