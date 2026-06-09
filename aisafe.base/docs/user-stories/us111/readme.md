@@ -28,5 +28,41 @@ The `Simulation` aggregate (`Simulation`, `SimulationReport`, `FlightExecutionSt
 - US050 — Register an Air Control Area (a simulation covers one air control area).
 - US080 — Create a Flight Plan (the simulated flights are instances of planned flights).
 
+---
 
+## 3. Analysis
+
+The report content required by the acceptance criteria maps directly onto the `Simulation` aggregate already defined in Domain Model V10:
+
+| AC                                           | Domain element                                                                                  |
+|----------------------------------------------|-------------------------------------------------------------------------------------------------|
+| AC111.1 (file)                               | `SimulationReportExporter` writes the formatted `SimulationReport` to a file                    |
+| AC111.2 (total flights + execution status)   | `SimulationReport.totalFlights` and a `FlightExecutionStatus` per flight                        |
+| AC111.3 (violations with timestamp/position) | a `SafetyViolation` per detected conflict (`timestamp`, `latitude`, `longitude`, `altitude`, …) |
+| AC111.4 (pass/fail)                          | `SimulationReport.passed`                                                                       |
+
+### Data source — integration with the SCOMP simulation
+
+The simulation runs as a separate C program. US111 does **not** re-run the physics; it **consumes the simulation's results**. The integration point is a results file produced by the simulation (the `simulation_report.txt` of US109, or a structured results file). A `SimulationResultsReader` (infrastructure adapter) parses that output and yields the data needed to build the domain `SimulationReport`. This keeps the Java domain decoupled from the C implementation — only the adapter knows the file format.
+
+> **Design note.** This mirrors the boundary used elsewhere in the project: the application layer depends on an interface (`SimulationResultsReader`), not on the C program. If the simulation output format changes, only the adapter changes — the controller and the domain are unaffected (Protected Variations / DIP).
+
+### Main classes involved
+
+| Class                                | Type                    | Responsibility                                                                                          |
+|--------------------------------------|-------------------------|---------------------------------------------------------------------------------------------------------|
+| `Simulation`                         | Entity / Aggregate Root | Holds the simulation parameters and `SimulationStatus`; produces a `SimulationReport`                   |
+| `SimulationReport`                   | Entity                  | Holds `totalFlights`, `passed`, `generatedAt`; records `SafetyViolation`s and `FlightExecutionStatus`es |
+| `FlightExecutionStatus`              | Value Object            | Execution status of one flight (`flightDesignator`, `status`)                                           |
+| `SafetyViolation`                    | Value Object            | One safety violation (`timestamp`, position, velocity vector, involved flight)                          |
+| `SimulationStatus`                   | Enum                    | `PENDING` / `RUNNING` / `COMPLETED` / `FAILED`                                                          |
+| `SimulationRepository`               | Repository Interface    | Persistence contract for the `Simulation` aggregate                                                     |
+| `SimulationResultsReader`            | Adapter Interface       | Reads the simulation's raw output and exposes it to the controller                                      |
+| `SimulationReportExporter`           | Service                 | Writes the formatted `SimulationReport` to a file (AC111.1)                                             |
+| `GenerateSimulationReportController` | Application Controller  | Orchestrates the use case; enforces the FCO role                                                        |
+| `GenerateSimulationReportUI`         | UI                      | Lets the FCO trigger report generation and shows the result                                             |
+
+The following domain model excerpt shows the aggregate structure:
+
+![Domain Model](svg/US111-domain-model.svg)
 
