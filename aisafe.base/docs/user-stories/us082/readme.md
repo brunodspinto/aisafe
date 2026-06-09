@@ -93,3 +93,40 @@ The main classes identified are:
 The following diagram shows the domain model excerpt relevant to this US:
 
 ![Domain Model](svg/US082-domain-model.svg)
+
+---
+
+## 4. Design
+
+### 4.1. Realization
+
+The use case follows the standard layered flow: `InsertWeatherDataUI` lets the pilot pick one of their flight plans and a weather data record, then delegates to `InsertWeatherDataController`, which enforces the rules and applies the change to the `FlightPlan` aggregate.
+
+To present the choices to the pilot, the controller resolves the **authenticated pilot** (via `PilotRepository.findBySystemUser`) and offers:
+
+- `myFlightPlans()` — the flight plans assigned to the authenticated pilot. The flight plans are loaded via `FlightPlanRepository.findAll()` and filtered in memory by `assignedPilotId == pilot.identity()` (the same in-memory filtering approach used in US072 for the company fleet).
+- `availableWeatherData()` — the weather data records registered in the system (`WeatherDataRepository.findAll()`), for selection by id.
+
+The insertion step then performs:
+
+1. `authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT)` — only a pilot may insert weather data (AC082.1).
+2. Resolve the authenticated `Pilot` from the session.
+3. Load the `FlightPlan` by its `FlightPlanDesignator`; it must exist (AC082.3).
+4. Verify ownership — `flightPlan.assignedPilotId()` must equal the authenticated pilot's identity (AC082.2).
+5. Verify the `WeatherData` exists via `WeatherDataRepository.ofIdentity(weatherDataId)` (AC082.4).
+6. Invoke `flightPlan.addWeatherData(weatherDataId)` — the aggregate adds the id to its weather set (AC082.5) and, **only if its status is `TESTED`**, reverts it to `VALIDATED`, voiding the test (AC082.6); otherwise the status is unchanged (AC082.7).
+7. Persist the plan via `FlightPlanRepository.save()`.
+
+As in US080, only a **single aggregate** (`FlightPlan`) is written, so no explicit transactional context is used — the `save()` is atomic. The `WeatherData` and `Pilot` accesses are read-only lookups.
+
+The following sequence diagram illustrates the flow:
+
+![Sequence Diagram](svg/US082-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US082-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+The `FlightPlan` weather-data association and the test-voiding behaviour (`addWeatherData` adds the id; reverts `TESTED → VALIDATED`; leaves `DRAFT`/`VALIDATED` unchanged) are covered by automated unit tests on the aggregate. The cross-aggregate rules — authorization (AC082.1), ownership (AC082.2) and the existence of the flight plan and weather data (AC082.3, AC082.4) — are validated end-to-end by manual acceptance tests. All tests are documented in [tests.md](tests.md).

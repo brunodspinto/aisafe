@@ -1,0 +1,78 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Class Diagram - US082 Insert Weather Data in a Flight
+
+package "Presentation" {
+    class InsertWeatherDataUI {
+        +doShow()
+        +headline() : String
+    }
+}
+
+package "Application" {
+    class InsertWeatherDataController {
+        -authz: AuthorizationService
+        -pilotRepo: PilotRepository
+        -flightPlanRepo: FlightPlanRepository
+        -weatherDataRepo: WeatherDataRepository
+        +myFlightPlans() : Iterable<FlightPlan>
+        +availableWeatherData() : Iterable<WeatherData>
+        +insertWeatherData(designator: String, weatherDataId: Long) : FlightPlan
+    }
+}
+
+package "Domain" {
+
+    class FlightPlan <<entity, aggregate root>> {
+        -weatherDataIds: Set<Long>
+        -status: FlightPlanStatus
+        +addWeatherData(weatherDataId: Long)
+        +assignedPilotId() : Long
+        +status() : FlightPlanStatus
+        +weatherDataIds() : Set<Long>
+    }
+
+    enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+
+    class WeatherData <<entity, aggregate root>> {
+        -id: Long
+    }
+
+    class Pilot <<entity, aggregate root>> {
+        +identity() : Long
+    }
+}
+
+package "Repository" {
+    interface FlightPlanRepository <<interface>> {
+        +ofIdentity(designator: FlightPlanDesignator) : Optional<FlightPlan>
+        +findAll() : Iterable<FlightPlan>
+        +save(plan: FlightPlan) : FlightPlan
+    }
+    interface WeatherDataRepository <<interface>> {
+        +ofIdentity(id: Long) : Optional<WeatherData>
+    }
+    interface PilotRepository <<interface>> {
+        +findBySystemUser(su: SystemUser) : Optional<Pilot>
+    }
+}
+
+InsertWeatherDataUI ..> InsertWeatherDataController : uses
+InsertWeatherDataController ..> FlightPlanRepository : uses
+InsertWeatherDataController ..> WeatherDataRepository : uses
+InsertWeatherDataController ..> PilotRepository : uses
+InsertWeatherDataController ..> FlightPlan : updates
+
+FlightPlan --> FlightPlanStatus : "is in"
+FlightPlan ..> WeatherData : "uses (by id)"
+FlightPlan ..> Pilot : "assigned to (by id)"
+
+@enduml

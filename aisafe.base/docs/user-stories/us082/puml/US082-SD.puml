@@ -1,0 +1,91 @@
+@startuml
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+title Sequence Diagram - US082 Insert Weather Data in a Flight
+
+actor "Pilot" as pilot
+participant "InsertWeatherDataUI" as ui
+participant "InsertWeatherDataController" as ctrl
+participant "AuthorizationService\n(EAPLI)" as authz
+participant "PilotRepository" as pilotRepo
+participant "FlightPlanRepository" as planRepo
+participant "WeatherDataRepository" as wxRepo
+participant "plan : FlightPlan" as plan
+
+pilot -> ui : insert weather data
+activate ui
+
+' --- selection phase ---
+ui -> ctrl : myFlightPlans()
+activate ctrl
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+ctrl -> pilotRepo : findBySystemUser(authenticatedUser)
+activate pilotRepo
+pilotRepo --> ctrl : authenticatedPilot
+deactivate pilotRepo
+ctrl -> planRepo : findAll()
+activate planRepo
+planRepo --> ctrl : plans
+deactivate planRepo
+ctrl -> ctrl : filter assignedPilotId == pilot.identity()
+ctrl --> ui : my flight plans
+deactivate ctrl
+ui --> pilot : show plans + weather data, request selection
+deactivate ui
+
+' --- insertion phase ---
+pilot -> ui : designator, weatherDataId
+activate ui
+ui -> ctrl : insertWeatherData(designator, weatherDataId)
+activate ctrl
+
+ctrl -> authz : ensureAuthenticatedUserHasAnyOf(PILOT)
+activate authz
+authz --> ctrl : ok
+deactivate authz
+
+ctrl -> pilotRepo : findBySystemUser(authenticatedUser)
+activate pilotRepo
+pilotRepo --> ctrl : authenticatedPilot
+deactivate pilotRepo
+
+ctrl -> planRepo : ofIdentity(designator)
+activate planRepo
+planRepo --> ctrl : plan
+deactivate planRepo
+
+ctrl -> ctrl : check plan.assignedPilotId()\nequals pilot.identity()  (AC082.2)
+
+ctrl -> wxRepo : ofIdentity(weatherDataId)
+activate wxRepo
+wxRepo --> ctrl : weatherData (must exist)  (AC082.4)
+deactivate wxRepo
+
+ctrl -> plan : addWeatherData(weatherDataId)
+activate plan
+note right of plan
+  adds id to the weather set (AC082.5);
+  if status == TESTED -> VALIDATED
+  (test voided, AC082.6),
+  otherwise unchanged (AC082.7)
+end note
+plan --> ctrl : (updated)
+deactivate plan
+
+ctrl -> planRepo : save(plan)
+activate planRepo
+planRepo --> ctrl : savedPlan
+deactivate planRepo
+
+ctrl --> ui : savedPlan
+deactivate ctrl
+ui --> pilot : "Weather data added!"
+deactivate ui
+
+@enduml
