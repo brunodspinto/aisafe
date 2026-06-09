@@ -57,3 +57,39 @@ Three points are open for confirmation with the Product Owner / team and will be
 - **Weather impact computation** on the flight path or fuel — that belongs to the simulation (US110) and the flight test (US085), and is explicitly out of scope of the back-office (section 3.4.6).
 - **Re-validation and re-testing** of the flight plan after the test is voided — performed by US083 (LPROG) and US085 (LAPR4); US082 only voids the previous test by reverting the status.
 - **Registering or importing weather data** — covered by US041 and US042; US082 only consumes already-registered weather data.
+
+---
+
+## 3. Analysis
+
+This use case attaches existing weather data to a flight plan owned by the authenticated pilot, and voids a previous flight test when one exists. It modifies a single aggregate — the `FlightPlan` — and only reads the `WeatherData` (to confirm it exists) and the `Pilot` (to confirm ownership).
+
+The main design decisions were:
+
+**Weather data referenced by identity (a set of ids)** — The `FlightPlan` is extended with a `Set<Long>` of `WeatherData` identities, stored via `@ElementCollection`. References are kept by identity (not by object), preserving low coupling between the `FlightPlan` and `WeatherData` aggregates — the same principle already used for the pilot's certifications (US075) and the form-based references in US080. A set (rather than a single value) supports a flight that spans more than one air control area and lets the pilot attach weather data over successive operations (interpretation note #2).
+
+**Test-voiding is a domain behaviour of the `FlightPlan`** — Attaching weather data and voiding a previous test is a single domain operation owned by the aggregate, because the `FlightPlan` is the Information Expert for both its weather set and its `status`. A new method (e.g. `addWeatherData(Long weatherDataId)`) adds the id to the set and, **only if the current status is `TESTED`**, reverts it to `VALIDATED` (AC082.6); for `DRAFT`/`VALIDATED` plans the status is unchanged (AC082.7). The DSL/semantic validation is therefore preserved — only the flight test is voided. This complements the existing `markValidated()` / `markTested()` transitions without altering them.
+
+**Ownership ("of mine") enforced by the controller** — AC082.2 requires the plan to belong to the authenticated pilot. This is an application/authentication concern (it needs the session identity), so it is checked by the controller: it resolves the authenticated `Pilot` via `PilotRepository.findBySystemUser` and verifies that `flightPlan.assignedPilotId()` equals the pilot's identity, before invoking the domain operation.
+
+**Existence checks in the controller** — The controller verifies that the flight plan exists (by its designator, AC082.3) and that the weather data exists (by its id, AC082.4) before the aggregate is modified.
+
+**Single aggregate write** — Only the `FlightPlan` is modified (its weather set and possibly its status). `WeatherData` and `Pilot` are read-only lookups. As in US080, a single `FlightPlanRepository.save()` is atomic, so no explicit transactional context is required.
+
+The main classes identified are:
+
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `FlightPlan` | Entity / Aggregate Root | Holds the plan; extended with the weather-data id set; owns the test-voiding status transition |
+| `FlightPlanStatus` | Enum | `DRAFT` → `VALIDATED` → `TESTED`; US082 may revert `TESTED → VALIDATED` |
+| `WeatherData` | Other aggregate (referenced by `Long` id) | The weather record being attached (registered in US041/US042) |
+| `Pilot` | Other aggregate (referenced by `Long` id) | Used to enforce the "of mine" ownership rule |
+| `FlightPlanRepository` | Repository Interface | Loads and saves the flight plan |
+| `WeatherDataRepository` | Repository Interface | Confirms the weather data exists |
+| `PilotRepository` | Repository Interface | Resolves the authenticated pilot |
+| `InsertWeatherDataController` | Application Controller | Orchestrates the use case; enforces role, ownership and existence |
+| `InsertWeatherDataUI` | UI | Collects the flight plan and weather data selection from the pilot |
+
+The following diagram shows the domain model excerpt relevant to this US:
+
+![Domain Model](svg/US082-domain-model.svg)

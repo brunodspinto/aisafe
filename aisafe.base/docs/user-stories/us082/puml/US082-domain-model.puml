@@ -1,0 +1,45 @@
+@startuml
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model - US082 Insert Weather Data in a Flight
+
+package "FlightPlan Aggregate" <<Rectangle>> {
+
+    class FlightPlan <<entity, aggregate root>> {
+        designator
+        weatherDataIds : Set<Long>
+        + addWeatherData(weatherDataId)
+    }
+
+    Enum FlightPlanStatus {
+        DRAFT
+        VALIDATED
+        TESTED
+    }
+}
+
+package "WeatherData Aggregate" <<Rectangle>> {
+
+    class WeatherData <<entity, aggregate root>> {
+        id : Long
+        date
+        temperature
+        windSpeed
+        windDirection
+    }
+}
+
+package "Pilot Aggregate" <<Rectangle>> {
+
+    class Pilot <<entity, aggregate root>> {
+        id : Long
+    }
+}
+
+FlightPlan --> FlightPlanStatus : "is in"
+FlightPlan ..> "0..*" WeatherData : "uses\n(by Long id)"
+FlightPlan ..> "1" Pilot : "assigned to\n(by Long id)"
+
+@enduml
