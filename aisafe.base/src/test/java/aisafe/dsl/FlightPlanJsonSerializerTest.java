@@ -126,4 +126,38 @@ class FlightPlanJsonSerializerTest {
         Files.delete(tmp);
         assertFalse(Files.exists(tmp), "temp file must be deletable by caller");
     }
+
+    @Test
+    void ensureIdentifierWithDoubleQuoteIsEscapedInJson() throws Exception {
+        final FlightPlanAst ast = singleLegAst("TP\"001");
+        final Path tmp = new FlightPlanJsonSerializer().toTempFile(ast);
+        try {
+            final String json = Files.readString(tmp);
+            assertFalse(json.contains("\"TP\"001\""), "unescaped quote must not appear raw in JSON");
+            assertTrue(json.contains("TP\\\"001"), "double-quote in identifier must be escaped");
+        } finally {
+            Files.deleteIfExists(tmp);
+        }
+    }
+
+    @Test
+    void ensureCoordinateValuesUseDecimalNotation() throws Exception {
+        final FlightPlanAst ast = singleLegAst("TP004");
+        final Path tmp = new FlightPlanJsonSerializer().toTempFile(ast);
+        try {
+            final String json = Files.readString(tmp);
+            // Scientific notation for numbers looks like 1E4, 1.0E+4, 1e-3, etc.
+            // Check that no digit is immediately followed by E/e (ruling out words like "REGULAR")
+            assertFalse(json.matches("(?s).*\\d[Ee][+\\-]?\\d.*"),
+                    "coordinate values must not use scientific notation");
+        } finally {
+            Files.deleteIfExists(tmp);
+        }
+    }
+
+    @Test
+    void ensureNullAstThrowsNullPointerException() {
+        assertThrows(NullPointerException.class,
+                () -> new FlightPlanJsonSerializer().toTempFile(null));
+    }
 }

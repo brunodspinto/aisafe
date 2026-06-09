@@ -35,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit tests for {@link ListPilotRosterController} (US076).
  *
  * <p>Tests use the package-private constructor to inject in-memory repositories, avoiding any
- * JPA or authentication context. Authorization is validated manually (AC076.4). All nine tests
- * focus exclusively on the in-memory filtering logic.</p>
+ * JPA or authentication context. All twelve tests focus exclusively on the in-memory filtering
+ * logic; role-based authorization (AC076.4) is exercised through the public constructor path.</p>
  */
 class ListPilotRosterControllerTest {
 
@@ -208,6 +208,46 @@ class ListPilotRosterControllerTest {
         pilotRepo.save(new Pilot(validUser("pilot1"), iataA, Set.of(1L)));
 
         final List<Pilot> result = controller.pilotsByCertifiedModel(companyA, "UNKNOWN_MODEL");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void pilotsByCertifiedModel_withLeadingAndTrailingSpacesInModelName() {
+        final AircraftModel a320 = modelRepo.save(validAircraftModel("A320"));
+        final Pilot certified = pilotRepo.save(
+                new Pilot(validUser("pilot-cert"), iataA, Set.of(a320.identity())));
+
+        final List<Pilot> result = controller.pilotsByCertifiedModel(companyA, "  A320  ");
+
+        assertEquals(1, result.size());
+        assertTrue(result.contains(certified));
+    }
+
+    @Test
+    void allPilots_includesInactivePilots() throws Exception {
+        final Pilot active   = pilotRepo.save(new Pilot(validUser("pilot-active2"),   iataA, Set.of(1L)));
+        final Pilot inactive = pilotRepo.save(new Pilot(validUser("pilot-inactive2"), iataA, Set.of(1L)));
+        deactivate(inactive);
+
+        final List<Pilot> result = controller.allPilots(companyA);
+
+        assertEquals(2, result.size());
+        assertTrue(result.contains(active));
+        assertTrue(result.contains(inactive));
+    }
+
+    @Test
+    void pilotsByCertifiedModel_pilotWithNoCertificationsIsExcluded() throws Exception {
+        final AircraftModel a320 = modelRepo.save(validAircraftModel("B737"));
+        final Pilot pilot = pilotRepo.save(
+                new Pilot(validUser("pilot-nocert"), iataA, Set.of(a320.identity())));
+        // Clear certifications via reflection to simulate a pilot with no certifications
+        final Field f = Pilot.class.getDeclaredField("certifiedAircraftModelIds");
+        f.setAccessible(true);
+        ((java.util.Set<?>) f.get(pilot)).clear();
+
+        final List<Pilot> result = controller.pilotsByCertifiedModel(companyA, "B737");
 
         assertTrue(result.isEmpty());
     }

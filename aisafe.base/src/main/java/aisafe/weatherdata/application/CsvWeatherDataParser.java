@@ -31,7 +31,8 @@ public class CsvWeatherDataParser implements WeatherDataParser {
         try {
             lines = Files.readAllLines(Paths.get(filePath));
         } catch (final IOException e) {
-            return records;
+            throw new IllegalArgumentException(
+                    "Cannot read file: " + filePath + " – " + e.getMessage(), e);
         }
 
         // skip header (first line)

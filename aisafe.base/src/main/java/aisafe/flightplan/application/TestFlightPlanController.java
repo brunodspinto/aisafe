@@ -37,10 +37,29 @@ public class TestFlightPlanController {
 
     private static final int TIMEOUT_SECONDS = 30;
 
-    private final AuthorizationService    authz      = AuthzRegistry.authorizationService();
-    private final FlightPlanRepository    repository = PersistenceContext.repositories().flightPlans();
-    private final FlightPlanParserFacade  parser     = new FlightPlanParserFacade();
-    private final String                  binaryPath = new AppSettings().flightTesterBinary();
+    private final AuthorizationService    authz;
+    private final FlightPlanRepository    repository;
+    private final FlightPlanParserFacade  parser;
+    private final String                  binaryPath;
+
+    /** Runtime constructor — pulls from infrastructure registries. */
+    public TestFlightPlanController() {
+        this.authz      = AuthzRegistry.authorizationService();
+        this.repository = PersistenceContext.repositories().flightPlans();
+        this.parser     = new FlightPlanParserFacade();
+        this.binaryPath = new AppSettings().flightTesterBinary();
+    }
+
+    /**
+     * Testing constructor — accepts injected repository so no JPA or auth context is required.
+     * Package-private; not intended for production use.
+     */
+    TestFlightPlanController(final FlightPlanRepository repository) {
+        this.authz      = null;
+        this.repository = repository;
+        this.parser     = null;
+        this.binaryPath = null;
+    }
 
     /**
      * Returns all VALIDATED, DSL-based flight plans eligible for simulation testing.
@@ -50,6 +69,11 @@ public class TestFlightPlanController {
      */
     public Iterable<FlightPlan> validatedDslPlans() {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT);
+        return listValidatedDslPlans();
+    }
+
+    /** Package-private overload used by tests — bypasses auth. */
+    List<FlightPlan> listValidatedDslPlans() {
         final List<FlightPlan> result = new ArrayList<>();
         for (final FlightPlan fp : repository.findAllValidated()) {
             if (fp.dslContent() != null) {

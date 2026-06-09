@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -110,5 +111,11 @@ class CsvWeatherDataParserTest {
         final List<ParsedWeatherRecord> records = new CsvWeatherDataParser().parse(csv.toString());
 
         assertTrue(records.isEmpty());
+    }
+
+    @Test
+    void ensureNonExistentFileThrowsIllegalArgumentException() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new CsvWeatherDataParser().parse("/nonexistent/path/file.csv"));
     }
 }

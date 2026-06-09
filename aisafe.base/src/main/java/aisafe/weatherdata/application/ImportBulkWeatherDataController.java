@@ -45,7 +45,12 @@ public class ImportBulkWeatherDataController {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.WEATHER_PERSON);
 
         final WeatherDataParser parser = new CsvWeatherDataParser();
-        final List<ParsedWeatherRecord> parsed = parser.parse(filePath);
+        final List<ParsedWeatherRecord> parsed;
+        try {
+            parsed = parser.parse(filePath);
+        } catch (final IllegalArgumentException e) {
+            return new ImportResult(0, List.of(e.getMessage()));
+        }
 
         int saved = 0;
         final List<String> failures = new ArrayList<>();
