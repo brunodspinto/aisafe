@@ -74,6 +74,13 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
         cJSON *identifier = cJSON_GetObjectItemCaseSensitive(flight_plan_json, "identifier");
         if (cJSON_IsString(identifier) && (identifier->valuestring != NULL)) {
             strncpy(current_plan->identifier, identifier->valuestring, sizeof(current_plan->identifier) - 1);
+            current_plan->identifier[sizeof(current_plan->identifier) - 1] = '\0';
+        }
+
+        cJSON *flight_type_json = cJSON_GetObjectItemCaseSensitive(flight_plan_json, "flight_type");
+        if (cJSON_IsString(flight_type_json) && (flight_type_json->valuestring != NULL)) {
+            strncpy(current_plan->flight_type, flight_type_json->valuestring, sizeof(current_plan->flight_type) - 1);
+            current_plan->flight_type[sizeof(current_plan->flight_type) - 1] = '\0';
         }
 
         cJSON *legs_json = cJSON_GetObjectItemCaseSensitive(flight_plan_json, "legs");

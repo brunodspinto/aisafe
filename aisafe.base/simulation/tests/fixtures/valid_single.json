@@ -1,0 +1,18 @@
+[
+  {
+    "identifier": "TP001",
+    "flight_type": "REGULAR",
+    "legs": [
+      {
+        "segments": [
+          {
+            "start_coord": [41.15, -8.61],
+            "end_coord":   [38.72, -9.14],
+            "altitude_m":  10000.0,
+            "mode":        "cruise"
+          }
+        ]
+      }
+    ]
+  }
+]
