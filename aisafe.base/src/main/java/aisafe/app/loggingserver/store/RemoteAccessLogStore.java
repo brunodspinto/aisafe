@@ -1,7 +1,7 @@
-package aisafe.app.logging.server.store;
+package aisafe.app.loggingserver.store;
 
-import aisafe.app.logging.server.model.ActiveUser;
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.ActiveUser;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  *
  * <p>This is the shared seam between US090 (the UDP receiver thread, which writes) and
  * US091 (the HTTP server threads, which read). A single instance is created by
- * {@code LoggingServerApp} and shared by both.
+ * {@code RemoteAccessLoggingServerApp} and shared by both.
  *
  * <ul>
  *   <li>{@link #recent(int)} backs the US091 "last recorded events" page (newest first).</li>
@@ -31,11 +31,6 @@ public final class RemoteAccessLogStore {
     /** Active sessions keyed by {@link RemoteAccessEvent#sessionKey()}. */
     private final Map<String, RemoteAccessEvent> activeSessions = new ConcurrentHashMap<>();
 
-    /**
-     * Records an event: prepends it to the history and updates the active-session view.
-     *
-     * @param event the event to record
-     */
     public void add(final RemoteAccessEvent event) {
         events.addFirst(event);
         switch (event.event()) {
@@ -45,27 +40,19 @@ public final class RemoteAccessLogStore {
         }
     }
 
-    /**
-     * @param limit maximum number of events to return
-     * @return up to {@code limit} most recent events, newest first (defensive copy)
-     */
     public List<RemoteAccessEvent> recent(final int limit) {
         final List<RemoteAccessEvent> out = new ArrayList<>();
         for (final RemoteAccessEvent e : events) {
-            if (out.size() >= limit) {
-                break;
-            }
+            if (out.size() >= limit) break;
             out.add(e);
         }
         return out;
     }
 
-    /** @return all recorded events, newest first (defensive copy). */
     public List<RemoteAccessEvent> all() {
         return new ArrayList<>(events);
     }
 
-    /** @return the currently active users, most recent login first (defensive copy). */
     public List<ActiveUser> activeUsers() {
         final List<ActiveUser> out = new ArrayList<>();
         for (final RemoteAccessEvent e : activeSessions.values()) {
@@ -75,7 +62,6 @@ public final class RemoteAccessLogStore {
         return out;
     }
 
-    /** @return total number of recorded events. */
     public int size() {
         return events.size();
     }

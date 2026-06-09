@@ -1,6 +1,6 @@
-package aisafe.app.logging.server.udp;
+package aisafe.app.loggingserver.udp;
 
-import aisafe.app.logging.server.store.RemoteAccessLogStore;
+import aisafe.app.loggingserver.store.RemoteAccessLogStore;
 import org.junit.jupiter.api.Test;
 
 import java.net.DatagramPacket;
@@ -10,10 +10,6 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Implementation (integration) test for {@link UdpLogReceiver} (US090): a real UDP datagram
- * sent over the loopback interface is received, parsed and stored.
- */
 class UdpLogReceiverIT {
 
     private static int freePort() throws Exception {
@@ -31,7 +27,7 @@ class UdpLogReceiverIT {
         final Thread serverThread = new Thread(receiver);
         serverThread.setDaemon(true);
         serverThread.start();
-        Thread.sleep(300); // allow the socket to bind
+        Thread.sleep(300);
 
         final String payload = "2026-06-04 17:00:00 | atcc1 | 10.0.0.5 | 50231 | US78 | LOGIN_SUCCESS";
         try (DatagramSocket client = new DatagramSocket()) {

@@ -1,5 +1,8 @@
 package aisafe.app.loggingserver;
 
+import aisafe.app.loggingserver.model.ActiveUser;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.store.RemoteAccessLogStore;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -7,22 +10,24 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Embedded HTTP server for US91 — Remote Accesses Logging Visualization.
  * Serves two HTML pages (last events, active users) with AJAX auto-refresh every 5 s.
  * Uses only the built-in com.sun.net.httpserver.HttpServer (no extra Maven dependencies).
+ * Reads from the shared RemoteAccessLogStore populated by US90's UdpLogReceiver.
  */
 public final class LoggingHttpServer {
 
-    static final int HTTP_PORT = 8080;
+    public static final int HTTP_PORT = 8080;
+    private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private final AccessEventStore store;
+    private final RemoteAccessLogStore store;
     private HttpServer server;
 
-    public LoggingHttpServer(final AccessEventStore store) {
+    public LoggingHttpServer(final RemoteAccessLogStore store) {
         this.store = store;
     }
 
@@ -75,7 +80,7 @@ public final class LoggingHttpServer {
         if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
             ex.sendResponseHeaders(405, -1); ex.close(); return;
         }
-        final List<AccessEvent> recent = store.getRecentEvents(100);
+        final List<RemoteAccessEvent> recent = store.recent(100);
         final StringBuilder json = new StringBuilder("[");
         for (int i = 0; i < recent.size(); i++) {
             if (i > 0) json.append(",");
@@ -89,13 +94,11 @@ public final class LoggingHttpServer {
         if (!"GET".equalsIgnoreCase(ex.getRequestMethod())) {
             ex.sendResponseHeaders(405, -1); ex.close(); return;
         }
-        final Map<String, AccessEvent> sessions = store.getActiveSessions();
+        final List<ActiveUser> active = store.activeUsers();
         final StringBuilder json = new StringBuilder("[");
-        boolean first = true;
-        for (final AccessEvent ev : sessions.values()) {
-            if (!first) json.append(",");
-            json.append(toJson(ev));
-            first = false;
+        for (int i = 0; i < active.size(); i++) {
+            if (i > 0) json.append(",");
+            json.append(toJson(active.get(i)));
         }
         json.append("]");
         sendJson(ex, json.toString());
@@ -105,13 +108,21 @@ public final class LoggingHttpServer {
     // Helpers
     // -------------------------------------------------------------------------
 
-    private static String toJson(final AccessEvent ev) {
-        return "{\"timestamp\":\"" + escapeJson(ev.getTimestamp()) + "\""
-                + ",\"username\":\"" + escapeJson(ev.getUsername()) + "\""
-                + ",\"clientIp\":\"" + escapeJson(ev.getClientIp()) + "\""
-                + ",\"clientPort\":" + ev.getClientPort()
-                + ",\"serviceId\":\"" + escapeJson(ev.getServiceId()) + "\""
-                + ",\"eventType\":\"" + escapeJson(ev.getEventType()) + "\"}";
+    private static String toJson(final RemoteAccessEvent ev) {
+        return "{\"timestamp\":\"" + escapeJson(ev.timestamp().format(TS)) + "\""
+                + ",\"username\":\"" + escapeJson(ev.username()) + "\""
+                + ",\"clientIp\":\"" + escapeJson(ev.clientIp()) + "\""
+                + ",\"clientPort\":" + ev.clientPort()
+                + ",\"serviceId\":\"" + escapeJson(ev.service()) + "\""
+                + ",\"eventType\":\"" + escapeJson(ev.event()) + "\"}";
+    }
+
+    private static String toJson(final ActiveUser au) {
+        return "{\"username\":\"" + escapeJson(au.username()) + "\""
+                + ",\"clientIp\":\"" + escapeJson(au.clientIp()) + "\""
+                + ",\"clientPort\":" + au.clientPort()
+                + ",\"serviceId\":\"" + escapeJson(au.service()) + "\""
+                + ",\"timestamp\":\"" + escapeJson(au.since().format(TS)) + "\"}";
     }
 
     private static String escapeJson(final String s) {

@@ -1,14 +1,14 @@
-package aisafe.app.logging.server.udp;
+package aisafe.app.loggingserver.udp;
 
-import aisafe.app.logging.server.store.LogFileWriter;
-import aisafe.app.logging.server.store.RemoteAccessLogStore;
+import aisafe.app.loggingserver.store.LogFileWriter;
+import aisafe.app.loggingserver.store.RemoteAccessLogStore;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Receives remote-access UDP datagrams and feeds them into the shared store and the log file.
+ * US90: Receives remote-access UDP datagrams and feeds them into the shared store and log file.
  *
  * <p>The receive loop is robust: each datagram is processed inside its own try/catch, so a
  * single malformed or oversized packet can never terminate the server.
@@ -25,7 +25,7 @@ public final class UdpLogReceiver implements Runnable {
     private volatile DatagramSocket socket;
 
     /**
-     * @param port       the UDP port to listen on (must match the clients' target port, e.g. 9090)
+     * @param port       the UDP port to listen on (default 9090)
      * @param store      the shared in-memory store
      * @param fileWriter the durable file writer (may be {@code null} to disable persistence)
      */
@@ -74,7 +74,6 @@ public final class UdpLogReceiver implements Runnable {
                         + sourceUdpIp + ": " + payload));
     }
 
-    /** Signals the loop to stop and closes the socket to unblock {@code receive()}. */
     public void stop() {
         running = false;
         final DatagramSocket s = socket;

@@ -6,6 +6,7 @@
 #define MAX_FLIGHTS 10
 #define MAX_POSITIONS 1000
 #define MAX_PERF_POINTS 20
+#define MAX_VIOLATION_EVENTS 256
 
 #include <time.h>
 
@@ -105,6 +106,16 @@ typedef struct {
     char flight_id[64];
     aca_state_t aca_state; /* US101: ACA entry/exit tracking */
 } flight_history_t;
+
+typedef struct {
+    time_t timestamp;
+    char flight_a[64];
+    char flight_b[64];
+    aircraft_position_t position_a;
+    aircraft_position_t position_b;
+    double horizontal_distance_m;
+    double vertical_distance_m;
+} violation_event_t;
 
 #endif /* FLIGHT_SIMULATION_TYPES_H */
 

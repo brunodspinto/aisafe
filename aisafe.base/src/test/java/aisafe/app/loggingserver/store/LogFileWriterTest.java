@@ -1,6 +1,6 @@
-package aisafe.app.logging.server.store;
+package aisafe.app.loggingserver.store;
 
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -11,10 +11,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Unit test for {@link LogFileWriter} (US090): events are appended as pipe-delimited lines
- * in the same format as the wire payload (so the file can be reloaded on startup).
- */
 class LogFileWriterTest {
 
     @Test

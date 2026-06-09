@@ -7,8 +7,61 @@
 #include "types.h"
 #include "report.h"
 
+static const char *LIVE_VIOLATION_LOG = "simulation_violation_log.txt";
+
+void reset_live_violation_log(void) {
+    FILE *file = fopen(LIVE_VIOLATION_LOG, "w");
+    if (!file) {
+        perror("fopen error");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file, "================ LIVE SAFETY VIOLATION LOG ================\n");
+    fclose(file);
+}
+
+void append_violation_event_to_log(const violation_event_t *event) {
+    char timestamp_buf[32];
+    struct tm *tm_info = localtime(&event->timestamp);
+    FILE *file = fopen(LIVE_VIOLATION_LOG, "a");
+    if (!file) {
+        perror("fopen error");
+        exit(EXIT_FAILURE);
+    }
+
+    if (tm_info != NULL)
+        strftime(timestamp_buf, sizeof(timestamp_buf), "%Y-%m-%d %H:%M:%S", tm_info);
+    else
+        snprintf(timestamp_buf, sizeof(timestamp_buf), "%ld", (long)event->timestamp);
+
+    fprintf(file, "[%s] %s <-> %s | H=%.2fm | V=%.2fm\n",
+            timestamp_buf, event->flight_a, event->flight_b,
+            event->horizontal_distance_m, event->vertical_distance_m);
+    fprintf(file, "  A: lat=%.4f lon=%.4f alt=%.0fm\n",
+            event->position_a.latitude, event->position_a.longitude,
+            event->position_a.altitude_meters);
+    fprintf(file, "  B: lat=%.4f lon=%.4f alt=%.0fm\n\n",
+            event->position_b.latitude, event->position_b.longitude,
+            event->position_b.altitude_meters);
+    fclose(file);
+}
+
+void append_violation_drop_notice(int dropped_count) {
+    FILE *file = fopen(LIVE_VIOLATION_LOG, "a");
+    if (!file) {
+        perror("fopen error");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(file,
+            "[WARNING] %d safety violation events were not written to the live queue because the buffer was full.\n\n",
+            dropped_count);
+    fclose(file);
+}
+
 void generate_final_report(const flight_history_t *histories, int n_flights,
-                           int total_violations, int was_aborted) {
+                           int total_violations, int dropped_events,
+                           int was_aborted) {
     pid_t pid;
     int status;
 
@@ -49,6 +102,8 @@ void generate_final_report(const flight_history_t *histories, int n_flights,
         fprintf(file, "Simulation End Status: %s\n",
                 was_aborted ? "ABORTED (Threshold Reached)" : "COMPLETED (Normal)");
         fprintf(file, "Total Safety Violations Detected: %d\n", total_violations);
+        fprintf(file, "Dropped Live Violation Events: %d\n", dropped_events);
+        fprintf(file, "Live Safety Violation Log: %s\n", LIVE_VIOLATION_LOG);
         fprintf(file, "Total Aircraft Records: %d\n", n_flights);
         fprintf(file, "==================================================\n\n");
 

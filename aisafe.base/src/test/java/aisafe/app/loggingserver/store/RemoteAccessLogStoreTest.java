@@ -1,7 +1,7 @@
-package aisafe.app.logging.server.store;
+package aisafe.app.loggingserver.store;
 
-import aisafe.app.logging.server.model.ActiveUser;
-import aisafe.app.logging.server.model.RemoteAccessEvent;
+import aisafe.app.loggingserver.model.ActiveUser;
+import aisafe.app.loggingserver.model.RemoteAccessEvent;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -10,16 +10,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for {@link RemoteAccessLogStore} (US090): newest-first ordering and the
- * active-users state machine (login adds, logout/disconnect removes, failed login is ignored).
- */
 class RemoteAccessLogStoreTest {
 
     private static final String IP = "10.0.0.5";
     private static final int PORT = 50000;
 
-    /** An event for {@code user} at minute {@code minute}; same session key per user. */
     private static RemoteAccessEvent ev(final String user, final String event, final int minute) {
         return new RemoteAccessEvent(
                 LocalDateTime.of(2026, 6, 4, 17, minute, 0),
