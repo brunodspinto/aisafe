@@ -130,3 +130,79 @@ The following class diagram shows the classes involved:
 ### 4.2. Acceptance Tests
 
 The `FlightPlan` weather-data association and the test-voiding behaviour (`addWeatherData` adds the id; reverts `TESTED → VALIDATED`; leaves `DRAFT`/`VALIDATED` unchanged) are covered by automated unit tests on the aggregate. The cross-aggregate rules — authorization (AC082.1), ownership (AC082.2) and the existence of the flight plan and weather data (AC082.3, AC082.4) — are validated end-to-end by manual acceptance tests. All tests are documented in [tests.md](tests.md).
+
+---
+
+## 5. Implementation
+
+The implementation extends the existing `FlightPlan` aggregate (shared with US080/US081) and is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.flightplan.domain` | `FlightPlan` | Aggregate root; extended with the weather-data id set and the `addWeatherData` test-voiding behaviour |
+| `aisafe.flightplan.repositories` | `FlightPlanRepository` | Repository interface (unchanged) |
+| `aisafe.flightplan.application` | `InsertWeatherDataController` | **New** use case orchestrator |
+| `aisafe.app.console.presentation.flightplan` | `InsertWeatherDataUI` | **New** console UI |
+| `aisafe.weatherdata.repositories` | `WeatherDataRepository` | Confirms the weather data exists (reused, US041) |
+| `aisafe.pilot.repositories` | `PilotRepository` | Resolves the authenticated pilot (reused, US075) |
+
+**Key implementation details:**
+
+- **Weather set on `FlightPlan`** — A `Set<Long> weatherDataIds` is mapped with `@ElementCollection` to the collection table `T_FLIGHT_PLAN_WEATHER_DATA` (join column `flight_plan_designator`, value column `weather_data_id`). The set starts empty for every plan, so the change is additive and affects neither DSL-imported (US081) nor form-based (US080) plans.
+- **`addWeatherData(Long)` voids only on genuinely new data** — `final boolean added = weatherDataIds.add(id); if (added && status == TESTED) status = VALIDATED;`. Re-adding an already-attached record is a no-op and does not void a passed test (faithful to "the *new* weather data"). The method is the Information Expert for both the set and the status; the existing `markValidated()` / `markTested()` transitions are untouched.
+- **Ownership ("of mine")** — `InsertWeatherDataController` resolves the authenticated pilot via `PilotRepository.findBySystemUser` and checks `pilotId.equals(plan.assignedPilotId())`. A DSL-imported plan has a `null` assigned pilot, so it can never be "mine" — the check fails with a clear message.
+- **Existence checks** — the controller loads the plan by `FlightPlanDesignator` and the weather data by id, throwing `IllegalArgumentException` if either is absent, before modifying the aggregate.
+- **Single aggregate write** — only the `FlightPlan` is modified, so a single `FlightPlanRepository.save()` is atomic; no transactional context is needed.
+- **Menu** — `MainMenu.buildFlightPlanMenu()` exposes **Flight Plans > Insert Weather Data in a Flight** for users with the `PILOT` role.
+- **No `persistence.xml` change required** — `<exclude-unlisted-classes>false</exclude-unlisted-classes>` lets Hibernate discover the new mapping automatically.
+
+US082 adds **8 automated unit tests** to `FlightPlanTest` (covering the weather-data association and the test-voiding rule); the full `aisafe.base` suite passes (690 tests at the time of writing). The JPA mapping was validated by booting Hibernate against H2 and confirming the generated `T_FLIGHT_PLAN_WEATHER_DATA` collection table (`flight_plan_designator` NOT NULL, `weather_data_id`).
+
+---
+
+## 6. Integration/Demonstration
+
+**Prerequisites:** Run from the `aisafe.base` directory with Maven 3.9+ and Java 21. The bootstrap must have seeded a pilot (US075), at least one flight plan assigned to that pilot (US080), and at least one weather data record (US041/US042).
+
+```bat
+REM For development and quick testing (data is lost on exit)
+run-inmemory.bat
+
+REM For demonstration with persistent data (requires H2 server in a separate terminal)
+start-h2.bat       REM Terminal 1 — keep running
+run-bootstrap.bat  REM Terminal 2 — first time only
+run-jpa.bat        REM Terminal 2 — every time
+```
+
+**To insert weather data in a flight:**
+
+1. Login with Pilot credentials (e.g., username: `pilot1`, password: `Password1`).
+2. Select **Flight Plans > Insert Weather Data in a Flight** from the main menu.
+3. From the list of your flight plans, enter the designator (e.g. `TP1234`).
+4. From the list of weather data records, enter the weather data id.
+5. The system confirms with a summary, e.g.:
+   ```
+   Weather data added to flight plan!
+     Designator   : TP1234
+     Weather data : 1 record(s) attached
+     Status       : VALIDATED
+   ```
+   (If the plan was `TESTED`, the status is shown as `VALIDATED` — the test has been voided.)
+
+**Validation scenarios:**
+
+- A flight plan that is not yours produces: `The flight plan does not belong to the authenticated pilot.`
+- An unknown flight plan produces: `Flight plan not found: <designator>.`
+- An unknown weather data id produces: `Weather data not found: <id>.`
+- Re-adding a weather record already attached to a `TESTED` plan leaves the status `TESTED` (no spurious void).
+- A user without the `PILOT` role does not see the **Flight Plans** menu.
+
+---
+
+## 7. Observations
+
+- **Test-voiding is precise** — Only a flight plan in `TESTED` status, receiving a *genuinely new* weather record, has its test voided (`TESTED → VALIDATED`). The DSL/semantic validation (US083) is independent of weather and is therefore preserved. This matches the enunciado's "the test is deemed void because of the new weather data".
+- **References by identity** — Weather data is referenced by a `Set<Long>` of ids, never by object reference, keeping the `FlightPlan` and `WeatherData` aggregates loosely coupled — consistent with the rest of the project.
+- **Ownership over a shared aggregate** — Because the assigned pilot of a plan may differ from its creator (US080 allows assigning a colleague), the "of mine" rule is checked against `assignedPilotId`, not the creator. DSL-imported plans (no assigned pilot) are correctly excluded.
+- **Weather selection is unconstrained by design** — The pilot may attach any registered weather record; the use case does not (yet) restrict it to the flight's air control area(s) or departure date. The `WeatherDataRepository.findByDateAndAirControlArea` query already exists, so scoping the selection to the flight's context is a natural future enhancement; it is intentionally out of scope here, as the enunciado does not require the match.
+- **Single body of work on the aggregate** — Adding weather and voiding the test are one cohesive domain operation on `FlightPlan`, so they cannot get out of sync (e.g. weather added without the test being re-evaluated).
