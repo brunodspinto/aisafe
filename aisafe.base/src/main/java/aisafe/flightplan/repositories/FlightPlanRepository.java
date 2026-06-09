@@ -16,4 +16,12 @@ public interface FlightPlanRepository extends DomainRepository<FlightPlanDesigna
      * @return {@code true} if at least one flight plan references this pilot
      */
     boolean hasFlightPlanAssignedTo(Long pilotId);
+
+    /**
+     * Returns all flight plans currently in {@code VALIDATED} status.
+     * Used by US085 to list plans that are eligible for simulation testing.
+     *
+     * @return an iterable of all VALIDATED flight plans (may be empty, never null)
+     */
+    Iterable<FlightPlan> findAllValidated();
 }
