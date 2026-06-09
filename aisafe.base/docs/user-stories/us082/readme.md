@@ -68,7 +68,7 @@ The main design decisions were:
 
 **Weather data referenced by identity (a set of ids)** — The `FlightPlan` is extended with a `Set<Long>` of `WeatherData` identities, stored via `@ElementCollection`. References are kept by identity (not by object), preserving low coupling between the `FlightPlan` and `WeatherData` aggregates — the same principle already used for the pilot's certifications (US075) and the form-based references in US080. A set (rather than a single value) supports a flight that spans more than one air control area and lets the pilot attach weather data over successive operations (interpretation note #2).
 
-**Test-voiding is a domain behaviour of the `FlightPlan`** — Attaching weather data and voiding a previous test is a single domain operation owned by the aggregate, because the `FlightPlan` is the Information Expert for both its weather set and its `status`. A new method (e.g. `addWeatherData(Long weatherDataId)`) adds the id to the set and, **only if the current status is `TESTED`**, reverts it to `VALIDATED` (AC082.6); for `DRAFT`/`VALIDATED` plans the status is unchanged (AC082.7). The DSL/semantic validation is therefore preserved — only the flight test is voided. This complements the existing `markValidated()` / `markTested()` transitions without altering them.
+**Test-voiding is a domain behaviour of the `FlightPlan`** — Attaching weather data and voiding a previous test is a single domain operation owned by the aggregate, because the `FlightPlan` is the Information Expert for both its weather set and its `status`. A new method `addWeatherData(Long weatherDataId)` adds the id to the set; if the id was **genuinely new** (the set actually changed) **and** the status is `TESTED`, it reverts the status to `VALIDATED`, voiding the test (AC082.6). Re-adding a weather record already attached to the plan is a no-op and does **not** void a passed test — faithful to the enunciado's "because of the *new* weather data". For `DRAFT`/`VALIDATED` plans the status is never changed (AC082.7). The DSL/semantic validation is therefore preserved — only the flight test is voided. This complements the existing `markValidated()` / `markTested()` transitions without altering them.
 
 **Ownership ("of mine") enforced by the controller** — AC082.2 requires the plan to belong to the authenticated pilot. This is an application/authentication concern (it needs the session identity), so it is checked by the controller: it resolves the authenticated `Pilot` via `PilotRepository.findBySystemUser` and verifies that `flightPlan.assignedPilotId()` equals the pilot's identity, before invoking the domain operation.
 
@@ -105,7 +105,7 @@ The use case follows the standard layered flow: `InsertWeatherDataUI` lets the p
 To present the choices to the pilot, the controller resolves the **authenticated pilot** (via `PilotRepository.findBySystemUser`) and offers:
 
 - `myFlightPlans()` — the flight plans assigned to the authenticated pilot. The flight plans are loaded via `FlightPlanRepository.findAll()` and filtered in memory by `assignedPilotId == pilot.identity()` (the same in-memory filtering approach used in US072 for the company fleet).
-- `availableWeatherData()` — the weather data records registered in the system (`WeatherDataRepository.findAll()`), for selection by id.
+- `availableWeatherData()` — the weather data records registered in the system (`WeatherDataRepository.findAll()`), for selection by id. (Per interpretation note #3, the weather data is not filtered by the flight's air control area or date. This is a conscious trade-off: the `WeatherDataRepository` already offers `findByDateAndAirControlArea`, so a future enhancement could scope the selection to the flight's route area(s) and departure date; US082 keeps it unconstrained as the enunciado does not require the match.)
 
 The insertion step then performs:
 
@@ -114,7 +114,7 @@ The insertion step then performs:
 3. Load the `FlightPlan` by its `FlightPlanDesignator`; it must exist (AC082.3).
 4. Verify ownership — `flightPlan.assignedPilotId()` must equal the authenticated pilot's identity (AC082.2).
 5. Verify the `WeatherData` exists via `WeatherDataRepository.ofIdentity(weatherDataId)` (AC082.4).
-6. Invoke `flightPlan.addWeatherData(weatherDataId)` — the aggregate adds the id to its weather set (AC082.5) and, **only if its status is `TESTED`**, reverts it to `VALIDATED`, voiding the test (AC082.6); otherwise the status is unchanged (AC082.7).
+6. Invoke `flightPlan.addWeatherData(weatherDataId)` — the aggregate adds the id to its weather set (AC082.5); if the id was new and the status is `TESTED`, it reverts to `VALIDATED`, voiding the test (AC082.6); re-adding an already-attached record, or a plan in `DRAFT`/`VALIDATED`, leaves the status unchanged (AC082.7).
 7. Persist the plan via `FlightPlanRepository.save()`.
 
 As in US080, only a **single aggregate** (`FlightPlan`) is written, so no explicit transactional context is used — the `save()` is atomic. The `WeatherData` and `Pilot` accesses are read-only lookups.
