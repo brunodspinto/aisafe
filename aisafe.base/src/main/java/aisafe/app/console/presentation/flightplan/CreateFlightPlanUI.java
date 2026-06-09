@@ -11,8 +11,8 @@ import eapli.framework.presentation.console.AbstractUI;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Console UI for the "Create a Flight Plan" use case (US080).
@@ -65,45 +65,80 @@ public class CreateFlightPlanUI extends AbstractUI {
 
     private String selectRoute() {
         System.out.println("\n--- Available Flight Routes ---");
-        final List<FlightRoute> routes = new ArrayList<>();
+        final Set<String> routeNames = new HashSet<>();
         for (final FlightRoute route : controller.availableRoutes()) {
             System.out.printf("  [%s] %s -> %s%n",
                     route.routeName(), route.originAirport(), route.destinationAirport());
-            routes.add(route);
+            routeNames.add(route.routeName().toString());
         }
-        if (routes.isEmpty()) {
+        if (routeNames.isEmpty()) {
             System.out.println("  No active routes available for your company.");
             return null;
         }
-        return Console.readLine("Route name: ");
+        while (true) {
+            final String input = Console.readLine("Route name (or 0 to cancel): ").trim().toUpperCase();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            if (routeNames.contains(input)) {
+                return input;
+            }
+            System.out.println("  Unknown route. Please enter one of the listed route names (or 0 to cancel).");
+        }
     }
 
     private String selectAircraft() {
         System.out.println("\n--- Available Aircraft ---");
-        final List<Aircraft> aircraft = new ArrayList<>();
+        final Set<String> registrations = new HashSet<>();
         for (final Aircraft a : controller.availableAircraft()) {
             System.out.printf("  [%s] %s%n", a.registrationNumber(), a.aircraftModel().modelName());
-            aircraft.add(a);
+            registrations.add(a.registrationNumber().toString());
         }
-        if (aircraft.isEmpty()) {
+        if (registrations.isEmpty()) {
             System.out.println("  No active aircraft available for your company.");
             return null;
         }
-        return Console.readLine("Aircraft registration: ");
+        while (true) {
+            final String input = Console.readLine("Aircraft registration (or 0 to cancel): ").trim().toUpperCase();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            if (registrations.contains(input)) {
+                return input;
+            }
+            System.out.println("  Unknown aircraft. Please enter one of the listed registrations (or 0 to cancel).");
+        }
     }
 
     private Long selectPilot() {
         System.out.println("\n--- Available Pilots ---");
-        final List<Pilot> pilots = new ArrayList<>();
+        final Set<Long> pilotIds = new HashSet<>();
         for (final Pilot p : controller.availablePilots()) {
             System.out.printf("  [%s] %s%n", p.identity(), p.user().systemUser().username());
-            pilots.add(p);
+            pilotIds.add(p.identity());
         }
-        if (pilots.isEmpty()) {
+        if (pilotIds.isEmpty()) {
             System.out.println("  No active pilots available for your company.");
             return null;
         }
-        return Console.readLong("Assigned pilot id: ");
+        while (true) {
+            final String input = Console.readLine("Assigned pilot id (or 0 to cancel): ").trim();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            try {
+                final Long id = Long.valueOf(input);
+                if (pilotIds.contains(id)) {
+                    return id;
+                }
+                System.out.println("  Unknown pilot id. Please enter one of the listed ids (or 0 to cancel).");
+            } catch (final NumberFormatException e) {
+                System.out.println("  Invalid id. Please enter a number (or 0 to cancel).");
+            }
+        }
     }
 
     private FlightType selectFlightType() {
