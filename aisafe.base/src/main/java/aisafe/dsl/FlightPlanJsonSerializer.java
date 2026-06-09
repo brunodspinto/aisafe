@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * Serialises a {@link FlightPlanAst} to a temporary JSON file in the format expected by
@@ -48,6 +50,7 @@ public class FlightPlanJsonSerializer {
      * @throws IOException if the temp file cannot be written
      */
     public Path toTempFile(final FlightPlanAst ast) throws IOException {
+        Objects.requireNonNull(ast, "ast must not be null");
         final String json = buildJson(ast);
         final Path tmp = Files.createTempFile("aisafe-fp-", ".json");
         Files.writeString(tmp, json, StandardCharsets.UTF_8);
@@ -57,8 +60,8 @@ public class FlightPlanJsonSerializer {
     private String buildJson(final FlightPlanAst ast) {
         final StringBuilder sb = new StringBuilder();
         sb.append("[\n  {\n");
-        sb.append("    \"identifier\": \"").append(ast.identifier()).append("\",\n");
-        sb.append("    \"flight_type\": \"").append(ast.flightType().name()).append("\",\n");
+        sb.append("    \"identifier\": \"").append(jsonEscape(ast.identifier())).append("\",\n");
+        sb.append("    \"flight_type\": \"").append(jsonEscape(ast.flightType().name())).append("\",\n");
         sb.append("    \"legs\": [\n");
 
         final List<LegAst> legs = ast.legs();
@@ -71,12 +74,13 @@ public class FlightPlanJsonSerializer {
                 final SegmentAst seg = segments.get(si);
                 sb.append("          {\n");
                 sb.append("            \"start_coord\": [")
-                  .append(seg.from().latitude()).append(", ")
-                  .append(seg.from().longitude()).append("],\n");
+                  .append(String.format(Locale.US, "%.6f", seg.from().latitude())).append(", ")
+                  .append(String.format(Locale.US, "%.6f", seg.from().longitude())).append("],\n");
                 sb.append("            \"end_coord\": [")
-                  .append(seg.to().latitude()).append(", ")
-                  .append(seg.to().longitude()).append("],\n");
-                sb.append("            \"altitude_m\": ").append(seg.altitudeMeters()).append(",\n");
+                  .append(String.format(Locale.US, "%.6f", seg.to().latitude())).append(", ")
+                  .append(String.format(Locale.US, "%.6f", seg.to().longitude())).append("],\n");
+                sb.append("            \"altitude_m\": ")
+                  .append(String.format(Locale.US, "%.6f", seg.altitudeMeters())).append(",\n");
                 sb.append("            \"mode\": \"cruise\"\n");
                 sb.append("          }");
                 if (si < segments.size() - 1) {
@@ -94,5 +98,9 @@ public class FlightPlanJsonSerializer {
 
         sb.append("    ]\n  }\n]");
         return sb.toString();
+    }
+
+    private static String jsonEscape(final String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

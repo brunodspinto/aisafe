@@ -180,6 +180,38 @@ class ImportBulkWeatherDataControllerTest {
         assertTrue(result.failures().isEmpty());
     }
 
+    // File-not-found produces a failure entry (not a silent empty result)
+    @Test
+    void ensureFileNotFoundProducesFailureInResult() {
+        AuthenticationContext.authenticate(WEATHER_PERSON_USERNAME, WEATHER_PERSON_PASSWORD);
+
+        final ImportResult result =
+                controller.importWeatherData("/nonexistent/path/missing-file.csv");
+
+        assertEquals(0, result.saved());
+        assertFalse(result.failures().isEmpty());
+    }
+
+    // Blank lines interspersed in CSV are skipped and valid records are still imported
+    @Test
+    void ensureBlankLinesInCsvAreSkipped() throws Exception {
+        AuthenticationContext.authenticate(WEATHER_PERSON_USERNAME, WEATHER_PERSON_PASSWORD);
+        ensureAreaExists("PT-N");
+
+        final Path csv = writeTempCsv(
+                HEADER,
+                "",
+                "PT-N,IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0",
+                "",
+                "PT-N,IPMA,CSV,2025-05-14T11:00:00,21.0,12.0,NE,1012.0,9.0",
+                "");
+
+        final ImportResult result = controller.importWeatherData(csv.toString());
+
+        assertEquals(2, result.saved());
+        assertTrue(result.failures().isEmpty());
+    }
+
     // AC042.6 — WeatherDataParser is an interface; any implementation can be substituted
     @Test
     void ensureParserInterfaceCanBeImplementedWithAlternativeFormat() {
