@@ -220,4 +220,34 @@ class FlightPlanTest {
                 new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), (FlightType) null,
                         ROUTE, AIRCRAFT, PILOT_ID, futureDeparture(), FuelQuantity.valueOf(1500.0)));
     }
+
+    // --- markTested lifecycle (US085) ---
+
+    private static FlightPlan validDslPlan() {
+        return new FlightPlan(FlightPlanDesignator.valueOf("TP1234"), REGULAR, "flight TP1234 { }");
+    }
+
+    @Test
+    void ensureValidatedDslPlanCanBeMarkedTested() {
+        final FlightPlan plan = validDslPlan();
+        plan.markValidated();
+        plan.markTested();
+        assertEquals(FlightPlanStatus.TESTED, plan.status());
+    }
+
+    @Test
+    void ensureDraftPlanCannotBeMarkedTested() {
+        final FlightPlan plan = validDslPlan();
+        // status is DRAFT — markTested() must reject
+        assertThrows(IllegalStateException.class, plan::markTested);
+    }
+
+    @Test
+    void ensureAlreadyTestedPlanCannotBeMarkedTestedAgain() {
+        final FlightPlan plan = validDslPlan();
+        plan.markValidated();
+        plan.markTested();
+        // second call must reject
+        assertThrows(IllegalStateException.class, plan::markTested);
+    }
 }
