@@ -66,3 +66,145 @@ The following diagram shows the domain model excerpt relevant to this US:
 ![Domain Model](svg/US075-domain-model.svg)
 
 ---
+
+## 4. Design
+
+### 4.1. Realization
+
+The use case follows the standard layered flow: `AddPilotUI` collects pilot data and selected aircraft model certifications, then delegates to `AddPilotController`. The controller:
+
+1. Verifies the authenticated user has the ATCC role
+2. Resolves the authenticated collaborator's company from the session
+3. Validates that all selected aircraft models exist
+4. Creates a system user with the PILOT role via EAPLI
+5. Creates the AISafe `User` aggregate
+6. Creates the `Pilot` aggregate and persists it
+
+All user and pilot creation is wrapped in a transaction — if any step fails, the entire operation is rolled back.
+
+The following sequence diagram illustrates this flow:
+
+![Sequence Diagram](svg/US075-SD.svg)
+
+The following class diagram shows the classes involved:
+
+![Class Diagram](svg/US075-class-diagram.svg)
+
+### 4.2. Acceptance Tests
+
+All tests are automated with JUnit 5 and located in `src/test/java/aisafe/pilot/domain/`.
+
+---
+
+**AC075.1 — Pilot must be a system user with the PILOT role**
+
+The PILOT role is assigned automatically by the controller — the ATCC cannot assign a different role to a pilot.
+
+**Test:** `ensureValidPilotCanBeCreated` — verifies that a valid pilot is correctly created.
+
+```java
+@Test
+void ensureValidPilotCanBeCreated() {
+    final Pilot pilot = new Pilot(validUser(), IATACode.valueOf("TP"),
+            Set.of(1L, 2L));
+    assertNotNull(pilot);
+    assertTrue(pilot.isActive());
+}
+```
+
+---
+
+**AC075.2 — Pilot must belong to the authenticated collaborator's company**
+
+Authorization is enforced by the controller — the company is resolved automatically from the authenticated session. This is validated through manual integration testing:
+
+1. Login as an ATCC of TAP.
+2. Navigate to **Pilots > Add Pilot**.
+3. The system automatically associates the pilot with TAP — the ATCC cannot select a different company.
+
+---
+
+**AC075.3 — Pilot must be certified for at least one aircraft model**
+
+**Test:** `ensurePilotMustHaveAtLeastOneCertification`
+
+```java
+@Test
+void ensurePilotMustHaveAtLeastOneCertification() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new Pilot(validUser(), IATACode.valueOf("TP"), Set.of()));
+}
+```
+
+**Test:** `ensurePilotCertificationSetCannotBeNull`
+
+```java
+@Test
+void ensurePilotCertificationSetCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new Pilot(validUser(), IATACode.valueOf("TP"), null));
+}
+```
+
+---
+
+
+**AC075.5 — Newly added pilot is active by default**
+
+**Test:** `ensurePilotIsActiveByDefault`
+
+```java
+@Test
+void ensurePilotIsActiveByDefault() {
+    final Pilot pilot = new Pilot(validUser(), IATACode.valueOf("TP"), Set.of(1L));
+    assertTrue(pilot.isActive());
+}
+```
+
+---
+
+**Pilot domain invariants**
+
+**Test:** `ensureUserCannotBeNull`
+
+```java
+@Test
+void ensureUserCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new Pilot(null, IATACode.valueOf("TP"), Set.of(1L)));
+}
+```
+
+**Test:** `ensureCompanyCannotBeNull`
+
+```java
+@Test
+void ensureCompanyCannotBeNull() {
+    assertThrows(IllegalArgumentException.class, () ->
+            new Pilot(validUser(), null, Set.of(1L)));
+}
+```
+
+**Test:** `ensureCertificationsAreUnmodifiable`
+
+```java
+@Test
+void ensureCertificationsAreUnmodifiable() {
+    final Pilot pilot = new Pilot(validUser(), IATACode.valueOf("TP"), Set.of(1L));
+    assertThrows(UnsupportedOperationException.class, () ->
+            pilot.certifiedAircraftModelIds().add(2L));
+}
+```
+
+**Test:** `ensureIsCertifiedForReturnsTrueForCertifiedModel`
+
+```java
+@Test
+void ensureIsCertifiedForReturnsTrueForCertifiedModel() {
+    final Pilot pilot = new Pilot(validUser(), IATACode.valueOf("TP"), Set.of(1L));
+    assertTrue(pilot.isCertifiedFor(1L));
+    assertFalse(pilot.isCertifiedFor(99L));
+}
+```
+
+---
