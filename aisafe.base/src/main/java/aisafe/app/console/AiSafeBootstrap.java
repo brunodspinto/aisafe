@@ -55,6 +55,7 @@ public final class AiSafeBootstrap {
         bootstrapPilotUser();
         bootstrapFlightRoutes();
         bootstrapFlightPlans();
+        bootstrapValidatedDslFlightPlan();
 
         System.out.println("Bootstrap completed successfully!");
     }
@@ -510,6 +511,7 @@ public final class AiSafeBootstrap {
         bootstrapPilotUser();
         bootstrapFlightRoutes();
         bootstrapFlightPlans();
+        bootstrapValidatedDslFlightPlan();
     }
 
     /** Seeds a Pilot user for US086 remote access testing. */
@@ -672,6 +674,41 @@ public final class AiSafeBootstrap {
             System.out.println("Flight plan created: TP2001 on route TP200 (planned ~180 days out).");
         } else {
             System.out.println("Flight plan already exists: TP2001");
+        }
+    }
+
+    /**
+     * Seeds a DSL-based flight plan in {@code VALIDATED} status for US085 demonstration.
+     * Designator {@code TP85} represents the single-leg OPO→LIS route used in the demo.
+     */
+    private static void bootstrapValidatedDslFlightPlan() {
+        final var planRepo = PersistenceContext.repositories().flightPlans();
+        final aisafe.flightplan.domain.FlightPlanDesignator designator =
+                aisafe.flightplan.domain.FlightPlanDesignator.valueOf("TP85");
+
+        if (planRepo.ofIdentity(designator).isEmpty()) {
+            final String dslContent =
+                    "FLIGHT TP85 TYPE REGULAR {\n"
+                    + "  LEG {\n"
+                    + "    DEPARTURE: 2026-06-01 10:00;\n"
+                    + "    ARRIVAL: 2026-06-01 10:45;\n"
+                    + "    ROUTE: OPO -> LIS;\n"
+                    + "    SEGMENT {\n"
+                    + "      START: (+41.15, -8.61);\n"
+                    + "      END: (+38.72, -9.14);\n"
+                    + "      ALTITUDE: 10000 M WIDTH: 2000 M;\n"
+                    + "      WIND: (180, 12 M/S);\n"
+                    + "    }\n"
+                    + "    FUEL: 5300 KG;\n"
+                    + "  }\n"
+                    + "}";
+            final aisafe.flightplan.domain.FlightPlan plan = new aisafe.flightplan.domain.FlightPlan(
+                    designator, aisafe.dsl.ast.FlightType.REGULAR, dslContent);
+            plan.markValidated();
+            planRepo.save(plan);
+            System.out.println("DSL flight plan created and validated: TP85 (US085 demo plan).");
+        } else {
+            System.out.println("Flight plan already exists: TP85");
         }
     }
 
