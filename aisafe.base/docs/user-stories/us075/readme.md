@@ -208,3 +208,72 @@ void ensureIsCertifiedForReturnsTrueForCertifiedModel() {
 ```
 
 ---
+
+## 5. Implementation
+
+The implementation is distributed across the following packages in `aisafe.base`:
+
+| Package | Class | Role |
+|---------|-------|------|
+| `aisafe.pilot.domain` | `Pilot` | Aggregate root |
+| `aisafe.pilot.repositories` | `PilotRepository` | Repository interface |
+| `aisafe.pilot.application` | `AddPilotController` | Use case orchestrator |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemoryPilotRepository` | In-memory persistence |
+| `aisafe.infrastructure.persistence.jpa` | `JpaPilotRepository` | JPA persistence |
+| `aisafe.app.console.presentation.pilot` | `AddPilotUI` | Console UI |
+
+**Design decisions:**
+
+`Pilot` was created as a separate aggregate from `Collaborator` because a pilot has distinct domain behaviour — certifications and active/inactive status. This keeps each aggregate focused on a single responsibility (SRP).
+
+The company and aircraft model references are stored as identity values (`IATACode` and `Set<Long>`) rather than full object references. This avoids cross-aggregate object references — a DDD principle of low coupling.
+
+The `MecanographicNumber` for pilot users follows the format `PIL00001` instead of `EMP00001` to distinguish pilots from other users in the system.
+
+The test suite comprises tests for `Pilot`, all above 90% coverage and all passing.
+
+---
+
+## 6. Integration/Demonstration
+
+This US integrates with:
+
+- **US055** — aircraft models must exist before certifications can be assigned.
+- **US060** — the company must be registered and the authenticated user must be a collaborator of it.
+- **US061** — the authenticated user must be an ATCC collaborator.
+- **US076** — list pilot roster uses the `PilotRepository`.
+- **US077** — remove a pilot deactivates the `Pilot` aggregate.
+
+**To compile and run all tests:**
+```bash
+mvn clean test
+```
+
+**To run the application:**
+```bash
+# For development and quick testing (data is lost on exit)
+./run-inmemory.sh
+
+# For demonstration with persistent data
+./start-h2.sh       # Terminal 1 — keep running
+./run-bootstrap.sh  # Terminal 2 — first time only
+./run-jpa.sh        # Terminal 2 — every time
+```
+
+**To add a pilot:**
+
+1. Login with Air Transport Company Collaborator (ATCC) credentials.
+2. Select **Pilots >** from the main menu.
+3. Select **Add Pilot**.
+4. Fill in username, password, name, phone, email, position, security clearance and skills assessment date.
+5. Select one or more aircraft models the pilot is certified for.
+6. The system confirms: `Pilot successfully added!` with all details.
+
+---
+
+## 7. Observations
+
+- The `MecanographicNumber` for pilots uses the prefix `PIL` instead of `EMP` to distinguish pilot users from other system users at a glance.
+- The company is resolved automatically from the authenticated session — this prevents an ATCC from adding a pilot to a company they do not belong to, enforcing AC075.2 without requiring explicit input.
+- Aircraft model certifications are stored as a `Set<Long>` of model ids rather than `@ManyToMany` with the `AircraftModel` aggregate. This keeps the coupling between `Pilot` and `AircraftModel` low — the `Pilot` aggregate does not depend on the internal structure of `AircraftModel`.
+- An alternative design would have been to include pilots inside the `Collaborator` aggregate. This was rejected because pilots have distinct behaviour (certifications, active status) that would overload the `Collaborator` aggregate — violating SRP.
