@@ -250,4 +250,72 @@ class FlightPlanTest {
         // second call must reject
         assertThrows(IllegalStateException.class, plan::markTested);
     }
+
+    // --- Weather data insertion (US082) ---
+
+    private static FlightPlan testedPlan() {
+        final FlightPlan plan = validDslPlan();
+        plan.markValidated();
+        plan.markTested();
+        return plan;
+    }
+
+    @Test
+    void ensureWeatherDataCanBeAdded() {
+        final FlightPlan plan = validDslPlan();
+        plan.addWeatherData(10L);
+        assertTrue(plan.weatherDataIds().contains(10L));
+    }
+
+    @Test
+    void ensureAddingWeatherDataRejectsNull() {
+        final FlightPlan plan = validDslPlan();
+        assertThrows(IllegalArgumentException.class, () -> plan.addWeatherData(null));
+    }
+
+    @Test
+    void ensureWeatherDataIdsAreUnmodifiable() {
+        final FlightPlan plan = validDslPlan();
+        plan.addWeatherData(10L);
+        assertThrows(UnsupportedOperationException.class, () -> plan.weatherDataIds().add(20L));
+    }
+
+    @Test
+    void ensureMultipleWeatherDataRecordsCanBeAdded() {
+        final FlightPlan plan = validDslPlan();
+        plan.addWeatherData(10L);
+        plan.addWeatherData(20L);
+        assertEquals(2, plan.weatherDataIds().size());
+    }
+
+    @Test
+    void ensureAddingNewWeatherDataVoidsTestWhenTested() {
+        final FlightPlan plan = testedPlan();
+        plan.addWeatherData(10L);
+        assertEquals(FlightPlanStatus.VALIDATED, plan.status());
+    }
+
+    @Test
+    void ensureReAddingSameWeatherDataDoesNotVoidTest() {
+        final FlightPlan plan = testedPlan();
+        plan.addWeatherData(10L);                 // voids: TESTED -> VALIDATED
+        plan.markTested();                        // tested again with the weather data in place
+        plan.addWeatherData(10L);                 // same id -> no-op, must NOT void
+        assertEquals(FlightPlanStatus.TESTED, plan.status());
+    }
+
+    @Test
+    void ensureAddingWeatherDataDoesNotChangeDraftStatus() {
+        final FlightPlan plan = validDslPlan(); // DRAFT
+        plan.addWeatherData(10L);
+        assertEquals(FlightPlanStatus.DRAFT, plan.status());
+    }
+
+    @Test
+    void ensureAddingWeatherDataDoesNotChangeValidatedStatus() {
+        final FlightPlan plan = validDslPlan();
+        plan.markValidated(); // VALIDATED
+        plan.addWeatherData(10L);
+        assertEquals(FlightPlanStatus.VALIDATED, plan.status());
+    }
 }
