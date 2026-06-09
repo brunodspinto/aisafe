@@ -1,0 +1,75 @@
+@startuml US075_DomainModel
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model - US075 Add a Pilot
+
+package "Pilot Aggregate" <<Rectangle>> {
+
+    class Pilot <<entity, aggregate root>> {
+        active
+    }
+
+}
+
+package "User Aggregate" <<Rectangle>> {
+
+    class User <<entity, aggregate root>> {
+        phoneNumber
+        position
+        skillsAssessmentDate
+    }
+
+    class Email <<value object>> {
+        address
+    }
+
+    class SecurityClearance <<value object>> {
+        expirationDate
+    }
+
+    Enum SecurityLevel {
+        LOW
+        GUARDED
+        ELEVATED
+        HIGH
+        CRITICAL
+    }
+
+    Enum RoleType {
+        PILOT
+    }
+}
+
+package "AircraftModel Aggregate" <<Rectangle>> {
+
+    class AircraftModel <<entity, aggregate root>> {
+        modelName
+        maxRange
+    }
+}
+
+package "AirTransportCompany Aggregate" <<Rectangle>> {
+
+    class AirTransportCompany <<entity, aggregate root>> {
+        name
+    }
+
+    class IATACode <<value object>> {
+        code
+    }
+}
+
+Pilot "1" --> "1" User : "is a"
+Pilot "0..*" --> "1" AirTransportCompany : "belongs to"
+Pilot "1" --> "1..*" AircraftModel : "certified for"
+
+User "1" *-- "1" Email : "identified by"
+User "1" *-- "1" SecurityClearance : "holds"
+User "1" --> "1..*" RoleType : "has"
+SecurityClearance "1" --> "1" SecurityLevel : "at level"
+
+AirTransportCompany "1" --> "1" IATACode : "identified by"
+
+@enduml

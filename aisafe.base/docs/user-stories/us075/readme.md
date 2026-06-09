@@ -35,3 +35,34 @@ Test: Unit tests for `Pilot` (all above 90% coverage).
 - **US061** — Add a Customer's Collaborator. The authenticated user must be a company collaborator (ATCC).
 
 ---
+
+## 3. Analysis
+
+A pilot is a system user with the PILOT role that belongs to an air transport company and is certified to operate one or more aircraft models.
+
+The main design decisions made were:
+
+**Pilot as separate aggregate** — The `Pilot` aggregate was created separately from `Collaborator` because a pilot has distinct domain behaviour — certifications for aircraft models and an active/inactive status. This keeps each aggregate focused on a single responsibility.
+
+**Company reference by identity** — The `Pilot` references the company via `IATACode` (identity) rather than a full `AirTransportCompany` object reference. This avoids cross-aggregate object references — a DDD principle of low coupling between aggregates.
+
+**Aircraft model reference by identity** — The pilot's certifications are stored as a `Set<Long>` of aircraft model ids rather than full `AircraftModel` references. This keeps the coupling between `Pilot` and `AircraftModel` aggregates low.
+
+**Authentication-based company resolution** — The controller resolves the authenticated collaborator's company automatically from the session — the ATCC does not manually select a company. This enforces AC075.2 — a pilot can only be added to the authenticated collaborator's own company.
+
+**Certification invariant** — A pilot must always have at least one certification. This is enforced in the constructor and the set is exposed as unmodifiable.
+
+The main classes identified are:
+
+| Class | Type | Responsibility |
+|-------|------|----------------|
+| `Pilot` | Entity / Aggregate Root | Holds pilot data and certifications |
+| `PilotRepository` | Repository Interface | Persistence contract |
+| `AddPilotController` | Controller | Use case orchestrator |
+| `AddPilotUI` | UI | Console UI for pilot registration |
+
+The following diagram shows the domain model excerpt relevant to this US:
+
+![Domain Model](svg/US075-domain-model.svg)
+
+---
