@@ -40,6 +40,12 @@ public class CreateFlightPlanUI extends AbstractUI {
             final LocalDateTime departureDateTime = readDepartureDateTime();
             final double fuelAmount = readFuel();
 
+            if (!confirmCreation(routeName, aircraftRegistration, assignedPilotId,
+                    flightType, designator, departureDateTime, fuelAmount)) {
+                System.out.println("  Operation cancelled.");
+                return false;
+            }
+
             final FlightPlan plan = controller.createFlightPlan(
                     routeName, aircraftRegistration, assignedPilotId,
                     flightType, designator, departureDateTime, fuelAmount);
@@ -138,6 +144,26 @@ public class CreateFlightPlanUI extends AbstractUI {
             } catch (final NumberFormatException e) {
                 System.out.println("  Invalid id. Please enter a number (or 0 to cancel).");
             }
+        }
+    }
+
+    private boolean confirmCreation(final String routeName, final String aircraftRegistration,
+                                    final Long assignedPilotId, final FlightType flightType,
+                                    final String designator, final LocalDateTime departureDateTime,
+                                    final double fuelAmount) {
+        System.out.println("\n--- Review Flight Plan ---");
+        System.out.println("  Designator : " + designator);
+        System.out.println("  Route      : " + routeName);
+        System.out.println("  Aircraft   : " + aircraftRegistration);
+        System.out.println("  Pilot id   : " + assignedPilotId);
+        System.out.println("  Type       : " + flightType);
+        System.out.println("  Departure  : " + departureDateTime);
+        System.out.println("  Fuel       : " + fuelAmount + " kg");
+        while (true) {
+            final String answer = Console.readLine("Confirm creation? (y/n): ").trim().toLowerCase();
+            if (answer.equals("y") || answer.equals("yes")) return true;
+            if (answer.equals("n") || answer.equals("no")) return false;
+            System.out.println("  Please answer 'y' or 'n'.");
         }
     }
 

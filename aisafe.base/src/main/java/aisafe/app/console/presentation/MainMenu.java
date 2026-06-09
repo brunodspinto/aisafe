@@ -9,6 +9,7 @@ import aisafe.app.console.presentation.weatherdata.RegisterWeatherDataUI;
 import aisafe.app.console.presentation.authz.DisableEnableUserUI;
 import aisafe.app.console.presentation.authz.ListUsersUI;
 import aisafe.app.console.presentation.authz.LogoutUI;
+import aisafe.app.console.presentation.authz.ChangePasswordUI;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanFromFileUI;
 import aisafe.app.console.presentation.flightplan.CreateFlightPlanUI;
@@ -121,7 +122,8 @@ public class MainMenu extends AbstractUI {
 
     private Menu buildMyAccountMenu() {
         final var menu = new Menu("My Account >");
-        menu.addItem(1, "Logout", new LogoutUI()::show);
+        menu.addItem(1, "Change Password", new ChangePasswordUI()::show);
+        menu.addItem(2, "Logout", new LogoutUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

@@ -26,6 +26,11 @@ public class InsertWeatherDataUI extends AbstractUI {
             final Long weatherDataId = selectWeatherData();
             if (weatherDataId == null) return false;
 
+            if (!confirmInsertion(designator, weatherDataId)) {
+                System.out.println("  Operation cancelled.");
+                return false;
+            }
+
             final FlightPlan plan = controller.insertWeatherData(designator, weatherDataId);
 
             System.out.println("\n Weather data added to flight plan!");
@@ -41,6 +46,19 @@ public class InsertWeatherDataUI extends AbstractUI {
             System.out.println("\n An error occurred: " + e.getMessage());
         }
         return false;
+    }
+
+    private boolean confirmInsertion(final String designator, final Long weatherDataId) {
+        System.out.println("\n--- Review ---");
+        System.out.println("  Flight plan    : " + designator);
+        System.out.println("  Weather data id: " + weatherDataId);
+        System.out.println("  Note: if the flight plan was already TESTED, its test will be voided.");
+        while (true) {
+            final String answer = Console.readLine("Confirm? (y/n): ").trim().toLowerCase();
+            if (answer.equals("y") || answer.equals("yes")) return true;
+            if (answer.equals("n") || answer.equals("no")) return false;
+            System.out.println("  Please answer 'y' or 'n'.");
+        }
     }
 
     private String selectFlightPlan() {
