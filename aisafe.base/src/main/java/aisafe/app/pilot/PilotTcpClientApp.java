@@ -78,6 +78,8 @@ public final class PilotTcpClientApp {
             System.out.println();
             System.out.println("=== Pilot Remote Menu ===");
             System.out.println("1. Create Flight Plan from DSL File");
+            System.out.println("2. Insert Weather Data in a Flight");
+            System.out.println("3. Test/Validate a Flight Plan");
             System.out.println("0. Exit");
             System.out.print("Option: ");
 
@@ -97,12 +99,75 @@ public final class PilotTcpClientApp {
                         System.out.println("Error reading file: " + e.getMessage());
                     }
                 }
+                case "2" -> handleInsertWeatherData(scanner, client);
+                case "3" -> handleTestFlightPlan(scanner, client);
                 case "0" -> {
                     client.exit();
                     running = false;
                 }
                 default -> System.out.println("Invalid option.");
             }
+        }
+    }
+
+    private static void handleInsertWeatherData(final Scanner scanner, final PilotTcpClient client)
+            throws IOException {
+        final var plans = client.listMyPlans();
+        if (plans.isEmpty()) {
+            System.out.println("No flight plans found.");
+            return;
+        }
+        System.out.println("Your flight plans:");
+        plans.forEach(System.out::println);
+
+        final var weatherData = client.listWeatherData();
+        if (weatherData.isEmpty()) {
+            System.out.println("No weather data available in the system.");
+            return;
+        }
+        System.out.println("Available weather data (id  areaCode  date):");
+        weatherData.forEach(System.out::println);
+
+        System.out.print("Flight plan designator: ");
+        final String designator = scanner.nextLine().trim();
+        System.out.print("Weather data ID: ");
+        final String idStr = scanner.nextLine().trim();
+
+        final long weatherDataId;
+        try {
+            weatherDataId = Long.parseLong(idStr);
+        } catch (final NumberFormatException e) {
+            System.out.println("Invalid ID — must be a number.");
+            return;
+        }
+
+        final String response = client.insertWeatherData(designator, weatherDataId);
+        if (response != null && response.startsWith("OK")) {
+            System.out.println("Weather data inserted into flight plan: " + response.substring(3).trim());
+        } else {
+            System.out.println("Failed: " + response);
+        }
+    }
+
+    private static void handleTestFlightPlan(final Scanner scanner, final PilotTcpClient client)
+            throws IOException {
+        final var plans = client.listMyPlans();
+        if (plans.isEmpty()) {
+            System.out.println("No flight plans found.");
+            return;
+        }
+        System.out.println("Your flight plans (only VALIDATED DSL plans can be tested):");
+        plans.forEach(System.out::println);
+
+        System.out.print("Flight plan designator to test: ");
+        final String designator = scanner.nextLine().trim();
+
+        System.out.println("Running simulation test (may take up to 30 seconds)...");
+        final String response = client.testFlightPlan(designator);
+        if (response != null && response.startsWith("OK")) {
+            System.out.println("Flight plan tested successfully. Status: TESTED — " + response.substring(3).trim());
+        } else {
+            System.out.println("Test failed: " + response);
         }
     }
 }
