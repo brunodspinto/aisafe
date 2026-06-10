@@ -1,0 +1,102 @@
+@startuml class-diagram-us091
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Entry Point" {
+    class RemoteAccessLoggingServerApp {
+        +main(args : String[]) : void
+    }
+}
+
+package "HTTP Layer (US091)" {
+    class LoggingHttpServer {
+        -store : RemoteAccessLogStore
+        -port : int
+        +LoggingHttpServer(store : RemoteAccessLogStore, port : int)
+        +start() : void
+        -eventsHtml() : String
+        -activeHtml() : String
+        -eventsJson() : String
+        -activeJson() : String
+    }
+}
+
+package "UDP Layer (US090)" {
+    class UdpLogReceiver {
+        -store : RemoteAccessLogStore
+        -writer : LogFileWriter
+        -port : int
+        -running : boolean
+        +UdpLogReceiver(store, writer, port)
+        +run() : void
+        +stop() : void
+    }
+    class LogEventParser {
+        {static} +parse(payload : String, sourceIp : String) : Optional<RemoteAccessEvent>
+    }
+}
+
+package "Store" {
+    class RemoteAccessLogStore {
+        -events : ConcurrentLinkedDeque<RemoteAccessEvent>
+        -activeSessions : ConcurrentHashMap<String, RemoteAccessEvent>
+        +add(event : RemoteAccessEvent) : void
+        +recent(limit : int) : List<RemoteAccessEvent>
+        +all() : List<RemoteAccessEvent>
+        +activeUsers() : List<ActiveUser>
+        +size() : int
+        +clear() : void
+    }
+    class LogFileWriter {
+        -writer : BufferedWriter
+        +LogFileWriter(filePath : String)
+        +append(event : RemoteAccessEvent) : void
+        +close() : void
+    }
+}
+
+package "Model" {
+    class RemoteAccessEvent <<record>> {
+        +timestamp : LocalDateTime
+        +username : String
+        +clientIp : String
+        +clientPort : int
+        +service : String
+        +event : String
+        +sourceUdpIp : String
+        +sessionKey() : String
+        +toLogLine() : String
+    }
+    class ActiveUser <<record>> {
+        +username : String
+        +clientIp : String
+        +clientPort : int
+        +service : String
+        +since : LocalDateTime
+    }
+}
+
+package "Client Applications" <<frame>> {
+    class RemoteAccessLogger {
+        -host : String
+        -port : int
+        -serviceId : String
+        +log(username, ip, port, event) : void
+    }
+}
+
+RemoteAccessLoggingServerApp ..> LoggingHttpServer : creates
+RemoteAccessLoggingServerApp ..> UdpLogReceiver : creates
+RemoteAccessLoggingServerApp ..> RemoteAccessLogStore : creates & shares
+RemoteAccessLoggingServerApp ..> LogFileWriter : creates
+
+LoggingHttpServer --> RemoteAccessLogStore : reads
+UdpLogReceiver --> RemoteAccessLogStore : writes
+UdpLogReceiver --> LogFileWriter : appends
+UdpLogReceiver ..> LogEventParser : uses
+LogEventParser ..> RemoteAccessEvent : produces
+RemoteAccessLogStore ..> RemoteAccessEvent : stores
+RemoteAccessLogStore ..> ActiveUser : derives
+RemoteAccessLogger ..> UdpLogReceiver : sends UDP datagrams to
+
+@enduml

@@ -1,0 +1,114 @@
+@startuml sd091
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Administrator" as ADMIN
+participant "Web Browser" as BROWSER
+
+box "Logging Server Application" #FEF9E7
+    participant ":RemoteAccessLoggingServerApp" as APP
+    participant ":LoggingHttpServer" as HTTP
+    participant ":UdpLogReceiver" as UDP
+    participant ":LogEventParser" as PARSER
+    participant ":RemoteAccessLogStore" as STORE
+    participant ":LogFileWriter" as WRITER
+end box
+
+box "Client Applications" #EBF5FB
+    participant ":RemoteAccessLogger" as LOGGER
+end box
+
+activate APP
+APP -> STORE** : new RemoteAccessLogStore()
+APP -> WRITER** : new LogFileWriter(filePath)
+APP -> APP : reload events from file (LogEventParser)
+APP -> HTTP** : new LoggingHttpServer(store, 8080)
+APP -> HTTP : start()
+activate HTTP
+HTTP --> APP : HTTP server running on port 8080
+
+APP -> UDP** : new UdpLogReceiver(store, writer, 9090)
+APP -> UDP : run()
+activate UDP
+
+note over UDP : listening on UDP port 9090
+
+ADMIN -> BROWSER : opens http://localhost:8080/events
+activate BROWSER
+BROWSER -> HTTP : GET /events
+HTTP --> BROWSER : HTML page (with JavaScript setInterval 5s)
+BROWSER --> ADMIN : shows events table (initially empty or from file)
+deactivate BROWSER
+
+note over LOGGER, UDP : A client app (US044/US078/US086) performs a login
+
+LOGGER -> UDP : UDP datagram\n"<timestamp> | pilot1 | 10.0.0.1 | 54321 | US86 | LOGIN_SUCCESS"
+activate UDP
+UDP -> PARSER : parse(payload, sourceIp)
+activate PARSER
+PARSER --> UDP : Optional<RemoteAccessEvent>
+deactivate PARSER
+UDP -> STORE : add(event)
+activate STORE
+STORE -> STORE : events.addFirst(event)
+STORE -> STORE : activeSessions.put(sessionKey, event)
+deactivate STORE
+UDP -> WRITER : append(event)
+activate WRITER
+WRITER --> UDP
+deactivate WRITER
+deactivate UDP
+
+note over BROWSER, HTTP : 5 seconds later — AJAX poll fires
+
+BROWSER -> HTTP : GET /api/events
+activate BROWSER
+activate HTTP
+HTTP -> STORE : recent(100)
+activate STORE
+STORE --> HTTP : List<RemoteAccessEvent>
+deactivate STORE
+HTTP --> BROWSER : JSON array
+BROWSER -> BROWSER : rebuild table (no page reload)
+deactivate BROWSER
+deactivate HTTP
+
+ADMIN -> BROWSER : opens http://localhost:8080/active
+activate BROWSER
+BROWSER -> HTTP : GET /active
+HTTP --> BROWSER : HTML page (active users, setInterval 5s)
+BROWSER --> ADMIN : shows active users table
+
+BROWSER -> HTTP : GET /api/active
+activate HTTP
+HTTP -> STORE : activeUsers()
+activate STORE
+STORE --> HTTP : List<ActiveUser>
+deactivate STORE
+HTTP --> BROWSER : JSON array
+BROWSER -> BROWSER : rebuild table
+deactivate BROWSER
+deactivate HTTP
+
+note over LOGGER, UDP : Same user logs out
+
+LOGGER -> UDP : UDP datagram\n"<timestamp> | pilot1 | 10.0.0.1 | 54321 | US86 | LOGOUT"
+activate UDP
+UDP -> PARSER : parse(payload, sourceIp)
+activate PARSER
+PARSER --> UDP : Optional<RemoteAccessEvent>
+deactivate PARSER
+UDP -> STORE : add(event)
+activate STORE
+STORE -> STORE : events.addFirst(event)
+STORE -> STORE : activeSessions.remove(sessionKey)
+deactivate STORE
+UDP -> WRITER : append(event)
+deactivate UDP
+
+note over BROWSER, HTTP : Next AJAX poll — user disappears from /active
+
+deactivate APP
+
+@enduml

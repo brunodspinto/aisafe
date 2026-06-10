@@ -1,0 +1,46 @@
+@startuml US091_DomainModel
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt — US091 Remote Accesses Logging Visualization
+
+package "Logging Server" <<Rectangle>> {
+    class RemoteAccessEvent <<value object>> {
+        timestamp : LocalDateTime
+        username : String
+        clientIp : String
+        clientPort : int
+        service : String
+        event : String
+        sourceUdpIp : String
+        sessionKey() : String
+        toLogLine() : String
+    }
+
+    class ActiveUser <<value object>> {
+        username : String
+        clientIp : String
+        clientPort : int
+        service : String
+        since : LocalDateTime
+    }
+
+    note right of RemoteAccessEvent
+        event in:
+        LOGIN_SUCCESS
+        LOGIN_FAILED
+        LOGOUT
+        CONNECTION_LOST
+    end note
+
+    note right of ActiveUser
+        service in:
+        US44 (Weather Person)
+        US78 (Collaborator)
+        US86 (Pilot)
+    end note
+}
+
+RemoteAccessEvent "0..*" --> "0..1" ActiveUser : "LOGIN_SUCCESS\ncreates / LOGOUT removes"
+
+@enduml
