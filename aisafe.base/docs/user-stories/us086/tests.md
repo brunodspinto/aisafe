@@ -85,6 +85,56 @@ void ensureSessionHandlesUnknownCommandBeforeExit() throws IOException {
 }
 ```
 
+**Test:** `ensureInsertWeatherDataWithoutArgsReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithoutArgsReturnsError() throws IOException {
+    final String response = runSession("INSERT_WEATHER_DATA\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureInsertWeatherDataWithMissingIdReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithMissingIdReturnsError() throws IOException {
+    final String response = runSession("INSERT_WEATHER_DATA TP123\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureInsertWeatherDataWithNonNumericIdReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithNonNumericIdReturnsError() throws IOException {
+    final String response = runSession("INSERT_WEATHER_DATA TP123 abc\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureInsertWeatherDataWithNegativeIdReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithNegativeIdReturnsError() throws IOException {
+    final String response = runSession("INSERT_WEATHER_DATA TP123 -5\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
+**Test:** `ensureTestFlightPlanWithoutArgsReturnsError`
+
+```java
+@Test
+void ensureTestFlightPlanWithoutArgsReturnsError() throws IOException {
+    final String response = runSession("TEST_FLIGHT_PLAN\nEXIT");
+    assertTrue(response.contains("ERROR"));
+}
+```
+
 ---
 
 ### `PilotSessionHandlerIT`
@@ -149,6 +199,42 @@ void ensureMultipleCommandsOverRealSocketAreHandledInSequence() throws Exception
 }
 ```
 
+**Test:** `ensureInsertWeatherDataWithoutArgsOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithoutArgsOverRealSocketReturnsError() throws Exception {
+    clientOut.println("INSERT_WEATHER_DATA");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+**Test:** `ensureInsertWeatherDataWithInvalidIdOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureInsertWeatherDataWithInvalidIdOverRealSocketReturnsError() throws Exception {
+    clientOut.println("INSERT_WEATHER_DATA TP123 abc");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+**Test:** `ensureTestFlightPlanWithoutArgsOverRealSocketReturnsError`
+
+```java
+@Test
+void ensureTestFlightPlanWithoutArgsOverRealSocketReturnsError() throws Exception {
+    clientOut.println("TEST_FLIGHT_PLAN");
+    assertTrue(clientIn.readLine().startsWith("ERROR"));
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
 ---
 
 ### `TcpClientDispatcherTest`
@@ -196,7 +282,7 @@ void ensurePilotLoginReturnsOK() throws Exception {
 
 - **AC086.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
 - **AC086.2** (no direct DB access from client): structural — `PilotTcpClientApp` has only JDK imports; verified by code inspection
-- **AC086.3** (Pilot USs available remotely): `ensureCreateFlightPlanWithoutByteLengthReturnsError`, `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`, `ensureCreateFlightPlanWithNegativeByteLengthReturnsError` + manual test (valid DSL flow)
+- **AC086.3** (Pilot USs available remotely): `ensureCreateFlightPlanWithoutByteLengthReturnsError`, `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`, `ensureCreateFlightPlanWithNegativeByteLengthReturnsError`, `ensureInsertWeatherDataWithoutArgsReturnsError`, `ensureInsertWeatherDataWithMissingIdReturnsError`, `ensureInsertWeatherDataWithNonNumericIdReturnsError`, `ensureInsertWeatherDataWithNegativeIdReturnsError`, `ensureTestFlightPlanWithoutArgsReturnsError` + manual tests (valid flows)
 - **AC086.4** (authentication and authorization): `ensureInvalidCredentialsReturnFail`, `ensureNonPilotRoleReturnsUnauthorized`, `ensurePilotLoginReturnsOK`
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 
