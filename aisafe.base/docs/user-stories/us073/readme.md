@@ -279,7 +279,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 
 Airport references are stored as `AirportIATACode` value objects — not as `@ManyToOne Airport` references. This keeps Low Coupling between `FlightRoute` and `Airport` aggregates.
 
-The test suite comprises **16 tests** for `FlightRoute`, **19 tests** for `RouteName`, and **15 integration tests** for `CreateFlightRouteController` — **50 automated tests in total**, all passing.
+The test suite comprises **22 tests** for `FlightRoute` (including deactivation tests for US074, which live in the same aggregate), **19 tests** for `RouteName`, and **15 integration tests** for `CreateFlightRouteController` — **56 automated tests in total**, all passing.
 
 ---
 
