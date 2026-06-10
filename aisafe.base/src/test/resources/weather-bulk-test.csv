@@ -1,0 +1,4 @@
+area_code,provider,format,date,temperature,windSpeed,windDirection,pressure,visibility
+PT-N,IPMA,CSV,2026-06-02T08:00:00,18.5,20.0,SW,1015.0,8000
+PT-N,IPMA,CSV,2026-06-02T14:00:00,22.3,25.0,W,1012.5,9999
+PT-N,IPMA,CSV,2026-06-03T08:00:00,16.0,15.0,N,1018.0,7500

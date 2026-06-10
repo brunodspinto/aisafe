@@ -95,7 +95,8 @@ public final class WeatherPersonSessionHandler {
                     areaCode, provider, format, dateTime,
                     temperature, windSpeed, windDir, pressure, visibility);
 
-            out.println("OK " + saved.identity());
+            final String id = saved.identity() != null ? saved.identity().toString() : "saved";
+            out.println("OK " + id);
 
         } catch (final DateTimeParseException e) {
             out.println("ERROR invalid dateTime – use ISO-8601 (e.g. 2026-06-01T12:00:00)");
