@@ -67,4 +67,34 @@ class PilotSessionHandlerTest {
         assertTrue(response.contains("UNKNOWN_COMMAND"));
         assertTrue(response.contains("BYE"));
     }
+
+    @Test
+    void ensureInsertWeatherDataWithoutArgsReturnsError() throws IOException {
+        final String response = runSession("INSERT_WEATHER_DATA\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureInsertWeatherDataWithMissingIdReturnsError() throws IOException {
+        final String response = runSession("INSERT_WEATHER_DATA TP123\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureInsertWeatherDataWithNonNumericIdReturnsError() throws IOException {
+        final String response = runSession("INSERT_WEATHER_DATA TP123 abc\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureInsertWeatherDataWithNegativeIdReturnsError() throws IOException {
+        final String response = runSession("INSERT_WEATHER_DATA TP123 -5\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureTestFlightPlanWithoutArgsReturnsError() throws IOException {
+        final String response = runSession("TEST_FLIGHT_PLAN\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
 }

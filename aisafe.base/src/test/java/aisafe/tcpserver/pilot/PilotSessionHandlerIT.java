@@ -96,4 +96,28 @@ class PilotSessionHandlerIT {
         clientOut.println("EXIT");
         assertEquals("BYE", clientIn.readLine());
     }
+
+    @Test
+    void ensureInsertWeatherDataWithoutArgsOverRealSocketReturnsError() throws Exception {
+        clientOut.println("INSERT_WEATHER_DATA");
+        assertTrue(clientIn.readLine().startsWith("ERROR"));
+        clientOut.println("EXIT");
+        assertEquals("BYE", clientIn.readLine());
+    }
+
+    @Test
+    void ensureInsertWeatherDataWithInvalidIdOverRealSocketReturnsError() throws Exception {
+        clientOut.println("INSERT_WEATHER_DATA TP123 abc");
+        assertTrue(clientIn.readLine().startsWith("ERROR"));
+        clientOut.println("EXIT");
+        assertEquals("BYE", clientIn.readLine());
+    }
+
+    @Test
+    void ensureTestFlightPlanWithoutArgsOverRealSocketReturnsError() throws Exception {
+        clientOut.println("TEST_FLIGHT_PLAN");
+        assertTrue(clientIn.readLine().startsWith("ERROR"));
+        clientOut.println("EXIT");
+        assertEquals("BYE", clientIn.readLine());
+    }
 }
