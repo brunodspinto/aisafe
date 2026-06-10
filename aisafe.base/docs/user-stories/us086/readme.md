@@ -176,10 +176,11 @@ The following class diagram shows the classes involved:
 
 ### 4.2. Acceptance Tests
 
-Automated tests are split into two classes, both in `src/test/java/aisafe/tcpserver/pilot/`:
+Automated tests are split into three classes:
 
-- `PilotSessionHandlerTest` — **unit tests** using in-memory streams (`StringReader` / `StringWriter`), no socket or EAPLI context required.
-- `PilotSessionHandlerIT` — **implementation tests** using a real loopback `ServerSocket`, verifying the protocol over actual TCP I/O.
+- `PilotSessionHandlerTest` (`src/test/java/aisafe/tcpserver/pilot/`) — **unit tests** using in-memory streams (`StringReader` / `StringWriter`), no socket or EAPLI context required.
+- `PilotSessionHandlerIT` (`src/test/java/aisafe/tcpserver/pilot/`) — **implementation tests** using a real loopback `ServerSocket`, verifying the protocol over actual TCP I/O.
+- `TcpClientDispatcherTest` (`src/test/java/aisafe/tcpserver/`) — **integration tests** for AC086.4, using a real loopback socket and full EAPLI auth bootstrap.
 
 Manual integration tests are documented in [tests.md](tests.md).
 
@@ -257,7 +258,51 @@ void ensureCreateFlightPlanWithNegativeByteLengthReturnsError() throws IOExcepti
 
 ---
 
-**AC086.4 + AC086.1 — Successful authentication as Pilot (manual)**
+**AC086.4 — Invalid credentials return FAIL**
+
+**Test:** `ensureInvalidCredentialsReturnFail`
+
+```java
+@Test
+void ensureInvalidCredentialsReturnFail() throws Exception {
+    clientOut.println("LOGIN pilot-disp-test wrongpassword");
+    assertTrue(clientIn.readLine().startsWith("FAIL"));
+}
+```
+
+---
+
+**AC086.4 — Non-Pilot role returns UNAUTHORIZED**
+
+**Test:** `ensureNonPilotRoleReturnsUnauthorized`
+
+```java
+@Test
+void ensureNonPilotRoleReturnsUnauthorized() throws Exception {
+    clientOut.println("LOGIN atcc-disp-test Password1");
+    assertEquals("UNAUTHORIZED", clientIn.readLine());
+}
+```
+
+---
+
+**AC086.4 + AC086.1 — Valid Pilot login returns OK and session works**
+
+**Test:** `ensurePilotLoginReturnsOK`
+
+```java
+@Test
+void ensurePilotLoginReturnsOK() throws Exception {
+    clientOut.println("LOGIN pilot-disp-test Password1");
+    assertEquals("OK", clientIn.readLine());
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+---
+
+**AC086.4 + AC086.1 — Full manual demonstration**
 
 1. Run `./run-pilot-client.sh`, enter `localhost` / `9999` / `pilot1` / `Password1`.
 2. Expected: server responds `OK` and the Pilot menu is displayed.
@@ -296,6 +341,8 @@ The implementation is distributed across the following packages in `aisafe.base`
 | `aisafe.app.pilot` | `PilotTcpClientApp` | Standalone client entry point; interactive Pilot menu |
 | `aisafe.app.console` | `AiSafeConsoleApp` | Modified to start `AiSafeTcpServer` in a daemon thread before the console menu |
 | `aisafe.app.console` | `AiSafeBootstrap` | Modified to create `pilot1 / Password1` (role `PILOT`, company TAP, certified for Boeing 737-800) |
+
+The test suite comprises **7 unit tests** (`PilotSessionHandlerTest`) + **5 implementation tests** (`PilotSessionHandlerIT`) + **3 integration tests** (`TcpClientDispatcherTest`) = **15 automated tests**, all passing.
 
 The `CREATE_FLIGHT_PLAN` command is handled by writing the received DSL content to a temporary file and delegating to the existing `CreateFlightPlanFromFileController.createFromFile(path)`. The temp file is deleted after the controller returns, regardless of outcome:
 

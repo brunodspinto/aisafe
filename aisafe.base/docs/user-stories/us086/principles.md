@@ -174,7 +174,7 @@ public boolean login(final String username, final String password) throws IOExce
 
 public String createFlightPlanFromFile(final String filePath) throws IOException {
     final String dslContent = Files.readString(Path.of(filePath));
-    out.println("CREATE_FLIGHT_PLAN " + dslContent.getBytes().length);
+    out.println("CREATE_FLIGHT_PLAN " + dslContent.length());
     out.print(dslContent);
     out.flush();
     return in.readLine();

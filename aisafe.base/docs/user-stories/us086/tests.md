@@ -151,12 +151,53 @@ void ensureMultipleCommandsOverRealSocketAreHandledInSequence() throws Exception
 
 ---
 
+### `TcpClientDispatcherTest`
+
+Location: `src/test/java/aisafe/tcpserver/TcpClientDispatcherTest.java`
+
+Integration tests that exercise `TcpClientDispatcher` over a real loopback TCP socket with a full EAPLI authentication bootstrap. These tests verify AC086.4: that the dispatcher enforces authentication and role-based authorization before granting access to the Pilot command loop.
+
+**Test:** `ensureInvalidCredentialsReturnFail`
+
+```java
+@Test
+void ensureInvalidCredentialsReturnFail() throws Exception {
+    clientOut.println("LOGIN pilot-disp-test wrongpassword");
+    assertTrue(clientIn.readLine().startsWith("FAIL"));
+}
+```
+
+**Test:** `ensureNonPilotRoleReturnsUnauthorized`
+
+```java
+@Test
+void ensureNonPilotRoleReturnsUnauthorized() throws Exception {
+    // ATCC user logs in without a service token — dispatcher treats as Pilot path → UNAUTHORIZED
+    clientOut.println("LOGIN atcc-disp-test Password1");
+    assertEquals("UNAUTHORIZED", clientIn.readLine());
+}
+```
+
+**Test:** `ensurePilotLoginReturnsOK`
+
+```java
+@Test
+void ensurePilotLoginReturnsOK() throws Exception {
+    clientOut.println("LOGIN pilot-disp-test Password1");
+    assertEquals("OK", clientIn.readLine());
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+---
+
 ## Coverage by Acceptance Criterion
 
 - **AC086.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
 - **AC086.2** (no direct DB access from client): structural — `PilotTcpClientApp` has only JDK imports; verified by code inspection
 - **AC086.3** (Pilot USs available remotely): `ensureCreateFlightPlanWithoutByteLengthReturnsError`, `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`, `ensureCreateFlightPlanWithNegativeByteLengthReturnsError` + manual test (valid DSL flow)
-- **AC086.4** (authentication and authorization): manual tests (wrong password → `FAIL`; non-Pilot role → `UNAUTHORIZED`)
+- **AC086.4** (authentication and authorization): `ensureInvalidCredentialsReturnFail`, `ensureNonPilotRoleReturnsUnauthorized`, `ensurePilotLoginReturnsOK`
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 
 ---
