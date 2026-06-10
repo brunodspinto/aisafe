@@ -8,14 +8,18 @@ US086 introduces no new aggregates, entities, or value objects. The TCP infrastr
 
 ---
 
-### 1.2 Reuse of Existing Aggregate
+### 1.2 Reuse of Existing Aggregates
 
-The `FlightPlan` aggregate (created in US081) is the domain object produced by this use case. `PilotSessionHandler` does not create `FlightPlan` directly — it delegates to `CreateFlightPlanFromFileController`, which enforces all domain invariants and persists via `FlightPlanRepository`.
+All domain objects used by this US — `FlightPlan`, `WeatherData`, `Pilot` — are already defined and mapped in previous user stories. `PilotSessionHandler` never creates or modifies domain objects directly; it delegates entirely to existing application-layer controllers:
+
+- `CreateFlightPlanFromFileController` (US081) — handles `CREATE_FLIGHT_PLAN`
+- `InsertWeatherDataController` (US082) — handles `INSERT_WEATHER_DATA`, `LIST_MY_PLANS`, `LIST_WEATHER_DATA`
+- `TestFlightPlanController` (US085) — handles `TEST_FLIGHT_PLAN`
 
 ```java
-final var controller = new CreateFlightPlanFromFileController();
-final var flightPlan = controller.createFromFile(tempPath);
-out.println("OK " + flightPlan.identity());
+final var plan = new InsertWeatherDataController()
+        .insertWeatherData(parts[1].trim(), weatherDataId);
+out.println("OK " + plan.identity());
 ```
 
 ---
@@ -28,7 +32,7 @@ out.println("OK " + flightPlan.identity());
 
 ### 1.4 Low Coupling between Layers
 
-The TCP layer (`tcpserver` package) does not import any JPA class or repository. The only connection to the domain layer is through `CreateFlightPlanFromFileController`. This enforces a strict boundary between the delivery mechanism and the domain/application layers.
+The TCP layer (`tcpserver` package) does not import any JPA class or repository. All connections to the domain layer go through the application-layer controllers (`CreateFlightPlanFromFileController`, `InsertWeatherDataController`, `TestFlightPlanController`). This enforces a strict boundary between the delivery mechanism and the domain/application layers.
 
 ---
 
@@ -36,11 +40,19 @@ The TCP layer (`tcpserver` package) does not import any JPA class or repository.
 
 ### 2.1 Information Expert
 
-`PilotSessionHandler` is the information expert for Pilot commands — it owns the knowledge of which commands are valid (`CREATE_FLIGHT_PLAN`, `EXIT`) and how to dispatch them:
+`PilotSessionHandler` is the information expert for Pilot commands — it owns the knowledge of which commands are valid and how to dispatch them:
 
 ```java
 if (line.startsWith("CREATE_FLIGHT_PLAN")) {
     handleCreateFlightPlan(line);
+} else if (line.startsWith("INSERT_WEATHER_DATA")) {
+    handleInsertWeatherData(line);
+} else if (line.startsWith("TEST_FLIGHT_PLAN")) {
+    handleTestFlightPlan(line);
+} else if (line.equals("LIST_MY_PLANS")) {
+    handleListMyPlans();
+} else if (line.equals("LIST_WEATHER_DATA")) {
+    handleListWeatherData();
 } else if (line.equals("EXIT")) {
     out.println("BYE");
     return;
@@ -64,7 +76,7 @@ if (!AuthenticationContext.authenticate(username, password)) {
 
 `TcpClientDispatcher` is the entry-point controller for each TCP connection — it receives the raw request (socket), authenticates the user, checks the role, and delegates to the appropriate session handler. It does not contain any business logic.
 
-`CreateFlightPlanFromFileController` (reused from US081) is the application-layer controller for the flight plan creation use case.
+`CreateFlightPlanFromFileController` (US081), `InsertWeatherDataController` (US082), and `TestFlightPlanController` (US085) are the application-layer controllers reused server-side for each Pilot use case.
 
 ---
 
@@ -92,7 +104,7 @@ new Thread(new TcpClientDispatcher(clientSocket)).start();
 
 - `AiSafeTcpServer` only knows `TcpClientDispatcher` — it does not know what roles exist or what commands are handled.
 - `TcpClientDispatcher` only knows `PilotSessionHandler` — it does not know the individual Pilot commands.
-- `PilotSessionHandler` only knows `CreateFlightPlanFromFileController` — it does not know how flight plans are persisted.
+- `PilotSessionHandler` only knows the three application controllers — it does not know how domain objects are persisted.
 - `PilotTcpClientApp` only knows `PilotTcpClient` — it has no dependency on any server-side class.
 
 ---
@@ -111,7 +123,7 @@ new Thread(new TcpClientDispatcher(clientSocket)).start();
 
 ### 2.6 Protected Variations
 
-`PilotSessionHandler` is shielded from changes to `CreateFlightPlanFromFileController` — it interacts only through the `createFromFile(path)` method. If the controller changes internally (e.g. different validation stages), `PilotSessionHandler` is unaffected.
+`PilotSessionHandler` is shielded from changes to any of the three application controllers — it interacts only through their public method signatures. If a controller changes internally (e.g. different validation stages, new repository), `PilotSessionHandler` is unaffected.
 
 `PilotTcpClient` encapsulates all TCP protocol details — if the protocol changes (e.g. binary format instead of text), only `PilotTcpClient` and `PilotSessionHandler` need to change. `PilotTcpClientApp` is not affected.
 
@@ -149,14 +161,16 @@ if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
 
 ### 3.3 Dependency Inversion Principle (DIP)
 
-`PilotSessionHandler` depends on `CreateFlightPlanFromFileController`, which in turn depends on the `FlightPlanRepository` **interface** — not on `JpaFlightPlanRepository` directly:
+`PilotSessionHandler` depends on application-layer controllers, which in turn depend on repository **interfaces** (`FlightPlanRepository`, `WeatherDataRepository`) — never on JPA implementations directly:
 
 ```java
-private final FlightPlanRepository repository =
+private final FlightPlanRepository flightPlanRepo =
         PersistenceContext.repositories().flightPlans();
+private final WeatherDataRepository weatherDataRepo =
+        PersistenceContext.repositories().weatherData();
 ```
 
-The correct implementation is injected at runtime by `PersistenceContext`.
+The correct implementations are injected at runtime by `PersistenceContext`.
 
 ---
 
@@ -164,20 +178,23 @@ The correct implementation is injected at runtime by `PersistenceContext`.
 
 ### 4.1 Facade
 
-`PilotTcpClient` is a Facade over raw TCP socket operations — it hides the details of stream creation, line formatting and reading behind simple method calls:
+`PilotTcpClient` is a Facade over raw TCP socket operations — it hides the details of stream creation, line formatting, reading and the multi-line list protocol behind simple method calls:
 
 ```java
-public boolean login(final String username, final String password) throws IOException {
-    out.println("LOGIN " + username + " " + password);
-    return "OK".equals(in.readLine());
+public String insertWeatherData(final String designator, final long weatherDataId)
+        throws IOException {
+    out.println("INSERT_WEATHER_DATA " + designator + " " + weatherDataId);
+    return in.readLine();
 }
 
-public String createFlightPlanFromFile(final String filePath) throws IOException {
-    final String dslContent = Files.readString(Path.of(filePath));
-    out.println("CREATE_FLIGHT_PLAN " + dslContent.length());
-    out.print(dslContent);
-    out.flush();
+public String testFlightPlan(final String designator) throws IOException {
+    out.println("TEST_FLIGHT_PLAN " + designator);
     return in.readLine();
+}
+
+public List<String> listMyPlans() throws IOException {
+    out.println("LIST_MY_PLANS");
+    return readListResponse();
 }
 ```
 
@@ -200,18 +217,18 @@ public String createFlightPlanFromFile(final String filePath) throws IOException
 | Principle / Pattern | Category | Where in US086 |
 |---------------------|----------|----------------|
 | No new domain objects | DDD | TCP layer is delivery mechanism only |
-| Reuse of existing aggregate | DDD | `FlightPlan` created via `CreateFlightPlanFromFileController` |
-| Repository as interface | DDD | `FlightPlanRepository` — never accessed directly from TCP layer |
+| Reuse of existing aggregates | DDD | `FlightPlan`, `WeatherData`, `Pilot` reused via existing controllers |
+| Repository as interface | DDD | `FlightPlanRepository`, `WeatherDataRepository` — never accessed directly from TCP layer |
 | Low Coupling between layers | DDD | `tcpserver` package has no JPA imports |
-| Information Expert | GRASP | `PilotSessionHandler` dispatches Pilot commands; `TcpClientDispatcher` handles auth |
-| Controller | GRASP | `TcpClientDispatcher` (TCP entry point); `CreateFlightPlanFromFileController` (use case) |
+| Information Expert | GRASP | `PilotSessionHandler` dispatches all Pilot commands; `TcpClientDispatcher` handles auth |
+| Controller | GRASP | `TcpClientDispatcher` (TCP entry point); three use case controllers (US081/US082/US085) |
 | Creator | GRASP | `TcpClientDispatcher` creates `PilotSessionHandler`; `AiSafeTcpServer` creates `TcpClientDispatcher` |
 | Low Coupling | GRASP | Each layer only knows the next — server → dispatcher → handler → controller |
 | High Cohesion | GRASP | Each class has a single focused responsibility |
 | Protected Variations | GRASP | `PilotTcpClient` encapsulates protocol; `PilotSessionHandler` shields from controller changes |
 | SRP | SOLID | Each class has one reason to change |
 | OCP | SOLID | `TcpClientDispatcher` extensible for new roles without modification |
-| DIP | SOLID | Controller depends on `FlightPlanRepository` interface |
-| Facade | GoF | `PilotTcpClient` hides raw TCP socket operations |
-| Factory Method | GoF | `PersistenceContext.repositories().flightPlans()` |
+| DIP | SOLID | Controllers depend on `FlightPlanRepository` and `WeatherDataRepository` interfaces |
+| Facade | GoF | `PilotTcpClient` hides raw TCP socket operations and multi-line list protocol |
+| Factory Method | GoF | `PersistenceContext.repositories().flightPlans()` and `.weatherData()` |
 | Template Method | GoF | EAPLI base repositories provide the algorithm skeleton |
