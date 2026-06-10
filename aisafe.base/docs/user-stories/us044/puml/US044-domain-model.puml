@@ -1,0 +1,51 @@
+@startuml US044_DomainModel
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt — US044 Weather Person Remote Access
+
+package "User Aggregate" <<Rectangle>> {
+    class User <<entity, aggregate root>> {
+        name
+        phoneNumber
+        position
+        skillsAssessmentDate
+    }
+    Enum RoleType {
+        WEATHER_PERSON
+    }
+}
+
+package "WeatherData Aggregate" <<Rectangle>> {
+    class WeatherData <<entity, aggregate root>> {
+        areaCode
+        date
+        temperature
+        windSpeed
+        windDirection
+        pressure
+        visibility
+    }
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+    class AirControlArea <<entity, aggregate root>> {
+        name
+        minimumFuelRequired
+    }
+    class AirControlAreaCode <<value object>> {
+        value
+    }
+}
+
+User "1" --> "1..*" RoleType          : "has"
+WeatherData "1" *-- "1" WeatherSource : "imported from"
+WeatherData "1" --> "1" AirControlAreaCode : "recorded for"
+WeatherData "1" ..> "1" AirControlArea    : "area exists"
+AirControlArea "1" *-- "1" AirControlAreaCode : "identified by"
+
+@enduml

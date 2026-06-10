@@ -1,0 +1,175 @@
+@startuml sd044
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Weather Person" as WP
+
+box "Client Application" #EBF5FB
+    participant ":WeatherPersonTcpClientApp" as APP
+    participant ":WeatherPersonTcpClient" as CLIENT
+end box
+
+participant "TCP" as TCP
+
+box "Server Application" #FEF9E7
+    participant ":TcpClientDispatcher" as DISP
+    participant ":WeatherPersonSessionHandler" as HANDLER
+    participant ":RegisterWeatherDataController" as CTRL1
+    participant ":ImportBulkWeatherDataController" as CTRL2
+    participant ":ConsultWeatherDataController" as CTRL3
+    participant ":WeatherDataRepository" as REPO
+end box
+
+participant "AuthenticationContext" as AUTH
+
+activate WP
+
+WP -> APP : run client application
+activate APP
+APP -> CLIENT** : new WeatherPersonTcpClient(host, port)
+activate CLIENT
+CLIENT --> APP
+deactivate CLIENT
+APP --> WP : requests credentials
+WP -> APP : enters username and password
+APP -> CLIENT : login(username, password)
+activate CLIENT
+CLIENT -> TCP : LOGIN <username> <password> WEATHER
+activate TCP
+TCP -> DISP : read line
+activate DISP
+DISP -> AUTH : authenticate(username, password)
+activate AUTH
+AUTH --> DISP : authenticated
+deactivate AUTH
+
+alt invalid credentials
+    DISP -> TCP : FAIL invalid credentials
+    TCP --> CLIENT : FAIL ...
+    CLIENT --> APP : false
+    APP --> WP : authentication failed
+else role != WEATHER_PERSON
+    DISP -> TCP : UNAUTHORIZED
+    TCP --> CLIENT : UNAUTHORIZED
+    CLIENT --> APP : false
+    APP --> WP : unauthorized
+else authenticated with WEATHER_PERSON role
+    DISP -> HANDLER** : new WeatherPersonSessionHandler(reader, writer)
+    DISP -> TCP : OK
+    deactivate TCP
+    TCP --> CLIENT : OK
+    deactivate CLIENT
+    APP --> WP : authenticated — shows menu
+    deactivate APP
+
+    WP -> APP : selects "Register weather data"
+    activate APP
+    APP --> WP : requests weather parameters
+    WP -> APP : enters parameters
+    APP -> CLIENT : registerWeather(areaCode, provider, format, dateTime, ...)
+    activate CLIENT
+    CLIENT -> TCP : REGISTER_WEATHER <areaCode> <provider> <format> <dateTime> <temp> <windSpeed> <windDir> <pressure> <visibility>
+    activate TCP
+    TCP -> HANDLER : read command + params
+    activate HANDLER
+    HANDLER -> CTRL1** : new RegisterWeatherDataController()
+    HANDLER -> CTRL1 : registerWeatherData(...)
+    activate CTRL1
+    CTRL1 -> REPO : save(weatherData)
+    activate REPO
+    REPO --> CTRL1 : savedWeatherData
+    deactivate REPO
+    CTRL1 --> HANDLER : savedWeatherData
+    deactivate CTRL1
+    HANDLER -> TCP : OK <id>
+    deactivate HANDLER
+    TCP --> CLIENT : OK <id>
+    deactivate TCP
+    CLIENT --> APP : response
+    deactivate CLIENT
+    APP --> WP : weather data registered
+    deactivate APP
+
+    WP -> APP : selects "Import bulk weather data"
+    activate APP
+    APP --> WP : requests CSV file path
+    WP -> APP : enters file path
+    APP -> CLIENT : importBulk(filePath)
+    activate CLIENT
+    CLIENT -> TCP : IMPORT_BULK <charLength>
+    activate TCP
+    TCP -> HANDLER : IMPORT_BULK <charLength>
+    activate HANDLER
+    HANDLER -> TCP : READY
+    TCP --> CLIENT : READY
+    CLIENT -> TCP : <csvContent> (exactly charLength chars)
+    TCP -> HANDLER : read csvContent
+    HANDLER -> HANDLER : Files.createTempFile() + write CSV
+    HANDLER -> CTRL2** : new ImportBulkWeatherDataController()
+    HANDLER -> CTRL2 : importWeatherData(tempPath)
+    activate CTRL2
+    CTRL2 -> REPO : save(each valid record)
+    activate REPO
+    REPO --> CTRL2 : saved records
+    deactivate REPO
+    CTRL2 --> HANDLER : ImportResult(saved, failures)
+    deactivate CTRL2
+    HANDLER -> HANDLER : Files.delete(tempPath)
+    HANDLER -> TCP : OK saved=N failures=M
+    deactivate HANDLER
+    TCP --> CLIENT : OK saved=N failures=M
+    deactivate TCP
+    CLIENT --> APP : response
+    deactivate CLIENT
+    APP --> WP : import result
+    deactivate APP
+
+    WP -> APP : selects "Consult weather data"
+    activate APP
+    APP --> WP : requests date and area code
+    WP -> APP : enters date and area code
+    APP -> CLIENT : consultWeather(date, areaCode)
+    activate CLIENT
+    CLIENT -> TCP : CONSULT_WEATHER <date> <areaCode>
+    activate TCP
+    TCP -> HANDLER : CONSULT_WEATHER <date> <areaCode>
+    activate HANDLER
+    HANDLER -> CTRL3** : new ConsultWeatherDataController()
+    HANDLER -> CTRL3 : consultWeatherData(date, areaCode)
+    activate CTRL3
+    CTRL3 -> REPO : findByDateAndAirControlArea(date, areaCode)
+    activate REPO
+    REPO --> CTRL3 : records
+    deactivate REPO
+    CTRL3 --> HANDLER : records
+    deactivate CTRL3
+    HANDLER -> TCP : <record1>\n<record2>\n...\n (empty line = end)
+    deactivate HANDLER
+    TCP --> CLIENT : records + empty line
+    deactivate TCP
+    CLIENT --> APP : List<String>
+    deactivate CLIENT
+    APP --> WP : displays weather records
+    deactivate APP
+
+    WP -> APP : selects "Exit"
+    activate APP
+    APP -> CLIENT : exit()
+    activate CLIENT
+    CLIENT -> TCP : EXIT
+    activate TCP
+    TCP -> HANDLER : read line (EXIT)
+    HANDLER -> TCP : BYE
+    deactivate HANDLER
+    deactivate DISP
+    TCP --> CLIENT : BYE
+    deactivate TCP
+    deactivate CLIENT
+    APP --> WP : session ended
+    deactivate APP
+end
+
+deactivate WP
+
+@enduml

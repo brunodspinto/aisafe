@@ -1,0 +1,134 @@
+@startuml class-diagram-us044
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Client Application" {
+    class WeatherPersonTcpClientApp {
+        +main(args : String[]) : void
+        -showMenu() : void
+        -handleRegisterWeather() : void
+        -handleImportBulk() : void
+        -handleConsultWeather() : void
+    }
+
+    class WeatherPersonTcpClient {
+        -socket : Socket
+        -in : BufferedReader
+        -out : PrintWriter
+        +WeatherPersonTcpClient(host : String, port : int)
+        +login(username : String, password : String) : boolean
+        +registerWeather(...) : String
+        +importBulk(filePath : String) : String
+        +consultWeather(date : String, areaCode : String) : List<String>
+        +listAreas() : List<String>
+        +exit() : void
+        +close() : void
+    }
+}
+
+package "Server Application" {
+    class AiSafeTcpServer {
+        +start(port : int) : void
+    }
+
+    class TcpClientDispatcher {
+        -clientSocket : Socket
+        +TcpClientDispatcher(socket : Socket)
+        +run() : void
+    }
+
+    class WeatherPersonSessionHandler {
+        -in : BufferedReader
+        -out : PrintWriter
+        +WeatherPersonSessionHandler(in : BufferedReader, out : PrintWriter)
+        +handle() : void
+        -handleRegisterWeather(cmd : String) : void
+        -handleImportBulk(cmd : String) : void
+        -handleConsultWeather(cmd : String) : void
+        -handleListAreas() : void
+    }
+}
+
+package "Application Layer" {
+    class RegisterWeatherDataController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : WeatherDataRepository
+        +registerWeatherData(...) : WeatherData
+    }
+
+    class ImportBulkWeatherDataController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : WeatherDataRepository
+        +importWeatherData(filePath : String) : ImportResult
+    }
+
+    class ConsultWeatherDataController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : WeatherDataRepository
+        -areaRepository : AirControlAreaRepository
+        +consultWeatherData(date : LocalDate, areaCode : String) : Iterable<WeatherData>
+        +activeAirControlAreas() : Iterable<AirControlArea>
+    }
+}
+
+package "Domain Layer" {
+    class WeatherData <<entity, aggregate root>> {
+        +identity() : Long
+        +areaCode() : String
+        +date() : LocalDateTime
+    }
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+    class AirControlArea <<entity, aggregate root>> {
+        +identity() : AirControlAreaCode
+    }
+}
+
+package "Repository Layer" {
+    interface WeatherDataRepository {
+        +save(wd : WeatherData) : WeatherData
+        +findByDateAndAirControlArea(date, area) : Iterable<WeatherData>
+        +findAll() : Iterable<WeatherData>
+    }
+    interface AirControlAreaRepository {
+        +findAllActive() : Iterable<AirControlArea>
+    }
+}
+
+package "EAPLI Framework" <<frame>> {
+    class AuthenticationContext {
+        +authenticate(username : String, password : String) : boolean
+        +hasRole(role : Role) : boolean
+        +clear() : void
+    }
+    class AuthorizationService
+}
+
+package "Infrastructure" {
+    class AiSafeRoles {
+        {static} WEATHER_PERSON : Role
+    }
+}
+
+WeatherPersonTcpClientApp ..> WeatherPersonTcpClient : uses
+AiSafeTcpServer ..> TcpClientDispatcher : spawns
+TcpClientDispatcher ..> AuthenticationContext : authenticates via
+TcpClientDispatcher ..> AiSafeRoles : checks WEATHER_PERSON role
+TcpClientDispatcher ..> WeatherPersonSessionHandler : delegates to
+WeatherPersonSessionHandler ..> RegisterWeatherDataController : creates & calls
+WeatherPersonSessionHandler ..> ImportBulkWeatherDataController : creates & calls
+WeatherPersonSessionHandler ..> ConsultWeatherDataController : creates & calls
+RegisterWeatherDataController ..> AuthorizationService : checks role
+RegisterWeatherDataController ..> WeatherDataRepository : saves
+ImportBulkWeatherDataController ..> AuthorizationService : checks role
+ImportBulkWeatherDataController ..> WeatherDataRepository : saves
+ConsultWeatherDataController ..> AuthorizationService : checks role
+ConsultWeatherDataController ..> WeatherDataRepository : queries
+ConsultWeatherDataController ..> AirControlAreaRepository : queries
+WeatherData *-- WeatherSource : imported from
+WeatherDataRepository ..> WeatherData : manages
+AirControlAreaRepository ..> AirControlArea : manages
+
+@enduml
