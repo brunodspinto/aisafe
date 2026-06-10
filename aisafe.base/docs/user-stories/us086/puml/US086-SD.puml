@@ -16,7 +16,10 @@ box "Server Application" #FEF9E7
     participant ":TcpClientDispatcher" as DISP
     participant ":PilotSessionHandler" as HANDLER
     participant ":CreateFlightPlanFromFileController" as CTRL
+    participant ":InsertWeatherDataController" as CTRL2
+    participant ":TestFlightPlanController" as CTRL3
     participant ":FlightPlanRepository" as REPO
+    participant ":WeatherDataRepository" as WREPO
 end box
 
 participant "AuthenticationContext" as AUTH
@@ -93,6 +96,113 @@ else authenticated with PILOT role
     CLIENT --> APP : designator
     deactivate CLIENT
     APP --> PILOT : displays success + designator
+    deactivate APP
+
+    PILOT -> APP : selects "Insert Weather Data"
+    activate APP
+    APP -> CLIENT : listMyPlans()
+    activate CLIENT
+    CLIENT -> TCP : LIST_MY_PLANS
+    activate TCP
+    TCP -> HANDLER : LIST_MY_PLANS
+    activate HANDLER
+    HANDLER -> CTRL2** : new InsertWeatherDataController()
+    HANDLER -> CTRL2 : myFlightPlans()
+    activate CTRL2
+    CTRL2 -> REPO : findAll() [filtered by pilot]
+    activate REPO
+    REPO --> CTRL2 : plans
+    deactivate REPO
+    CTRL2 --> HANDLER : plans
+    deactivate CTRL2
+    HANDLER -> TCP : OK <count>\n<designator status>...
+    deactivate HANDLER
+    TCP --> CLIENT : OK <count> + lines
+    deactivate TCP
+    CLIENT --> APP : List<String>
+    deactivate CLIENT
+    APP -> CLIENT : listWeatherData()
+    activate CLIENT
+    CLIENT -> TCP : LIST_WEATHER_DATA
+    activate TCP
+    TCP -> HANDLER : LIST_WEATHER_DATA
+    activate HANDLER
+    HANDLER -> CTRL2 : availableWeatherData()
+    activate CTRL2
+    CTRL2 -> WREPO : findAll()
+    activate WREPO
+    WREPO --> CTRL2 : weatherData
+    deactivate WREPO
+    CTRL2 --> HANDLER : weatherData
+    deactivate CTRL2
+    HANDLER -> TCP : OK <count>\n<id areaCode date>...
+    deactivate HANDLER
+    TCP --> CLIENT : OK <count> + lines
+    deactivate TCP
+    CLIENT --> APP : List<String>
+    deactivate CLIENT
+    APP --> PILOT : displays plans and weather data
+    PILOT -> APP : enters designator + weather data id
+    APP -> CLIENT : insertWeatherData(designator, id)
+    activate CLIENT
+    CLIENT -> TCP : INSERT_WEATHER_DATA <designator> <id>
+    activate TCP
+    TCP -> HANDLER : INSERT_WEATHER_DATA <designator> <id>
+    activate HANDLER
+    HANDLER -> CTRL2 : insertWeatherData(designator, id)
+    activate CTRL2
+    CTRL2 -> REPO : ofIdentity(designator)
+    activate REPO
+    REPO --> CTRL2 : plan
+    deactivate REPO
+    CTRL2 -> WREPO : ofIdentity(id)
+    activate WREPO
+    WREPO --> CTRL2 : weatherData
+    deactivate WREPO
+    CTRL2 -> REPO : save(plan)
+    activate REPO
+    REPO --> CTRL2 : savedPlan
+    deactivate REPO
+    CTRL2 --> HANDLER : savedPlan
+    deactivate CTRL2
+    HANDLER -> TCP : OK <designator>
+    deactivate HANDLER
+    TCP --> CLIENT : OK <designator>
+    deactivate TCP
+    CLIENT --> APP : response
+    deactivate CLIENT
+    APP --> PILOT : weather data inserted
+    deactivate APP
+
+    PILOT -> APP : selects "Test Flight Plan"
+    activate APP
+    APP -> CLIENT : testFlightPlan(designator)
+    activate CLIENT
+    CLIENT -> TCP : TEST_FLIGHT_PLAN <designator>
+    activate TCP
+    TCP -> HANDLER : TEST_FLIGHT_PLAN <designator>
+    activate HANDLER
+    HANDLER -> CTRL3** : new TestFlightPlanController()
+    HANDLER -> CTRL3 : testFlightPlan(designator)
+    activate CTRL3
+    CTRL3 -> REPO : ofIdentity(designator)
+    activate REPO
+    REPO --> CTRL3 : plan
+    deactivate REPO
+    note right of CTRL3 : re-parse DSL → serialize to JSON\n→ invoke C binary → read result
+    CTRL3 -> REPO : save(plan) [status TESTED]
+    activate REPO
+    REPO --> CTRL3 : savedPlan
+    deactivate REPO
+    CTRL3 --> HANDLER : savedPlan
+    deactivate CTRL3
+    HANDLER -> TCP : OK <designator>
+    deactivate HANDLER
+    TCP --> CLIENT : OK <designator>
+    deactivate TCP
+    CLIENT --> APP : response
+    deactivate CLIENT
+    APP --> PILOT : flight plan tested successfully
     deactivate APP
 
     PILOT -> APP : selects "Exit"

@@ -41,18 +41,36 @@ package "Flight Aggregate" <<Rectangle>> {
     Enum FlightPlanStatus {
         DRAFT
         VALIDATED
-        APPROVED
-        REJECTED
+        TESTED
     }
 }
 
-Pilot "1" --> "1" User                 : "is a"
+package "WeatherData Aggregate" <<Rectangle>> {
+    class WeatherData <<entity, aggregate root>> {
+        areaCode
+        date
+        windSpeed
+        windDirection
+        temperature
+        pressure
+        visibility
+    }
+    class WeatherSource <<value object>> {
+        provider
+        format
+    }
+}
+
+Pilot "1" --> "1" User                   : "is a"
 Pilot "0..*" --> "1" AirTransportCompany : "belongs to"
-Pilot "1" --> "1..*" AircraftModel      : "certified for"
-Pilot "1" --> "0..*" FlightPlan         : "submits"
+Pilot "1" --> "1..*" AircraftModel       : "certified for"
+Pilot "1" --> "0..*" FlightPlan          : "submits"
 
 AirTransportCompany "1" --> "1" IATACode : "identified by"
 
 FlightPlan "1" --> "1" FlightPlanStatus  : "has"
+FlightPlan "1" --> "0..*" WeatherData    : "uses"
+
+WeatherData "1" *-- "1" WeatherSource    : "imported from"
 
 @enduml

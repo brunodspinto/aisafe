@@ -35,8 +35,8 @@ The Pilot user stories that must be remotely available are US081 (Create a fligh
 | US | Description | Status in Sprint 3 |
 |----|-------------|-------------------|
 | US081 | Create a flight plan from a DSL file | Implemented — exposed via `CREATE_FLIGHT_PLAN` command |
-| US082 | Insert weather data in a flight | Not yet implemented |
-| US085 | Test/validate a flight plan | Not yet implemented |
+| US082 | Insert weather data in a flight | Implemented — exposed via `INSERT_WEATHER_DATA` command |
+| US085 | Test/validate a flight plan | Implemented — exposed via `TEST_FLIGHT_PLAN` command |
 
 **Dependencies/References:**
 
@@ -90,12 +90,35 @@ If authentication succeeds but the user does not have the `PILOT` role, the serv
 **Command phase (after successful LOGIN as PILOT):**
 
 ```
-# Create a flight plan from DSL content
+# Create a flight plan from DSL content (US081)
 C→S:  CREATE_FLIGHT_PLAN <charLength>
 C→S:  <dsl_content>          (exactly charLength characters)
 S→C:  OK <designator>
   or
 S→C:  ERROR <message>
+
+# Insert weather data into a flight plan (US082)
+C→S:  INSERT_WEATHER_DATA <designator> <weatherDataId>
+S→C:  OK <designator>
+  or
+S→C:  ERROR <message>
+
+# Test/validate a flight plan via C simulation binary (US085)
+# Note: may take up to 30 seconds
+C→S:  TEST_FLIGHT_PLAN <designator>
+S→C:  OK <designator>
+  or
+S→C:  ERROR <message>
+
+# List the authenticated pilot's flight plans (helper)
+C→S:  LIST_MY_PLANS
+S→C:  OK <count>
+      <designator> <status>    (one line per plan)
+
+# List all available weather data records (helper)
+C→S:  LIST_WEATHER_DATA
+S→C:  OK <count>
+      <id> <areaCode> <date>   (one line per record)
 
 # End session
 C→S:  EXIT
@@ -127,8 +150,8 @@ Authentication reuses `AuthenticationContext.authenticate(username, password)`, 
 |-------|------|----------------|
 | `AiSafeTcpServer` | Server | Opens `ServerSocket` on port 9999; accepts connections; spawns `TcpClientDispatcher` threads |
 | `TcpClientDispatcher` | `Runnable` | Handles one client connection: reads `LOGIN`, authenticates, checks role, delegates to session handler |
-| `PilotSessionHandler` | Session Handler | Handles Pilot commands: `CREATE_FLIGHT_PLAN`, `EXIT`; delegates to existing controllers |
-| `PilotTcpClient` | Client | Encapsulates TCP communication: `login()`, `createFlightPlanFromFile()`, `exit()` |
+| `PilotSessionHandler` | Session Handler | Handles Pilot commands: `CREATE_FLIGHT_PLAN`, `INSERT_WEATHER_DATA`, `TEST_FLIGHT_PLAN`, `LIST_MY_PLANS`, `LIST_WEATHER_DATA`, `EXIT` |
+| `PilotTcpClient` | Client | Encapsulates TCP communication: `login()`, `createFlightPlanFromFile()`, `insertWeatherData()`, `testFlightPlan()`, `listMyPlans()`, `listWeatherData()`, `exit()` |
 | `PilotTcpClientApp` | Client Main | Standalone client entry point; presents interactive menu to the Pilot |
 | `AuthenticationContext` *(existing)* | Auth adapter | Authenticates credentials via EAPLI; verifies role |
 | `CreateFlightPlanFromFileController` *(existing)* | Controller | Validates DSL and persists the flight plan; reused server-side |

@@ -15,6 +15,10 @@ package "Client Application" {
         +PilotTcpClient(host : String, port : int)
         +login(username : String, password : String) : boolean
         +createFlightPlanFromFile(filePath : String) : String
+        +insertWeatherData(designator : String, weatherDataId : long) : String
+        +testFlightPlan(designator : String) : String
+        +listMyPlans() : List<String>
+        +listWeatherData() : List<String>
         +exit() : void
         +close() : void
     }
@@ -40,6 +44,10 @@ package "Server Application" {
         +PilotSessionHandler(in : BufferedReader, out : PrintWriter)
         +handle() : void
         -handleCreateFlightPlan() : void
+        -handleInsertWeatherData() : void
+        -handleTestFlightPlan() : void
+        -handleListMyPlans() : void
+        -handleListWeatherData() : void
     }
 }
 
@@ -50,16 +58,44 @@ package "Application Layer" {
         -parser : FlightPlanParserFacade
         +createFromFile(filePath : String) : FlightPlan
     }
+
+    class InsertWeatherDataController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -pilotRepo : PilotRepository
+        -flightPlanRepo : FlightPlanRepository
+        -weatherDataRepo : WeatherDataRepository
+        +myFlightPlans() : Iterable<FlightPlan>
+        +availableWeatherData() : Iterable<WeatherData>
+        +insertWeatherData(designator : String, weatherDataId : Long) : FlightPlan
+    }
+
+    class TestFlightPlanController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -repository : FlightPlanRepository
+        -parser : FlightPlanParserFacade
+        -binaryPath : String
+        +validatedDslPlans() : Iterable<FlightPlan>
+        +testFlightPlan(designator : String) : FlightPlan
+    }
 }
 
 package "Domain Layer" {
     class FlightPlan <<entity>> {
         +identity() : FlightPlanDesignator
+        +status() : FlightPlanStatus
+        +addWeatherData(id : Long) : void
+        +markTested() : void
     }
 
     class FlightPlanDesignator <<value object>> {
         +valueOf(id : String) : FlightPlanDesignator
         +toString() : String
+    }
+
+    class WeatherData <<entity>> {
+        +identity() : Long
+        +areaCode() : String
+        +date() : LocalDateTime
     }
 }
 
@@ -67,6 +103,12 @@ package "Repository Layer" {
     interface FlightPlanRepository {
         +save(plan : FlightPlan) : FlightPlan
         +ofIdentity(id : FlightPlanDesignator) : Optional<FlightPlan>
+        +findAllValidated() : Iterable<FlightPlan>
+    }
+
+    interface WeatherDataRepository {
+        +ofIdentity(id : Long) : Optional<WeatherData>
+        +findAll() : Iterable<WeatherData>
     }
 }
 
@@ -92,9 +134,17 @@ TcpClientDispatcher ..> AuthenticationContext : authenticates via
 TcpClientDispatcher ..> AiSafeRoles : checks PILOT role
 TcpClientDispatcher ..> PilotSessionHandler : delegates to
 PilotSessionHandler ..> CreateFlightPlanFromFileController : creates & calls
+PilotSessionHandler ..> InsertWeatherDataController : creates & calls
+PilotSessionHandler ..> TestFlightPlanController : creates & calls
 CreateFlightPlanFromFileController ..> AuthorizationService : checks role
 CreateFlightPlanFromFileController ..> FlightPlanRepository : saves
+InsertWeatherDataController ..> AuthorizationService : checks role
+InsertWeatherDataController ..> FlightPlanRepository : saves
+InsertWeatherDataController ..> WeatherDataRepository : queries
+TestFlightPlanController ..> AuthorizationService : checks role
+TestFlightPlanController ..> FlightPlanRepository : saves
 FlightPlan *-- FlightPlanDesignator : identity
 FlightPlanRepository ..> FlightPlan : manages
+WeatherDataRepository ..> WeatherData : manages
 
 @enduml
