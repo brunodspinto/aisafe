@@ -15,6 +15,8 @@ aisafe.base/db
 # C simulation binaries and build artefacts
 aisafe.base/simulation/simulation
 aisafe.base/simulation/flight_simulator
+aisafe.base/simulation/flight_tester
 aisafe.base/simulation/test_validation
+aisafe.base/simulation/test_flight_tester
 aisafe.base/simulation/*.o
 aisafe.base/simulation/simulation_report.txt
