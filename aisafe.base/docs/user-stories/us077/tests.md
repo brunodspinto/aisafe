@@ -30,6 +30,7 @@ Location: `src/test/java/aisafe/pilot/application/RemovePilotControllerTest.java
 
 **allActivePilotsOfCompany():**
 - `ensureAllActivePilotsReturnsOnlyActivePilots`
+- `ensureAllActivePilotsDoesNotReturnOtherCompanyPilots`
 
 **deactivatePilot() — happy path:**
 - `ensureDeactivatePilotSetsActiveToFalse`
@@ -48,11 +49,12 @@ Location: `src/test/java/aisafe/pilot/application/RemovePilotControllerTest.java
 | AC077.1 | Only ATCC role may act | `ensureAllActivePilotsThrowsWhenNotAuthenticated`, `ensureDeactivatePilotThrowsWhenNotAuthenticated`, `ensureAllActivePilotsThrowsWhenWrongRole`, `ensureDeactivatePilotThrowsWhenWrongRole` |
 | AC077.2 | Pilot made inactive, not deleted | `ensureDeactivateSetsActiveToFalse` (domain), `ensureDeactivatePilotSetsActiveToFalse`, `ensureDeactivatePilotIsPersisted` |
 | AC077.3 | Cannot deactivate pilot with flight plans | `ensureDeactivatePilotThrowsWhenFlightPlansAssigned` |
-| AC077.4 | Only own company pilots | `ensureDeactivatePilotThrowsWhenPilotBelongsToOtherCompany` |
+| AC077.4 | Only own company pilots | `ensureDeactivatePilotThrowsWhenPilotBelongsToOtherCompany`, `ensureAllActivePilotsDoesNotReturnOtherCompanyPilots` |
 
 **Additional invariants:**
 - Already-inactive pilot cannot be deactivated again: `ensureDeactivateAlreadyInactivePilotThrows` (domain), `ensureDeactivatePilotThrowsWhenAlreadyInactive` (controller)
 - Non-existent pilot throws: `ensureDeactivatePilotThrowsWhenPilotNotFound`
 - Listing returns only active pilots: `ensureAllActivePilotsReturnsOnlyActivePilots`
+- Listing does not return pilots from other companies: `ensureAllActivePilotsDoesNotReturnOtherCompanyPilots`
 
-Total: **2 domain unit tests** (`PilotTest`) + **11 integration tests** (`RemovePilotControllerTest`) = **13 automated tests**.
+Total: **2 domain unit tests** (`PilotTest`) + **12 integration tests** (`RemovePilotControllerTest`) = **14 automated tests**.

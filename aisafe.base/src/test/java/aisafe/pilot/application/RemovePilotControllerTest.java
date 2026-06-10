@@ -143,6 +143,14 @@ class RemovePilotControllerTest {
         assertTrue(result.stream().anyMatch(p -> p.identity().equals(pilotActive.identity())));
     }
 
+    @Test
+    void ensureAllActivePilotsDoesNotReturnOtherCompanyPilots() {
+        AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+        final List<Pilot> result = toList(controller.allActivePilotsOfCompany());
+        assertTrue(result.stream().noneMatch(
+                p -> p.identity().equals(otherCompanyPilot.identity())));
+    }
+
     // -----------------------------------------------------------------------
     // deactivatePilot() — happy path
     // -----------------------------------------------------------------------
