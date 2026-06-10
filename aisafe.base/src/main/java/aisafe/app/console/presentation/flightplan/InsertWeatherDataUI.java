@@ -6,8 +6,8 @@ import aisafe.weatherdata.domain.WeatherData;
 import eapli.framework.io.util.Console;
 import eapli.framework.presentation.console.AbstractUI;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Console UI for the "Insert Weather Data in a Flight" use case (US082).
@@ -26,6 +26,11 @@ public class InsertWeatherDataUI extends AbstractUI {
             final Long weatherDataId = selectWeatherData();
             if (weatherDataId == null) return false;
 
+            if (!confirmInsertion(designator, weatherDataId)) {
+                System.out.println("  Operation cancelled.");
+                return false;
+            }
+
             final FlightPlan plan = controller.insertWeatherData(designator, weatherDataId);
 
             System.out.println("\n Weather data added to flight plan!");
@@ -43,33 +48,71 @@ public class InsertWeatherDataUI extends AbstractUI {
         return false;
     }
 
+    private boolean confirmInsertion(final String designator, final Long weatherDataId) {
+        System.out.println("\n--- Review ---");
+        System.out.println("  Flight plan    : " + designator);
+        System.out.println("  Weather data id: " + weatherDataId);
+        System.out.println("  Note: if the flight plan was already TESTED, its test will be voided.");
+        while (true) {
+            final String answer = Console.readLine("Confirm? (y/n): ").trim().toLowerCase();
+            if (answer.equals("y") || answer.equals("yes")) return true;
+            if (answer.equals("n") || answer.equals("no")) return false;
+            System.out.println("  Please answer 'y' or 'n'.");
+        }
+    }
+
     private String selectFlightPlan() {
         System.out.println("\n--- Your Flight Plans ---");
-        final List<FlightPlan> plans = new ArrayList<>();
+        final Set<String> designators = new HashSet<>();
         for (final FlightPlan plan : controller.myFlightPlans()) {
             System.out.printf("  [%s] %s (%s)%n", plan.designator(), plan.routeName(), plan.status());
-            plans.add(plan);
+            designators.add(plan.designator());
         }
-        if (plans.isEmpty()) {
+        if (designators.isEmpty()) {
             System.out.println("  You have no flight plans.");
             return null;
         }
-        return Console.readLine("Flight plan designator: ");
+        while (true) {
+            final String input = Console.readLine("Flight plan designator (or 0 to cancel): ").trim().toUpperCase();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            if (designators.contains(input)) {
+                return input;
+            }
+            System.out.println("  Unknown flight plan. Please enter one of the listed designators (or 0 to cancel).");
+        }
     }
 
     private Long selectWeatherData() {
         System.out.println("\n--- Available Weather Data ---");
-        final List<WeatherData> records = new ArrayList<>();
+        final Set<Long> ids = new HashSet<>();
         for (final WeatherData wd : controller.availableWeatherData()) {
             System.out.printf("  [%s] area=%s date=%s temp=%.1f wind=%.1f %s%n",
                     wd.identity(), wd.areaCode(), wd.date(), wd.temperature(), wd.windSpeed(), wd.windDirection());
-            records.add(wd);
+            ids.add(wd.identity());
         }
-        if (records.isEmpty()) {
+        if (ids.isEmpty()) {
             System.out.println("  No weather data registered.");
             return null;
         }
-        return Console.readLong("Weather data id: ");
+        while (true) {
+            final String input = Console.readLine("Weather data id (or 0 to cancel): ").trim();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            try {
+                final Long id = Long.valueOf(input);
+                if (ids.contains(id)) {
+                    return id;
+                }
+                System.out.println("  Unknown weather data id. Please enter one of the listed ids (or 0 to cancel).");
+            } catch (final NumberFormatException e) {
+                System.out.println("  Invalid id. Please enter a number (or 0 to cancel).");
+            }
+        }
     }
 
     @Override

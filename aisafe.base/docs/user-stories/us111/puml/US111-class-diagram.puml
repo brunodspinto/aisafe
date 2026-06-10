@@ -1,0 +1,77 @@
+@startuml class-diagram-us111
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+package "Presentation" {
+    class GenerateSimulationReportUI {
+        +doShow() : boolean
+    }
+}
+
+package "Application Layer" {
+    class GenerateSimulationReportController <<UseCaseController>> {
+        -authz : AuthorizationService
+        -simulations : SimulationRepository
+        -resultsReader : SimulationResultsReader
+        -reportExporter : SimulationReportExporter
+        +generate(id : SimulationId) : SimulationReport
+    }
+
+    interface SimulationResultsReader {
+        +read(id : SimulationId) : SimulationResults
+    }
+
+    interface SimulationReportExporter {
+        +export(report : SimulationReport) : void
+    }
+}
+
+package "Domain Layer" {
+    class Simulation <<entity, aggregate root>> {
+        +buildReport(results : SimulationResults) : SimulationReport
+        +status() : SimulationStatus
+    }
+
+    class SimulationReport <<entity>> {
+        +totalFlights() : int
+        +passed() : boolean
+        +safetyViolations() : List<SafetyViolation>
+        +executionStatuses() : List<FlightExecutionStatus>
+    }
+
+    class FlightExecutionStatus <<value object>>
+    class SafetyViolation <<value object>>
+    enum SimulationStatus {
+        PENDING
+        RUNNING
+        COMPLETED
+        FAILED
+    }
+}
+
+package "Repository Layer" {
+    interface SimulationRepository {
+        +save(s : Simulation) : Simulation
+        +ofIdentity(id : SimulationId) : Optional<Simulation>
+    }
+}
+
+package "Infrastructure" {
+    class FileSimulationResultsReader
+    class JpaSimulationRepository
+}
+
+GenerateSimulationReportUI ..> GenerateSimulationReportController : uses
+GenerateSimulationReportController ..> SimulationRepository : persists
+GenerateSimulationReportController ..> SimulationResultsReader : reads results
+GenerateSimulationReportController ..> SimulationReportExporter : exports file
+GenerateSimulationReportController ..> Simulation : builds report on
+Simulation *-- SimulationReport : produces
+Simulation --> SimulationStatus : has
+SimulationReport *-- "0..*" SafetyViolation : records
+SimulationReport *-- "0..*" FlightExecutionStatus : details
+SimulationRepository ..> Simulation : manages
+FileSimulationResultsReader ..|> SimulationResultsReader
+JpaSimulationRepository ..|> SimulationRepository
+
+@enduml

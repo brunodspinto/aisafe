@@ -1,5 +1,7 @@
 @echo off
+chcp 65001 >nul
 cd /d %~dp0
+set MAVEN_OPTS=-Dfile.encoding=UTF-8
 set PROP=persistence.repositoryFactory=aisafe.infrastructure.persistence.jpa.JpaRepositoryFactory
 > src\main\resources\application.properties.tmp echo %PROP%
 if exist src\main\resources\application.properties (

@@ -1,0 +1,59 @@
+@startuml sd111
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+actor "Flight Control\nOperator" as FCO
+
+participant ":GenerateSimulationReportUI" as UI
+participant ":GenerateSimulationReportController" as CTRL
+participant "authz : AuthorizationService" as AUTH
+participant "resultsReader :\nSimulationResultsReader" as READER
+participant "simulations :\nSimulationRepository" as REPO
+participant "simulation : Simulation" as SIM
+participant "reportExporter :\nSimulationReportExporter" as EXP
+
+activate FCO
+FCO -> UI : selects "Generate Simulation Report"
+activate UI
+UI -> CTRL : generate(simulationId)
+activate CTRL
+
+CTRL -> AUTH : ensureAuthenticatedUserHasAnyOf(FLIGHT_CONTROL_OPERATOR)
+activate AUTH
+AUTH --> CTRL : authorized
+deactivate AUTH
+
+CTRL -> READER : read(simulationId)
+activate READER
+READER --> CTRL : results (totalFlights, statuses, violations)
+deactivate READER
+
+CTRL -> REPO : ofIdentity(simulationId)
+activate REPO
+REPO --> CTRL : simulation
+deactivate REPO
+
+CTRL -> SIM : buildReport(results)
+activate SIM
+SIM -> SIM : compute passed (no violations && COMPLETED)
+SIM --> CTRL : report
+deactivate SIM
+
+CTRL -> REPO : save(simulation)
+activate REPO
+REPO --> CTRL : savedSimulation
+deactivate REPO
+
+CTRL -> EXP : export(report)
+activate EXP
+EXP --> CTRL : file written
+deactivate EXP
+
+CTRL --> UI : report
+deactivate CTRL
+UI --> FCO : "report generated: <file> - result: PASSED/FAILED"
+deactivate UI
+deactivate FCO
+
+@enduml

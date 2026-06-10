@@ -1,0 +1,72 @@
+@startuml US111_DomainModel
+
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Domain Model Excerpt - US111 Generate a Simulation Report
+
+package "Simulation Aggregate" <<Rectangle>> {
+
+    class Simulation <<entity, aggregate root>> {
+        timeRangeStart
+        timeRangeEnd
+        timeStep
+        safetyThreshold
+    }
+
+    class SimulationReport <<entity>> {
+        totalFlights
+        passed
+        generatedAt
+    }
+
+    class FlightExecutionStatus <<value object>> {
+        flightDesignator
+        status
+    }
+
+    class SafetyViolation <<value object>> {
+        description
+        flightDesignator
+        timestamp
+        speed
+        heading
+        latitude
+        longitude
+        altitude
+    }
+
+    Enum SimulationStatus {
+        PENDING
+        RUNNING
+        COMPLETED
+        FAILED
+    }
+}
+
+package "AirControlArea Aggregate" <<Rectangle>> {
+
+    class AirControlArea <<entity, aggregate root>> {
+        areaCode
+        name
+        minimumFuelRequired
+    }
+}
+
+package "Flight Aggregate" <<Rectangle>> {
+
+    class Flight <<entity, aggregate root>> {
+        flightDesignator
+        departureDateTime
+        scheduledArrival
+    }
+}
+
+Simulation "1" --> "1" AirControlArea : "covers"
+Simulation "1" --> "0..*" Flight : "references"
+Simulation "1" *-- "1" SimulationReport : "produces"
+Simulation "1" --> "1" SimulationStatus : "has"
+SimulationReport "1" *-- "0..*" SafetyViolation : "records"
+SimulationReport "1" *-- "0..*" FlightExecutionStatus : "details"
+
+@enduml
