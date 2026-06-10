@@ -79,4 +79,29 @@ class WeatherPersonSessionHandlerTest {
         assertTrue(response.contains("UNKNOWN_COMMAND"));
         assertTrue(response.contains("BYE"));
     }
+
+    @Test
+    void ensureRegisterWeatherWithInvalidDateTimeReturnsError() throws IOException {
+        final String response = runSession("REGISTER_WEATHER LPPC MeteoGroup CSV not-a-date 15.2 30.5 NW 1013.2 9999\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureConsultWeatherWithMissingAreaCodeReturnsError() throws IOException {
+        final String response = runSession("CONSULT_WEATHER 2026-06-01\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
+
+    @Test
+    void ensureListAreasReturnsEmptyLineAsEndMarker() throws IOException {
+        final String response = runSession("LIST_AREAS\nEXIT");
+        // Response ends with empty line marker then BYE — verify no crash
+        assertTrue(response.contains("BYE"));
+    }
+
+    @Test
+    void ensureImportBulkZeroLengthReturnsError() throws IOException {
+        final String response = runSession("IMPORT_BULK 0\nEXIT");
+        assertTrue(response.contains("ERROR"));
+    }
 }

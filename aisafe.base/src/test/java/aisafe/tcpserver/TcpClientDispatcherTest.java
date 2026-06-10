@@ -28,9 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class TcpClientDispatcherTest {
 
-    private static final String PILOT_USERNAME = "pilot-disp-test";
-    private static final String ATCC_USERNAME  = "atcc-disp-test";
-    private static final String PASSWORD       = "Password1";
+    private static final String PILOT_USERNAME   = "pilot-disp-test";
+    private static final String ATCC_USERNAME    = "atcc-disp-test";
+    private static final String WEATHER_USERNAME = "weather-disp-test";
+    private static final String PASSWORD         = "Password1";
 
     private ServerSocket serverSocket;
     private Thread serverThread;
@@ -45,8 +46,9 @@ class TcpClientDispatcherTest {
                 new AiSafePasswordPolicy(),
                 new PlainTextEncoder());
 
-        ensureSystemUserExists(PILOT_USERNAME, PASSWORD, AiSafeRoles.PILOT);
-        ensureSystemUserExists(ATCC_USERNAME,  PASSWORD, AiSafeRoles.ATCC);
+        ensureSystemUserExists(PILOT_USERNAME,   PASSWORD, AiSafeRoles.PILOT);
+        ensureSystemUserExists(ATCC_USERNAME,    PASSWORD, AiSafeRoles.ATCC);
+        ensureSystemUserExists(WEATHER_USERNAME, PASSWORD, AiSafeRoles.WEATHER_PERSON);
     }
 
     @BeforeEach
@@ -95,6 +97,21 @@ class TcpClientDispatcherTest {
         assertEquals("OK", clientIn.readLine());
         clientOut.println("EXIT");
         assertEquals("BYE", clientIn.readLine());
+    }
+
+    @Test
+    void ensureWeatherPersonLoginWithServiceTokenReturnsOK() throws Exception {
+        clientOut.println("LOGIN " + WEATHER_USERNAME + " " + PASSWORD + " WEATHER");
+        assertEquals("OK", clientIn.readLine());
+        clientOut.println("EXIT");
+        assertEquals("BYE", clientIn.readLine());
+    }
+
+    @Test
+    void ensureWeatherPersonLoginWithoutServiceTokenReturnsUnauthorized() throws Exception {
+        // WEATHER_PERSON user without WEATHER token — dispatcher treats as Pilot path → UNAUTHORIZED
+        clientOut.println("LOGIN " + WEATHER_USERNAME + " " + PASSWORD);
+        assertEquals("UNAUTHORIZED", clientIn.readLine());
     }
 
     private static void ensureSystemUserExists(final String username, final String password,
