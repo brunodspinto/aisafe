@@ -6,7 +6,7 @@ This US is implemented in Sprint 3. It allows an **Air Transport Company Collabo
 
 The TCP server is shared across all remote-access user stories (US044, US078, US086). Each actor connects to the same server on the same port and, after authentication, is granted access only to the commands corresponding to their role. For US078, the role is `ATCC`.
 
-The ATCC user stories that must be remotely available are the company-management use cases already implemented in previous sprints: List Fleet (US072), Create / Deactivate Flight Route (US073/US074), Decommission Aircraft (US071), Add Aircraft (US070) and Add Pilot (US075). US078 adds **no new business logic** — it is a delivery mechanism that invokes the existing application controllers server-side.
+The ATCC user stories that must be remotely available are the company-management use cases already implemented in previous sprints: List Fleet (US072, incl. the US072a-d filters), Create / Deactivate Flight Route (US073/US074), Decommission Aircraft (US071), pilot roster management (US076/US077), Add Aircraft (US070) and Add Pilot (US075). US078 adds **no new business logic** — it is a delivery mechanism that invokes the existing application controllers server-side.
 
 ### 1.1 List of issues
 
@@ -32,14 +32,21 @@ The ATCC user stories that must be remotely available are the company-management
 
 **ATCC user stories available remotely:**
 
-| US    | Description               | Command            | Reused Controller                 |
-|-------|---------------------------|--------------------|-----------------------------------|
-| US072 | List the company's fleet  | `LIST_FLEET`       | `ListFleetController`             |
-| US074 | List active flight routes | `LIST_ROUTES`      | `DeactivateFlightRouteController` |
-| US074 | Deactivate a flight route | `DEACTIVATE_ROUTE` | `DeactivateFlightRouteController` |
-| US073 | Create a flight route     | `CREATE_ROUTE`     | `CreateFlightRouteController`     |
+| US     | Description                     | Command                  | Reused Controller                 |
+|--------|---------------------------------|--------------------------|-----------------------------------|
+| US072  | List the company's fleet        | `LIST_FLEET`             | `ListFleetController`             |
+| US072a | List fleet by model             | `LIST_FLEET_BY_MODEL`    | `ListFleetController`             |
+| US072b | List fleet by maker             | `LIST_FLEET_BY_MAKER`    | `ListFleetController`             |
+| US072c | List fleet by capacity          | `LIST_FLEET_BY_CAPACITY` | `ListFleetController`             |
+| US072d | List fleet by age               | `LIST_FLEET_BY_AGE`      | `ListFleetController`             |
+| US071  | Decommission an aircraft        | `DECOMMISSION_AIRCRAFT`  | `DecommissionAircraftController`  |
+| US073  | Create a flight route           | `CREATE_ROUTE`           | `CreateFlightRouteController`     |
+| US074  | List active flight routes       | `LIST_ROUTES`            | `DeactivateFlightRouteController` |
+| US074  | Deactivate a flight route       | `DEACTIVATE_ROUTE`       | `DeactivateFlightRouteController` |
+| US076  | List the company's pilot roster | `LIST_PILOTS`            | `ListPilotRosterController`       |
+| US077  | Remove (deactivate) a pilot     | `REMOVE_PILOT`           | `RemovePilotController`           |
 
-> Scope note: this iteration exposes the four commands above. The remaining ATCC use cases (US070 Add Aircraft → `ADD_AIRCRAFT`, US071 Decommission → `DECOMMISSION_AIRCRAFT`, US075 Add Pilot → `ADD_PILOT`) are foreseen as additional commands and will be wired through the same `CollaboratorSessionHandler` extension point.
+> Scope note: this iteration exposes the **eleven commands** above, covering US071–US074, US076, US077 and the US072a-d fleet filters. The two remaining ATCC use cases — **US070 Add Aircraft** (`ADD_AIRCRAFT`, 8 fields) and **US075 Add Pilot** (`ADD_PILOT`, ~11 fields including `Email`/`SecurityClearance` value objects) — are deferred and will be wired through the same `CollaboratorSessionHandler` extension point.
 
 **Dependencies/References:**
 
@@ -120,6 +127,35 @@ S→C:  OK <routeName>
   or
 S→C:  ERROR <message>
 
+# Filter the fleet (US072a-d) — same OK <count> + per-aircraft response as LIST_FLEET
+C→S:  LIST_FLEET_BY_MODEL <modelName>
+C→S:  LIST_FLEET_BY_MAKER <makerName>
+C→S:  LIST_FLEET_BY_CAPACITY <minSeats>
+C→S:  LIST_FLEET_BY_AGE <fromYear>
+S→C:  OK <count>
+S→C:  <registration> | <model> | <maker> | <year> | <status>   (one line per aircraft)
+  or
+S→C:  ERROR <message>          (e.g. invalid number for capacity/age)
+
+# Decommission an aircraft of your fleet
+C→S:  DECOMMISSION_AIRCRAFT <registration>
+S→C:  OK <registration> decommissioned
+  or
+S→C:  ERROR <message>
+
+# List the company's pilot roster
+C→S:  LIST_PILOTS
+S→C:  OK <count>
+S→C:  <pilotId> | <company> | <ACTIVE|INACTIVE>                 (one line per pilot)
+  or
+S→C:  ERROR <message>
+
+# Deactivate (remove) a pilot
+C→S:  REMOVE_PILOT <pilotId>
+S→C:  OK pilot <pilotId> deactivated
+  or
+S→C:  ERROR <message>
+
 # End session
 C→S:  EXIT
 S→C:  BYE
@@ -158,7 +194,7 @@ On each authentication outcome and at session end, the **client application** (`
 | Class                                                                                                   | Type                     | Responsibility                                                                                                           |
 |---------------------------------------------------------------------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | `CollaboratorTcpClientApp`                                                                              | Client Main              | Standalone client entry point; interactive ATCC menu; emits UDP log events                                               |
-| `CollaboratorTcpClient`                                                                                 | Client                   | Encapsulates TCP communication: `login()`, `listFleet()`, `listRoutes()`, `deactivateRoute()`, `createRoute()`, `exit()` |
+| `CollaboratorTcpClient`                                                                                 | Client                   | Encapsulates TCP communication: `login()`, `listFleet()` (+ `listFleetBy*` filters), `decommissionAircraft()`, `listRoutes()`, `createRoute()`, `deactivateRoute()`, `listPilots()`, `removePilot()`, `exit()` |
 | `RemoteAccessLogger`                                                                                    | UDP logger (client-side) | Lives in the client app (`aisafe.app.collaborator`); sends remote-access events to the US090 logging server              |
 | `AiSafeTcpServer` *(existing)*                                                                          | Server                   | Opens `ServerSocket` on port 9999; accepts connections; spawns dispatcher threads                                        |
 | `TcpClientDispatcher` *(modified)*                                                                      | `Runnable`               | Authenticates one connection; adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
@@ -220,7 +256,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 |---------------------------------|------------------------------------|--------------------------------------------------------------------------------------------|
 | `aisafe.tcpserver`              | `AiSafeTcpServer` *(existing)*     | Accepts connections; spawns `TcpClientDispatcher` daemon threads                           |
 | `aisafe.tcpserver`              | `TcpClientDispatcher` *(modified)* | Adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
-| `aisafe.tcpserver.collaborator` | `CollaboratorSessionHandler`       | ATCC command loop: `LIST_FLEET`, `LIST_ROUTES`, `DEACTIVATE_ROUTE`, `CREATE_ROUTE`, `EXIT` |
+| `aisafe.tcpserver.collaborator` | `CollaboratorSessionHandler`       | ATCC command loop: `LIST_FLEET` (+ `_BY_MODEL`/`_BY_MAKER`/`_BY_CAPACITY`/`_BY_AGE`), `DECOMMISSION_AIRCRAFT`, `LIST_ROUTES`, `CREATE_ROUTE`, `DEACTIVATE_ROUTE`, `LIST_PILOTS`, `REMOVE_PILOT`, `EXIT` |
 | `aisafe.app.collaborator`       | `RemoteAccessLogger`               | Client-side UDP logger; sends datagrams to US090 on login/logout/disconnect                |
 | `aisafe.app.collaborator`       | `CollaboratorTcpClient`            | Client-side TCP communication                                                              |
 | `aisafe.app.collaborator`       | `CollaboratorTcpClientApp`         | Standalone client entry point; interactive ATCC menu; emits UDP log events                 |
@@ -285,16 +321,26 @@ public void log(String username, String clientIp, int clientPort, String event) 
 5. The server responds `OK`, the client emits a `LOGIN_SUCCESS` UDP event, and the collaborator menu is displayed:
    ```
    === Air Transport Company Remote Menu ===
+   -- Fleet --
    1. List Fleet
-   2. List Flight Routes
-   3. Deactivate Flight Route
-   4. Create Flight Route
+   2. List Fleet by Model
+   3. List Fleet by Maker
+   4. List Fleet by Capacity (min seats)
+   5. List Fleet by Age (from year)
+   6. Decommission Aircraft
+   -- Flight Routes --
+   7. List Flight Routes
+   8. Create Flight Route
+   9. Deactivate Flight Route
+   -- Pilots --
+   10. List Pilots
+   11. Remove Pilot
    0. Exit
    ```
 
 **Deactivate a route:**
 
-6. Select option `3`, enter `TP100` and `2026-08-01`.
+6. Select option `9`, enter `TP100` and `2026-08-01`.
 7. The server responds:
    ```
    OK TP100 deactivated from 2026-08-01

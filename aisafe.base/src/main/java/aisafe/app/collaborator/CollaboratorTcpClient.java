@@ -85,6 +85,53 @@ public final class CollaboratorTcpClient implements Closeable {
         return in.readLine();
     }
 
+    /** Lists fleet aircraft of the given model (US072a). @return one line per aircraft. */
+    public List<String> listFleetByModel(final String model) throws IOException {
+        return readList("LIST_FLEET_BY_MODEL " + model);
+    }
+
+    /** Lists fleet aircraft of the given maker (US072b). @return one line per aircraft. */
+    public List<String> listFleetByMaker(final String maker) throws IOException {
+        return readList("LIST_FLEET_BY_MAKER " + maker);
+    }
+
+    /** Lists fleet aircraft with at least {@code minSeats} seats (US072c). @return one line per aircraft. */
+    public List<String> listFleetByCapacity(final String minSeats) throws IOException {
+        return readList("LIST_FLEET_BY_CAPACITY " + minSeats);
+    }
+
+    /** Lists fleet aircraft manufactured in/after {@code fromYear} (US072d). @return one line per aircraft. */
+    public List<String> listFleetByAge(final String fromYear) throws IOException {
+        return readList("LIST_FLEET_BY_AGE " + fromYear);
+    }
+
+    /**
+     * Decommissions an aircraft of the company's fleet by registration (US071).
+     *
+     * @param registration the aircraft registration number
+     * @return the single-line server response (e.g. {@code OK ...} or {@code ERROR ...})
+     */
+    public String decommissionAircraft(final String registration) throws IOException {
+        out.println("DECOMMISSION_AIRCRAFT " + registration);
+        return in.readLine();
+    }
+
+    /** Lists the company's pilot roster (US076). @return one line per pilot ({@code id | company | status}). */
+    public List<String> listPilots() throws IOException {
+        return readList("LIST_PILOTS");
+    }
+
+    /**
+     * Deactivates (removes) a pilot by id (US077).
+     *
+     * @param pilotId the pilot identity
+     * @return the single-line server response (e.g. {@code OK ...} or {@code ERROR ...})
+     */
+    public String removePilot(final String pilotId) throws IOException {
+        out.println("REMOVE_PILOT " + pilotId);
+        return in.readLine();
+    }
+
     /**
      * Sends EXIT and reads the BYE response.
      */

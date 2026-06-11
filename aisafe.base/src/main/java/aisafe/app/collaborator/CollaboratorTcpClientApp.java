@@ -10,7 +10,8 @@ import java.util.Scanner;
  * Standalone TCP client application for Air Transport Company Collaborators (US078).
  * Connects to the AISafe TCP server and exposes ATCC commands interactively.
  *
- * <p>Supported commands (Option A): List Fleet, List Routes, Deactivate Route, Create Route.
+ * <p>Supported commands: List Fleet (+ by model/maker/capacity/age), Decommission Aircraft,
+ * List/Create/Deactivate Flight Route, List Pilots, Remove Pilot.
  * Remote-access events (login/logout/disconnect) are emitted to the US090 logging server
  * via UDP using {@link RemoteAccessLogger}.
  */
@@ -74,24 +75,47 @@ public final class CollaboratorTcpClientApp {
         }
     }
 
+    /** A client fleet-filter query that takes a single argument and returns the result lines. */
+    @FunctionalInterface
+    private interface FleetQuery {
+        List<String> run(String arg) throws IOException;
+    }
+
     private static void showMenu(final Scanner scanner, final CollaboratorTcpClient client) throws IOException {
         boolean running = true;
         while (running) {
             System.out.println();
             System.out.println("=== Air Transport Company Remote Menu ===");
+            System.out.println("-- Fleet --");
             System.out.println("1. List Fleet");
-            System.out.println("2. List Flight Routes");
-            System.out.println("3. Deactivate Flight Route");
-            System.out.println("4. Create Flight Route");
+            System.out.println("2. List Fleet by Model");
+            System.out.println("3. List Fleet by Maker");
+            System.out.println("4. List Fleet by Capacity (min seats)");
+            System.out.println("5. List Fleet by Age (from year)");
+            System.out.println("6. Decommission Aircraft");
+            System.out.println("-- Flight Routes --");
+            System.out.println("7. List Flight Routes");
+            System.out.println("8. Create Flight Route");
+            System.out.println("9. Deactivate Flight Route");
+            System.out.println("-- Pilots --");
+            System.out.println("10. List Pilots");
+            System.out.println("11. Remove Pilot");
             System.out.println("0. Exit");
             System.out.print("Option: ");
 
             final String option = scanner.nextLine().trim();
             switch (option) {
                 case "1" -> printList("Fleet", client.listFleet());
-                case "2" -> printList("Routes", client.listRoutes());
-                case "3" -> deactivateRoute(scanner, client);
-                case "4" -> createRoute(scanner, client);
+                case "2" -> filterFleet(scanner, "Model name", client::listFleetByModel);
+                case "3" -> filterFleet(scanner, "Maker name", client::listFleetByMaker);
+                case "4" -> filterFleet(scanner, "Minimum seats", client::listFleetByCapacity);
+                case "5" -> filterFleet(scanner, "From year", client::listFleetByAge);
+                case "6" -> decommissionAircraft(scanner, client);
+                case "7" -> printList("Routes", client.listRoutes());
+                case "8" -> createRoute(scanner, client);
+                case "9" -> deactivateRoute(scanner, client);
+                case "10" -> printList("Pilots", client.listPilots());
+                case "11" -> removePilot(scanner, client);
                 case "0" -> {
                     client.exit();
                     running = false;
@@ -99,6 +123,24 @@ public final class CollaboratorTcpClientApp {
                 default -> System.out.println("Invalid option.");
             }
         }
+    }
+
+    private static void filterFleet(final Scanner scanner, final String prompt, final FleetQuery query)
+            throws IOException {
+        System.out.print(prompt + ": ");
+        printList("Fleet", query.run(scanner.nextLine().trim()));
+    }
+
+    private static void decommissionAircraft(final Scanner scanner, final CollaboratorTcpClient client)
+            throws IOException {
+        System.out.print("Aircraft registration: ");
+        System.out.println(client.decommissionAircraft(scanner.nextLine().trim()));
+    }
+
+    private static void removePilot(final Scanner scanner, final CollaboratorTcpClient client)
+            throws IOException {
+        System.out.print("Pilot id: ");
+        System.out.println(client.removePilot(scanner.nextLine().trim()));
     }
 
     private static void printList(final String title, final List<String> items) {

@@ -63,4 +63,34 @@ class CollaboratorSessionHandlerTest {
     void ensureCreateRouteWithMissingFieldsReturnsError() throws IOException {
         assertTrue(runSession("CREATE_ROUTE TP500;LIS\nEXIT").contains("ERROR"));
     }
+
+    @Test
+    void ensureFleetByModelWithoutArgumentReturnsError() throws IOException {
+        assertTrue(runSession("LIST_FLEET_BY_MODEL\nEXIT").contains("ERROR"));
+    }
+
+    @Test
+    void ensureFleetByCapacityWithInvalidNumberReturnsError() throws IOException {
+        assertTrue(runSession("LIST_FLEET_BY_CAPACITY xyz\nEXIT").contains("invalid number"));
+    }
+
+    @Test
+    void ensureFleetByAgeWithInvalidNumberReturnsError() throws IOException {
+        assertTrue(runSession("LIST_FLEET_BY_AGE notayear\nEXIT").contains("invalid number"));
+    }
+
+    @Test
+    void ensureDecommissionAircraftWithoutRegistrationReturnsError() throws IOException {
+        assertTrue(runSession("DECOMMISSION_AIRCRAFT\nEXIT").contains("ERROR"));
+    }
+
+    @Test
+    void ensureRemovePilotWithoutIdReturnsError() throws IOException {
+        assertTrue(runSession("REMOVE_PILOT\nEXIT").contains("ERROR"));
+    }
+
+    @Test
+    void ensureRemovePilotWithInvalidIdReturnsError() throws IOException {
+        assertTrue(runSession("REMOVE_PILOT abc\nEXIT").contains("invalid pilot id"));
+    }
 }
