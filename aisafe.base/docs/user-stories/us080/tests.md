@@ -339,7 +339,7 @@ void ensureFormPlanRejectsNullFlightType() {
 - **AC080.10** (aircraft ACTIVE): validated by the controller; covered by the manual acceptance test for AC080.10.
 - Aggregate invariants / field storage: `ensureFormBasedPlanStoresAllFields`, `ensureFormBasedPlanHasNullDslContent`, `ensureFormPlanRejectsNullRoute`, `ensureFormPlanRejectsNullAircraft`, `ensureFormPlanRejectsNullPilot`, `ensureFormPlanRejectsNullFlightType`, `ensureFormPlanRejectsNullFuel`.
 
-Total: **9 (`FuelQuantity`) + 11 (`FlightPlanDesignator`) + 10 (form-based `FlightPlan`) = 30 automated unit tests** added for US080. The full `aisafe.base` suite (548 tests) passes. The JPA mapping of the extended `FlightPlan` was additionally validated by booting Hibernate against H2.
+Total: **9 (`FuelQuantity`) + 11 (`FlightPlanDesignator`) + 10 (form-based `FlightPlan`) = 30 automated unit tests** added for US080. The full `aisafe.base` suite (721 tests) passes. The JPA mapping of the extended `FlightPlan` was additionally validated by booting Hibernate against H2.
 
 ---
 
