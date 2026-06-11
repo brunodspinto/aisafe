@@ -127,12 +127,10 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
                 violation_event_t *event =
                     &shm->violation_events[shm->violation_event_count++];
                 event->timestamp = now;
-                strncpy(event->flight_a, current_positions[i].flight_id,
-                        sizeof(event->flight_a) - 1);
-                event->flight_a[sizeof(event->flight_a) - 1] = '\0';
-                strncpy(event->flight_b, current_positions[j].flight_id,
-                        sizeof(event->flight_b) - 1);
-                event->flight_b[sizeof(event->flight_b) - 1] = '\0';
+                snprintf(event->flight_a, sizeof(event->flight_a), "%s",
+                         current_positions[i].flight_id);
+                snprintf(event->flight_b, sizeof(event->flight_b), "%s",
+                         current_positions[j].flight_id);
                 event->position_a = current_positions[i];
                 event->position_b = current_positions[j];
                 event->horizontal_distance_m = d_horiz;

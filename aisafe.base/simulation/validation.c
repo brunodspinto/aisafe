@@ -57,7 +57,7 @@ int validate_flight_plan(const flight_plan_t *plan) {
         return 0;
     }
 
-    if (!plan->flight_type || (strcmp(plan->flight_type, "REGULAR") != 0 && strcmp(plan->flight_type, "CHARTER") != 0)) {
+    if (strlen(plan->flight_type) == 0 || (strcmp(plan->flight_type, "REGULAR") != 0 && strcmp(plan->flight_type, "CHARTER") != 0)) {
         fprintf(stderr, "Error: flight_type must be REGULAR or CHARTER\n");
         return 0;
     }

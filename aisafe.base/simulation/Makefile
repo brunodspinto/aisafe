@@ -41,7 +41,9 @@ $(TESTER_EXECUTABLE): $(TESTER_OBJS)
 run: $(EXECUTABLE)
 	./$(EXECUTABLE)
 
-test: $(TEST_EXECUTABLE) $(TEST_TESTER_EXECUTABLE)
+# $(TESTER_EXECUTABLE) é pré-requisito porque os testes de integração de
+# test_flight_tester invocam ./flight_tester via system().
+test: $(TEST_EXECUTABLE) $(TEST_TESTER_EXECUTABLE) $(TESTER_EXECUTABLE)
 	./$(TEST_EXECUTABLE)
 	./$(TEST_TESTER_EXECUTABLE)
 

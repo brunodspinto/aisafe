@@ -85,7 +85,8 @@ static void test_full_tester_pass(void) {
     ASSERT_TRUE(f != NULL, "output file should exist");
     if (f) {
         char buf[512] = {0};
-        fread(buf, 1, sizeof(buf) - 1, f);
+        size_t nread = fread(buf, 1, sizeof(buf) - 1, f);
+        buf[nread] = '\0';
         fclose(f);
         ASSERT_TRUE(strstr(buf, "\"PASS\"") != NULL, "output should contain PASS");
     }
@@ -99,7 +100,8 @@ static void test_full_tester_fail_invalid_plan(void) {
     ASSERT_TRUE(f != NULL, "output file should exist");
     if (f) {
         char buf[512] = {0};
-        fread(buf, 1, sizeof(buf) - 1, f);
+        size_t nread = fread(buf, 1, sizeof(buf) - 1, f);
+        buf[nread] = '\0';
         fclose(f);
         ASSERT_TRUE(strstr(buf, "\"FAIL\"") != NULL, "output should contain FAIL");
     }

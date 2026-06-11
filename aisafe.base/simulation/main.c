@@ -28,6 +28,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <errno.h>
 #include "types.h"
 #include "config.h"
 #include "ipc.h"
@@ -41,6 +42,24 @@
 #define FLIGHT_PLANS_FILE "flight_plans.json"
 #define CONFIG_FILE       "simulation.conf"
 #define N_FLIGHTS_COLLISION 2
+
+/* Best-effort full write to a file descriptor, used for thread/log output.
+ * Loops over partial writes and retries on EINTR; errno is preserved so it is
+ * safe to call without clobbering the caller's errno. The return value of
+ * write() is always consumed, avoiding -Wunused-result on the fortified write. */
+static void safe_write(int fd, const char *buf, size_t len) {
+    const int saved_errno = errno;
+    size_t off = 0;
+    while (off < len) {
+        const ssize_t w = write(fd, buf + off, len - off);
+        if (w < 0) {
+            if (errno == EINTR) continue;
+            break;  /* logging is best-effort; give up on real errors */
+        }
+        off += (size_t) w;
+    }
+    errno = saved_errno;
+}
 
 /* ------------------------------------------------------------------ */
 /* Contextos passados às threads do processo pai                        */
@@ -95,7 +114,7 @@ static void *coordinator_thread(void *arg) {
     char buf[512];
     int  n;
 
-    write(STDOUT_FILENO, "\n=== Air Traffic Control Live Feed ===\n", 39);
+    safe_write(STDOUT_FILENO, "\n=== Air Traffic Control Live Feed ===\n", 39);
 
     while (n_active > 0) {
         /* Fase 1: recolher posição de cada voo activo (bloqueia por semáforo) */
@@ -110,7 +129,7 @@ static void *coordinator_thread(void *arg) {
                 n_active--;
                 n = snprintf(buf, sizeof(buf), "[%s] flight completed.\n",
                              ctx->plans[i].identifier);
-                write(STDOUT_FILENO, buf, n);
+                safe_write(STDOUT_FILENO, buf, n);
                 continue;
             }
 
@@ -126,7 +145,7 @@ static void *coordinator_thread(void *arg) {
                     if (prev_state == ACA_BEFORE) {
                         n = snprintf(buf, sizeof(buf), "[%s] >>> ENTERING ACA\n",
                                      pos.flight_id);
-                        write(STDOUT_FILENO, buf, n);
+                        safe_write(STDOUT_FILENO, buf, n);
                     }
                     ctx->histories[idx].aca_state = ACA_INSIDE;
                     if (ctx->histories[idx].count < MAX_POSITIONS)
@@ -137,12 +156,12 @@ static void *coordinator_thread(void *arg) {
                                  pos.flight_id, pos.latitude, pos.longitude,
                                  pos.altitude_meters, pos.speed_knots,
                                  pos.heading_deg, pos.vz_mps);
-                    write(STDOUT_FILENO, buf, n);
+                    safe_write(STDOUT_FILENO, buf, n);
                 } else {
                     if (prev_state == ACA_INSIDE) {
                         n = snprintf(buf, sizeof(buf), "[%s] <<< EXITING ACA\n",
                                      pos.flight_id);
-                        write(STDOUT_FILENO, buf, n);
+                        safe_write(STDOUT_FILENO, buf, n);
                         ctx->histories[idx].aca_state = ACA_AFTER;
                     }
                 }
@@ -260,7 +279,7 @@ static void *report_thread(void *arg) {
             log_len = snprintf(log_buf, sizeof(log_buf),
                                "[REPORT US107] Logged violation between %s and %s at %ld\n",
                                event.flight_a, event.flight_b, (long)event.timestamp);
-            write(STDOUT_FILENO, log_buf, log_len);
+            safe_write(STDOUT_FILENO, log_buf, log_len);
 
             pthread_mutex_lock(ctx->g_notification_mutex);
         }
@@ -276,7 +295,7 @@ static void *report_thread(void *arg) {
                 warn_buf, sizeof(warn_buf),
                 "[REPORT US107] Live violation queue overflowed; %d events were dropped\n",
                 new_drop_count);
-            write(STDOUT_FILENO, warn_buf, warn_len);
+            safe_write(STDOUT_FILENO, warn_buf, warn_len);
 
             pthread_mutex_lock(ctx->g_notification_mutex);
             last_reported_drop_count = new_drop_count;
@@ -295,7 +314,7 @@ static void *report_thread(void *arg) {
     /* Padrão ex1-9.c: write() em vez de printf() em threads POSIX */
     const char *report_msg =
         "\n[SYSTEM] Simulation concluded. Report thread generating final report...\n";
-    write(STDOUT_FILENO, report_msg, strlen(report_msg));
+    safe_write(STDOUT_FILENO, report_msg, strlen(report_msg));
     generate_final_report(ctx->histories, ctx->n_flights,
                           violation_events, violation_event_count,
                           total_violations, dropped_events, sim_aborted);

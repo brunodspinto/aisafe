@@ -34,7 +34,9 @@ static volatile sig_atomic_t collision_alert = 0;
 static void handle_sigusr1(int sig) {
     (void)sig;
     const char msg[] = "[FLIGHT] SIGUSR1 received: collision alert, stopping.\n";
-    write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+    /* write() is async-signal-safe; consume its result to satisfy warn_unused_result */
+    const ssize_t w = write(STDOUT_FILENO, msg, sizeof(msg) - 1);
+    (void) w;
     collision_alert = 1;
 }
 
@@ -180,7 +182,7 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
                 pos.heading_deg     = heading;
                 pos.vz_mps          = vz;
                 pos.timestamp       = sim_time;
-                strncpy(pos.flight_id, plan->identifier, sizeof(pos.flight_id) - 1);
+                snprintf(pos.flight_id, sizeof(pos.flight_id), "%s", plan->identifier);
 
                 shm->positions[flight_idx] = pos;
                 sem_post(pos_sem);
