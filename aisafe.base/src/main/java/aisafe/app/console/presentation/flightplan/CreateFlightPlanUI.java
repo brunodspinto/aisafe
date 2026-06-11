@@ -4,6 +4,7 @@ import aisafe.aircraft.domain.Aircraft;
 import aisafe.dsl.ast.FlightType;
 import aisafe.flightplan.application.CreateFlightPlanController;
 import aisafe.flightplan.domain.FlightPlan;
+import aisafe.flightplan.domain.FlightPlanDesignator;
 import aisafe.flightroute.domain.FlightRoute;
 import aisafe.pilot.domain.Pilot;
 import eapli.framework.io.util.Console;
@@ -36,7 +37,8 @@ public class CreateFlightPlanUI extends AbstractUI {
             if (assignedPilotId == null) return false;
 
             final FlightType flightType = selectFlightType();
-            final String designator = Console.readLine("Flight plan designator (e.g. TP1234): ");
+            final String designator = readDesignator();
+            if (designator == null) return false;
             final LocalDateTime departureDateTime = readDepartureDateTime();
             final double fuelAmount = readFuel();
 
@@ -173,23 +175,67 @@ public class CreateFlightPlanUI extends AbstractUI {
         for (int i = 0; i < types.length; i++) {
             System.out.printf("  %d - %s%n", i + 1, types[i]);
         }
-        final int choice = Console.readInteger("Choice: ");
-        return types[choice - 1];
+        while (true) {
+            final int choice = Console.readInteger("Choice: ");
+            if (choice >= 1 && choice <= types.length) {
+                return types[choice - 1];
+            }
+            System.out.println("  Please choose a number between 1 and " + types.length + ".");
+        }
+    }
+
+    /**
+     * Reads the flight plan designator, validating its format against {@link FlightPlanDesignator}
+     * on the spot and re-prompting until it is valid, or the operator cancels with 0.
+     *
+     * @return the validated (normalised) designator, or {@code null} if cancelled
+     */
+    private String readDesignator() {
+        while (true) {
+            final String input = Console.readLine(
+                    "Flight plan designator (e.g. TP1234, or 0 to cancel): ").trim();
+            if (input.equals("0")) {
+                System.out.println("  Operation cancelled.");
+                return null;
+            }
+            try {
+                return FlightPlanDesignator.valueOf(input).toString();
+            } catch (final IllegalArgumentException e) {
+                System.out.println("  " + e.getMessage());
+            }
+        }
     }
 
     private LocalDateTime readDepartureDateTime() {
         while (true) {
+            final String input = Console.readLine(
+                    "Departure date/time (YYYY-MM-DDTHH:MM, e.g. 2026-07-01T14:30): ").trim();
             try {
-                return LocalDateTime.parse(
-                        Console.readLine("Departure date/time (YYYY-MM-DDTHH:MM, e.g. 2026-07-01T14:30): ").trim());
+                final LocalDateTime when = LocalDateTime.parse(input);
+                if (when.isBefore(LocalDateTime.now())) {
+                    System.out.println("  Departure date/time must be in the future.");
+                    continue;
+                }
+                return when;
             } catch (final DateTimeParseException e) {
-                System.out.println("Invalid format. Use YYYY-MM-DDTHH:MM.");
+                System.out.println("  Invalid format. Use YYYY-MM-DDTHH:MM.");
             }
         }
     }
 
     private double readFuel() {
-        return Console.readDouble("Fuel quantity (kg): ");
+        while (true) {
+            final String input = Console.readLine("Fuel quantity (kg): ").trim();
+            try {
+                final double fuel = Double.parseDouble(input);
+                if (fuel > 0) {
+                    return fuel;
+                }
+                System.out.println("  Fuel quantity must be strictly positive.");
+            } catch (final NumberFormatException e) {
+                System.out.println("  Invalid number. Please enter the fuel quantity in kg.");
+            }
+        }
     }
 
     @Override
