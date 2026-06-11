@@ -197,7 +197,7 @@ void ensureSameAsReturnsTrueForSameInstance() {
 - **AC075.5** (newly added pilot is active by default): `ensurePilotIsActiveByDefault`, also asserted in `ensureValidPilotCanBeCreated`.
 - Identity / value semantics: `ensurePilotHasCorrectUser`, `ensureCertificationsAreDefensivelyCopied`, `ensureCertificationsAreUnmodifiable`, `ensureToStringContainsCompany`, `ensureEqualsReturnsTrueForSameInstance`, `ensureEqualsReturnsFalseForNull`, `ensureHashCodeIsConsistent`, `ensureSameAsReturnsTrueForSameInstance`.
 
-Total: **16 automated unit tests** for the `Pilot` aggregate, all passing. The full `aisafe.base` test suite (518 tests) passes with these additions.
+Total: **16 automated unit tests** for the `Pilot` aggregate, all passing. The full `aisafe.base` test suite (721 tests) passes with these additions.
 
 ---
 

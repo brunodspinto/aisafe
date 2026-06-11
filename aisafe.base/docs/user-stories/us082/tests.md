@@ -117,7 +117,7 @@ void ensureAddingWeatherDataDoesNotChangeValidatedStatus() {
 - **AC082.6** (a previously tested plan has its test voided to `VALIDATED`): `ensureAddingNewWeatherDataVoidsTestWhenTested`; the "new data only" nuance by `ensureReAddingSameWeatherDataDoesNotVoidTest`.
 - **AC082.7** (non-tested plans keep their status): `ensureAddingWeatherDataDoesNotChangeDraftStatus`, `ensureAddingWeatherDataDoesNotChangeValidatedStatus`.
 
-Total: **8 automated unit tests** added for US082 on the `FlightPlan` aggregate. The full `aisafe.base` suite passes (690 tests at the time of writing). The JPA mapping of the new `@ElementCollection` was additionally validated by booting Hibernate against H2.
+Total: **8 automated unit tests** added for US082 on the `FlightPlan` aggregate. The full `aisafe.base` suite passes (721 tests at the time of writing). The JPA mapping of the new `@ElementCollection` was additionally validated by booting Hibernate against H2.
 
 ---
 
