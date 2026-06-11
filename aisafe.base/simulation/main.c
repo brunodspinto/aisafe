@@ -287,14 +287,17 @@ static void *report_thread(void *arg) {
     }
     int total_violations = ctx->shm->total_violations;
     int dropped_events   = ctx->shm->dropped_violation_events;
+    int violation_event_count = ctx->shm->violation_event_count;
+    const violation_event_t *violation_events = ctx->shm->violation_events;
     int sim_aborted      = ctx->shm->sim_aborted;
     pthread_mutex_unlock(ctx->g_notification_mutex);
 
     /* Padrão ex1-9.c: write() em vez de printf() em threads POSIX */
-    write(STDOUT_FILENO,
-          "\n[SYSTEM] Simulation concluded. Spawning report generation process...\n",
-          71);
+    const char *report_msg =
+        "\n[SYSTEM] Simulation concluded. Report thread generating final report...\n";
+    write(STDOUT_FILENO, report_msg, strlen(report_msg));
     generate_final_report(ctx->histories, ctx->n_flights,
+                          violation_events, violation_event_count,
                           total_violations, dropped_events, sim_aborted);
 
     pthread_exit(NULL);

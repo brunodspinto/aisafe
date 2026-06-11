@@ -33,6 +33,7 @@ import aisafe.app.console.presentation.pilot.ListPilotRosterUI;
 import aisafe.app.console.presentation.pilot.RemovePilotUI;
 import aisafe.app.console.presentation.flightroute.CreateFlightRouteUI;
 import aisafe.app.console.presentation.flightroute.DeactivateFlightRouteUI;
+import aisafe.app.console.presentation.reporting.GenerateMonthlyReportUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -113,6 +114,11 @@ public class MainMenu extends AbstractUI {
 
         if (canConsultWeatherData()) {
             menu.addSubMenu(option++, buildWeatherMenu());
+            menu.addItem(MenuItem.separator(SEPARATOR));
+        }
+
+        if (authz.isAuthenticatedUserAuthorizedTo(AiSafeRoles.FLIGHT_CONTROL_OPERATOR)) {
+            menu.addSubMenu(option++, buildReportsMenu());
             menu.addItem(MenuItem.separator(SEPARATOR));
         }
 
@@ -223,6 +229,13 @@ public class MainMenu extends AbstractUI {
         final var menu = new Menu("Flight Routes >");
         menu.addItem(1, "Create Flight Route", new CreateFlightRouteUI()::show);
         menu.addItem(2, "Deactivate Flight Route", new DeactivateFlightRouteUI()::show);
+        menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
+        return menu;
+    }
+
+    private Menu buildReportsMenu() {
+        final var menu = new Menu("Reports >");
+        menu.addItem(1, "Generate Monthly Report", new GenerateMonthlyReportUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }

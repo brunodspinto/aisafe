@@ -1,233 +1,200 @@
-# US109 — Generate and Store Final Simulation Report
+# US109 - Generate and Store Final Simulation Report
 
 ## 1. Context
 
-US109 is the concluding phase of the Sprint 2 flight simulation pipeline. Once the active
-simulation ends (either naturally when all flights complete their routes, or prematurely
-due to critical safety violations from US102), the system must aggregate all captured data
-and persist it into a final report.
+US109 is the final reporting step of the C flight simulation pipeline. After the
+coordinator finishes the simulation, the Flight Control Operator needs a persisted report
+with the overall outcome, each flight execution status, the safety violation events, and
+the final validation result.
 
-The implementation is written in C and lives entirely under `aisafe.base/simulation/`. It
-adheres strictly to the Sprint 2 constraints defined by the course coordination, specifically
-adapting the concurrency model for report generation.
+In Sprint 3 the parent process is already multi-threaded (US105/US106). Therefore US109 is
+implemented by the dedicated `report_thread`: it waits on the report condition variable,
+drains any live safety violation events, and then writes the final report file.
 
 ---
 
 ## 2. Requirements
 
 **US109:** As a Flight Control Operator, I want a comprehensive report that details the
-simulation outcomes — including flight execution statuses, safety violation events (with
-timestamps, positions and velocity vectors), and overall validation results —, so that I
-can assess the safety and performance of the flights post-simulation.
+simulation outcomes, including flight execution statuses, safety violation events with
+timestamps, positions and velocity vectors, and overall validation results, so that I can
+assess the safety and performance of the flights post-simulation.
 
 ### Acceptance Criteria
 
 | ID | Criterion | Status |
 |----|-----------|--------|
-| AC1 | The system must aggregate all flight data only after the main simulation loop concludes | Done |
-| AC2 | The report includes the total number of flights, individual execution statuses (ACA entry/exit), and total safety violations count. Individual violation events (pair, timestamp, position) are logged to stdout during the simulation by US102. | Done |
-| AC3 | **Course Specific:** The report generation must be executed by a dedicated **process** (not a thread) during Sprint 2 | Done |
-| AC4 | The final validation result (pass/fail) is clearly indicated and the complete report is saved to a file for future reference | Done |
+| AC1 | The report generation thread aggregates data once the simulation concludes. | Done |
+| AC2 | The report includes the total number of flights and individual execution statuses. | Done |
+| AC3 | The report includes detailed safety violation events with timestamp, positions and velocity vectors. | Done |
+| AC4 | The final validation result is clearly indicated as PASS or FAIL. | Done |
+| AC5 | The complete report is saved to a file for future reference. | Done |
 
 ---
 
 ## 3. Analysis
 
-### 3.1 The "Thread vs. Process" Constraint
+### 3.1 Data Produced by Earlier Simulation Steps
 
-The original project requirements specify: *"The report generation thread aggregates data
-once the simulation concludes."* However, following the explicit clarification from Professor
-Luís Nogueira on the SCOMP Moodle forum:
+US109 consumes data produced by the previous C simulation stories:
 
-> *"na US109, onde se lê 'The report generation thread...', deve ser interpretado no Sprint 2
-> como 'process'. Só no próximo Sprint [...] deverão ser usadas threads."*
+| Source | Data Used by US109 |
+|--------|--------------------|
+| US101 ACA tracking | `flight_history_t histories[]`, including each flight id, ACA state and position snapshots inside the ACA |
+| US102 Safety Cylinder | `total_violations`, abort decision, and each recorded `violation_event_t` |
+| US105 Shared memory and report synchronization | `sim_shm_t`, `g_notification_mutex`, `g_report_cond`, and `g_sim_done` |
+| US106 Function-specific threads | `report_thread` runs separately from coordinator and safety monitoring |
+| US107 Live violation notifications | live violation queue and dropped-event counter |
 
-Consequently, the architecture delegates the report generation to a **child process** created
-via `fork()` after the simulation ends, rather than using `pthread_create()`.
+### 3.2 Why the Report Thread Owns the Final File
 
-### 3.2 Data Availability and Memory Copy
+The report thread already has one responsibility: wait for simulation data and produce the
+reporting output. It blocks on a condition variable instead of polling. When the coordinator
+sets `g_sim_done`, the report thread finishes draining the live violation queue, snapshots
+the final shared-memory counters, and writes `simulation_report.txt`.
 
-The parent process (Controller) spends the entire simulation populating the
-`flight_history_t histories[]` array and tracking `total_violations`. Because the report
-generator is spawned via `fork()` at the *end* of the simulation, the OS's Copy-on-Write
-(COW) semantics provide the new child process with a perfect, fully populated replica of
-the parent's memory space.
+This satisfies Sprint 3 directly: the report is generated by a dedicated thread, not by a
+new process.
 
-This completely eliminates the need for Pipes or Shared Memory to transfer the history
-arrays to the reporting process — a design that would otherwise require serialising complex
-nested structs across an IPC boundary.
+### 3.3 Final Validation Rule
 
-### 3.3 Report Content Structure
+The final validation result is:
 
-The final report provides both a high-level summary and per-flight detail:
+| Result | Condition |
+|--------|-----------|
+| `PASS` | The simulation completed normally and no safety violations were detected |
+| `FAIL` | The simulation aborted or at least one safety violation was detected |
 
-1. **Simulation Status:** Natural completion (`COMPLETED (Normal)`) vs. aborted (`ABORTED (Threshold Reached)`).
-2. **Global Metrics:** Total flights tracked, total safety violations detected.
-3. **Per-Flight Data:** ACA entry/exit state, position count, and trajectory snapshots
-   with lat/lon/alt/speed/heading/vz (velocity vector) for every position logged inside the ACA.
-
-> **Note:** Individual safety violation events (which pair violated, at what exact timestamp
-> and position) are emitted to stdout in real time by `safety_monitor.c` (US102) during the
-> simulation. They are not stored in `flight_history_t` and therefore not repeated in the
-> file report. `total_violations` is the only aggregate carried into the report.
+The report also keeps the more operational `Simulation End Status` line, so the operator can
+distinguish a normal completion with violations from a threshold-triggered abort.
 
 ---
 
 ## 4. Design
 
-### 4.1 Process Architecture (End-of-Simulation Phase)
+### 4.1 End-of-Simulation Synchronization
 
 ```
-                        ┌──────────────┐
-                        │    PARENT    │
-                        │  (main.c)   │
-                        └──────┬───────┘
-                               │ (After while loop & waitpid for flights)
-                               │
-                      fork()   │
-                ┌──────────────┴──────────────┐
-                │                             │
-        ┌───────▼──────┐               ┌──────▼──────┐
-        │ REPORT PROC. │               │   PARENT    │
-        │ (child_pid)  │               │             │
-        │ writes file  │               │ wait(child) │
-        │ exit(0)      │               │ exit(0)     │
-        └──────────────┘               └─────────────┘
+coordinator_thread                         report_thread
+------------------                         -------------
+collects positions
+coordinates safety_thread
+simulation loop ends
+lock(g_notification_mutex)
+  shm->total_violations = ...
+  shm->sim_aborted = ...
+  g_sim_done = 1
+  signal(g_report_cond)    -------------> wakes
+unlock                                    drains violation_events[]
+                                          reads final counters
+                                          writes simulation_report.txt
 ```
 
-The parent blocks on `waitpid(report_pid, …, 0)` before releasing heap memory via
-`free_flight_plan()`. This prevents the parent from destroying its data structures before
-the child has finished reading them.
+The report thread uses a `while` predicate around `pthread_cond_wait`, matching the POSIX
+condition-variable pattern already used by US105/US106.
 
-### 4.2 Data Flow and File I/O
+### 4.2 Report File Structure
 
-The reporting process uses buffered standard C file I/O (`fopen`, `fprintf`, `fclose`)
-rather than unbuffered POSIX I/O (`open`, `write`).
+`simulation_report.txt` is overwritten on every run and contains:
 
-| I/O choice | Reason |
-|------------|--------|
-| `fprintf` | Safe in a sequential process context; far better suited to formatting tabular float/string data than raw `write()` |
-| `write()` | Required only inside signal handlers (US102), where async-signal-safety rules apply; not relevant here |
-| `"w"` open mode | Truncates the file on each run, ensuring the report always reflects the latest simulation |
+1. Header with generation timestamp.
+2. Simulation end status.
+3. Final validation result (`PASS` or `FAIL`).
+4. Total number of flights.
+5. Total safety violations, stored event count, dropped event count, and live log file path.
+6. Detailed safety violation events, including:
+   - event timestamp;
+   - flight pair;
+   - horizontal and vertical separation;
+   - position and velocity vector for each aircraft (`lat`, `lon`, `alt`, `speed`, `heading`, `vertical_rate`).
+7. Per-flight execution status:
+   - aircraft identifier;
+   - execution status (`COMPLETED` or `STOPPED (simulation aborted)`);
+   - ACA status (`Never entered ACA`, `Inside ACA`, `Exited ACA`);
+   - number of snapshots logged inside the ACA;
+   - recorded trajectory snapshots with speed, heading and vertical rate.
 
 ---
 
-## 5. Implementation — Files Modified
+## 5. Implementation - Files Modified
 
-### `simulation/report.h`
+| File | Change Summary |
+|------|----------------|
+| `simulation/main.c` | `report_thread` now passes the final violation event array and count to the final report writer; the system message now states that the report thread is generating the final report. |
+| `simulation/report.h` | `generate_final_report` signature extended with `violation_event_t` array and event count. |
+| `simulation/report.c` | Removed the obsolete `fork()`-based report process; `generate_final_report` now writes the file directly from `report_thread` and embeds detailed violation events plus PASS/FAIL validation result. |
 
-* **New** — Public interface defining the `generate_final_report` function signature:
+### Key Code Path
 
 ```c
-void generate_final_report(const flight_history_t *histories, int n_flights,
-                           int total_violations, int aborted);
+while (processed_events < ctx->shm->violation_event_count || !*ctx->g_sim_done) {
+    while (processed_events >= ctx->shm->violation_event_count && !*ctx->g_sim_done)
+        pthread_cond_wait(ctx->g_report_cond, ctx->g_notification_mutex);
+    ...
+}
+
+generate_final_report(ctx->histories, ctx->n_flights,
+                      violation_events, violation_event_count,
+                      total_violations, dropped_events, sim_aborted);
 ```
 
-### `simulation/report.c`
-
-* **New** — Iterates through `flight_history_t` and writes formatted output to
-  `simulation_report.txt`.
-* Opens the file in `"w"` (write/truncate) mode to ensure fresh data per run.
-* Writes per-flight trajectory rows including timestamp, lat, lon, alt, speed, heading,
-  and vertical rate — covering the enunciado's requirement for velocity vectors in safety
-  violation event logs.
-
-### `simulation/main.c`
-
-* **Modified** — Added the final `fork()` block after the `waitpid()` loop that collects
-  the flight processes.
-* Parent calls `waitpid(report_pid, …, 0)` specifically for the report process before
-  calling `free_flight_plan`, preventing premature heap release.
-
-### `libs/scripts/build_c.sh`
-
-* **No changes required** — the script compiles all `.c` files via `"$C_DIR"/*.c` glob,
-  so `report.c` is picked up automatically.
+The report file is written with standard C file I/O (`fopen`, `fprintf`, `fclose`) because
+the report writer runs in a normal thread context, not inside a signal handler.
 
 ---
 
-## 6. Integration / Demonstration
+## 6. Integration / Testing
 
 ### Build
 
 ```bash
-cd aisafe.base/libs/scripts
-./build_c.sh
+cd aisafe.base/simulation
+make clean && make
 ```
 
-Expected output:
-```
-[INFO] Compiling C components...
-[SUCCESS] C components built in .../aisafe.base/bin/
-```
+Expected result: the simulator compiles with `-Wall -Wextra -std=c99`.
 
-Zero compiler warnings (enforced by `-Wall -Wextra`).
-
-### Run
+### Normal Simulation
 
 ```bash
-../../bin/simulation
+./flight_simulator
 ```
 
-### Expected Console Output (End of Simulation)
+Expected result:
 
-```
-[FLIGHT_01] ended with code 0
-[FLIGHT_02] ended with code 0
-[FLIGHT_03] ended with code 0
+- the report thread wakes after the simulation concludes;
+- `simulation_report.txt` is created;
+- `Final Validation Result: PASS` when no safety violations occur;
+- all flights appear in the `FLIGHT EXECUTION STATUSES` section.
 
-[SYSTEM] Simulation concluded. Spawning report generation process...
-[SYSTEM US109] Parent process (PID: 1234) waiting for report process...
-[REPORT US109] Child process (PID: 1235) generating report...
-[SYSTEM US109] Report process ended successfully with exit value: 0
-```
+### Collision Simulation
 
-### Expected File Output (`simulation_report.txt`)
-
-```
-==================================================
-        FLIGHT SIMULATION - FINAL REPORT
-==================================================
-Generated on: Sun May 17 12:00:00 2026
-Simulation End Status: COMPLETED (Normal)
-Total Safety Violations Detected: 0
-Total Aircraft Records: 3
-
---------------------------------------------------
-Aircraft Identifier: FLIGHT_01
-ACA Status: Exited ACA
-Logged Snapshots inside ACA: 25
---------------------------------------------------
-  [001] Lat: 41.2629 | Lon: -8.6852 | Alt: 69m | Spd: 250kt | Hdg: 42.5 | Vz: 12.0m/s
-  ...
-  [025] Lat: 41.9800 | Lon: -8.1000 | Alt: 9249m | Spd: 460kt | Hdg: 42.5 | Vz: 0.0m/s
-
---------------------------------------------------
-Aircraft Identifier: FLIGHT_02
-...
-
---------------------------------------------------
-Aircraft Identifier: FLIGHT_03
-...
-
-=================== END OF REPORT ===================
+```bash
+./flight_simulator --collision
 ```
 
-In the collision scenario (`--collision`), the header reads:
+Expected result:
 
-```
-Simulation End Status: ABORTED (Threshold Reached)
-Total Safety Violations Detected: 3
-```
+- safety violation events are recorded;
+- `simulation_report.txt` contains a `SAFETY VIOLATION EVENTS` section with timestamps,
+  positions and velocity vectors;
+- `Final Validation Result: FAIL`;
+- `Simulation End Status` indicates abort if the configured threshold is reached.
+
+### Environment Note
+
+The C simulator requires a native POSIX toolchain with `make`, `gcc`, POSIX shared memory,
+named semaphores and pthreads. On the current Windows Codex environment, `make` and `gcc`
+are not installed, so compilation must be executed in the target Linux/WSL environment.
 
 ---
 
-## 7. Key Design Decisions
+## 7. Design Decisions
 
 | Decision | Reason |
 |----------|--------|
-| **Process instead of Thread** | Strict compliance with the course coordinator's directive for Sprint 2. Threads will replace this process in Sprint 3 (US106). |
-| **Forking AFTER the simulation loop** | Leverages OS Copy-on-Write (COW) semantics: the child inherits a fully populated `histories` array instantly, avoiding complex IPC (Shared Memory or massive pipe writes) entirely. |
-| **`fprintf` instead of `write`** | Unlike the signal handlers in US102 which required `write()` due to async-signal-safety, the report process is a standard sequential program. `fprintf` is safe and far better suited to formatting tabular data. |
-| **Parent waits for the Report Process** | Prevents the parent from destroying heap allocations (`free_flight_plan`) or exiting before the report is safely on disk, which would orphan the reporting process. |
-| **`"w"` open mode for the report file** | Ensures every simulation run produces a fresh, authoritative report rather than appending stale data from previous runs. |
+| Use `report_thread` instead of `fork()` | Sprint 3 requires the report generation thread to aggregate final data after simulation conclusion. |
+| Keep live violation log and final report | US107 benefits from a live append-only log, while US109 needs the complete final summary file. |
+| Store detailed violation events in the final report | Directly satisfies the acceptance criterion for timestamped events with positions and velocity vectors. |
+| Write PASS/FAIL explicitly | Gives the Flight Control Operator a quick validation result without inferring it from counters. |
+| Overwrite `simulation_report.txt` each run | Ensures the saved report always corresponds to the latest simulation execution. |
