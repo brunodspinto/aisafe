@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Application-layer controller for the "Generate a Simulation Report" use case (US111).
@@ -134,7 +135,7 @@ public class GenerateSimulationReportController {
             violations.add("No safety violations recorded.");
         } else {
             for (final SafetyViolation v : report.safetyViolations()) {
-                violations.add(String.format("%s | %s | lat=%.4f lon=%.4f alt=%.0fm | %s",
+                violations.add(String.format(Locale.ROOT, "%s | %s | lat=%.4f lon=%.4f alt=%.0fm | %s",
                         v.timestamp(), v.flightDesignator(),
                         v.latitude(), v.longitude(), v.altitude(), v.description()));
             }
