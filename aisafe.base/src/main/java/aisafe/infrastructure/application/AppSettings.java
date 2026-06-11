@@ -9,6 +9,7 @@ public class AppSettings {
     private static final String PROPERTIES_RESOURCE     = "application.properties";
     private static final String REPOSITORY_FACTORY_KEY  = "persistence.repositoryFactory";
     private static final String FLIGHT_TESTER_BINARY_KEY = "flight.tester.binary";
+    private static final String SIMULATION_REPORT_FILE_KEY = "simulation.report.file";
 
     private final Properties properties = new Properties();
 
@@ -39,5 +40,16 @@ public class AppSettings {
     public String flightTesterBinary() {
         return properties.getProperty(FLIGHT_TESTER_BINARY_KEY,
                 "aisafe.base/simulation/flight_tester");
+    }
+
+    /**
+     * Returns the file-system path to the simulation results file ({@code simulation_report.txt})
+     * produced by the SCOMP/C simulation and read by US111. Defaults to {@code simulation_report.txt}
+     * (the simulation's working directory) if the property is not set.
+     *
+     * @return the configured or default simulation report file path
+     */
+    public String simulationReportFile() {
+        return properties.getProperty(SIMULATION_REPORT_FILE_KEY, "simulation_report.txt");
     }
 }

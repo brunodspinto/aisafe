@@ -34,6 +34,7 @@ import aisafe.app.console.presentation.pilot.RemovePilotUI;
 import aisafe.app.console.presentation.flightroute.CreateFlightRouteUI;
 import aisafe.app.console.presentation.flightroute.DeactivateFlightRouteUI;
 import aisafe.app.console.presentation.reporting.GenerateMonthlyReportUI;
+import aisafe.app.console.presentation.simulation.GenerateSimulationReportUI;
 import eapli.framework.actions.Actions;
 import eapli.framework.actions.menu.Menu;
 import eapli.framework.actions.menu.MenuItem;
@@ -236,6 +237,7 @@ public class MainMenu extends AbstractUI {
     private Menu buildReportsMenu() {
         final var menu = new Menu("Reports >");
         menu.addItem(1, "Generate Monthly Report", new GenerateMonthlyReportUI()::show);
+        menu.addItem(2, "Generate Simulation Report", new GenerateSimulationReportUI()::show);
         menu.addItem(EXIT_OPTION, "Return", Actions.SUCCESS);
         return menu;
     }
