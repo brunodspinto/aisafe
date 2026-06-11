@@ -30,19 +30,24 @@ discipline from the T7/T8 slides.
 
 ## 2. Requirements
 
-**US106:** As a Flight Control Operator, I want the parent process to run each of
-its functionalities in a dedicated thread, so that coordination, safety
-monitoring and reporting are cleanly separated and run concurrently.
+**US106 — Implement function-specific threads in the parent process**
+
+> As a PO, I want the simulation controller parent process to have at least two
+> dedicated threads (one for safety violation detection and one for report
+> generation), so that each functionality operates concurrently and
+> independently.
 
 ### Acceptance Criteria
 
-| ID | Criterion | Status |
-|----|-----------|--------|
-| AC1 | The parent process is organised into function-specific threads, one per responsibility | Done |
-| AC2 | The safety-monitoring functionality (US102) runs in its own dedicated thread, decoupled from coordination | Done |
-| AC3 | Threads exchange per-step data and synchronise without data races or deadlock | Done |
-| AC4 | Synchronisation uses mutexes and condition variables (not busy-waiting) | Done |
-| AC5 | Implemented in C; thread output is thread-safe (`write()`/`snprintf`, not `printf`) | Done |
+The criteria below are quoted from the assignment; the *Where it is met* column
+maps each one to the implementation.
+
+| ID | Criterion (as stated in the assignment) | Where it is met | Status |
+|----|------------------------------------------|-----------------|--------|
+| AC106.1 | The parent process creates a **safety violation detection thread** responsible for scanning the shared memory for aircraft flight conflicts. | `safety_thread` (`safety_thread.c`) runs `predict_future_collisions` + `monitor_safety_violations` on each step's position snapshot and records conflicts | Done |
+| AC106.2 | A **report generation thread** is created to compile simulation results and respond to safety violation events. | `report_thread` (`main.c`) calls `generate_final_report`; the real-time *response* to violation events is delivered through the condition-variable notification of **US107** | Done |
+| AC106.3 | Any **additional thread** that you deem appropriate for any of the required functionalities. | `coordinator_thread` (`main.c`) — position collection, ACA filter/history (US101) and GO/STOP control | Done |
+| AC106.4 | Threads are managed using **mutexes and condition variables** for internal synchronisation. | `safety_channel_t` (`mutex`+`cond`, coordinator↔safety handoff) and `g_notification_mutex`+`g_report_cond` (safety→report); every wait uses a `while`-predicate, so there is no busy-waiting | Done |
 
 ---
 
@@ -64,7 +69,7 @@ The coordinator mixing US101 and US102 in one thread violates the user story:
 
 | Approach | Description | Decision |
 |----------|-------------|----------|
-| Keep everything in the coordinator | One thread does telemetry + safety + control | Rejected — does not satisfy AC1/AC2 |
+| Keep everything in the coordinator | One thread does telemetry + safety + control | Rejected — does not satisfy AC106.1 (no dedicated safety-detection thread) |
 | Extract **safety** into its own thread | `coordinator_thread` keeps telemetry + control; a new `safety_thread` owns US102; `report_thread` unchanged | **Chosen** — gives three function-specific threads with a clean responsibility per thread |
 
 | Thread | Responsibility | US |
