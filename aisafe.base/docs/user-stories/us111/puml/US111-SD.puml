@@ -8,15 +8,15 @@ actor "Flight Control\nOperator" as FCO
 participant ":GenerateSimulationReportUI" as UI
 participant ":GenerateSimulationReportController" as CTRL
 participant "authz : AuthorizationService" as AUTH
-participant "resultsReader :\nSimulationResultsReader" as READER
-participant "simulations :\nSimulationRepository" as REPO
+participant "resultsReader :\nTextSimulationResultsReader" as READER
 participant "simulation : Simulation" as SIM
-participant "reportExporter :\nSimulationReportExporter" as EXP
+participant "formatter :\nOperationalReportFormatter" as FMT
+participant "writer : ReportWriter" as WRITER
 
 activate FCO
 FCO -> UI : selects "Generate Simulation Report"
 activate UI
-UI -> CTRL : generate(simulationId)
+UI -> CTRL : generate()
 activate CTRL
 
 CTRL -> AUTH : ensureAuthenticatedUserHasAnyOf(FLIGHT_CONTROL_OPERATOR)
@@ -24,35 +24,34 @@ activate AUTH
 AUTH --> CTRL : authorized
 deactivate AUTH
 
-CTRL -> READER : read(simulationId)
+CTRL -> CTRL : resolveOperatorArea(fco)
+
+CTRL -> READER : read(reportSource)
 activate READER
 READER --> CTRL : results (totalFlights, statuses, violations)
 deactivate READER
 
-CTRL -> REPO : ofIdentity(simulationId)
-activate REPO
-REPO --> CTRL : simulation
-deactivate REPO
-
 CTRL -> SIM : buildReport(results)
 activate SIM
-SIM -> SIM : compute passed (no violations && COMPLETED)
+SIM -> SIM : passed = (COMPLETED && no violations)
 SIM --> CTRL : report
 deactivate SIM
 
-CTRL -> REPO : save(simulation)
-activate REPO
-REPO --> CTRL : savedSimulation
-deactivate REPO
+CTRL -> CTRL : toReportData(report, area, fco)
 
-CTRL -> EXP : export(report)
-activate EXP
-EXP --> CTRL : file written
-deactivate EXP
+CTRL -> FMT : format(reportData)
+activate FMT
+FMT --> CTRL : content
+deactivate FMT
 
-CTRL --> UI : report
+CTRL -> WRITER : write(fileName, content)
+activate WRITER
+WRITER --> CTRL : file
+deactivate WRITER
+
+CTRL --> UI : GeneratedReport(file, report)
 deactivate CTRL
-UI --> FCO : "report generated: <file> - result: PASSED/FAILED"
+UI --> FCO : file path + PASSED/FAILED + flight/violation counts
 deactivate UI
 deactivate FCO
 

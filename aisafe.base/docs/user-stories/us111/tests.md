@@ -3,16 +3,14 @@
 ## Scope
 
 US111 covers generating a Flight Control Operator report from a flight simulation's results. The
-report records the total number of flights, each flight's execution status, the safety violations
-(with timestamps and positions), and the overall pass/fail result, and is stored in a file.
+report records the total number of flights and their execution statuses (AC111.2), the safety
+violations with timestamps and positions (AC111.3), and the overall pass/fail result (AC111.4), and
+is written to a file (AC111.1).
 
-The automated tests focus on the **domain** (the `Simulation` aggregate building a correct
-`SimulationReport`, and the value-object invariants) and on the **report assembly logic**, using a
-fake `SimulationResultsReader` so no real simulation or file is required. The file export and the
-FCO authorization are validated by manual acceptance tests.
-
-> Note: the snippets below describe the planned tests; align the exact names and signatures with
-> the code as US111 is implemented.
+The automated tests cover the **domain** (the `Simulation` aggregate building a correct
+`SimulationReport`, and the value-object invariants) and the **parser** (`TextSimulationResultsReader`
+reading the C `simulation_report.txt`). The file export (reused US112 framework) and the FCO
+authorization are validated by manual acceptance tests.
 
 ## Automated Tests
 
@@ -20,57 +18,24 @@ FCO authorization are validated by manual acceptance tests.
 
 Location: `src/test/java/aisafe/simulation/domain/SimulationReportTest.java`
 
-> Helper: `validResults(int flights, int violations)` builds a `SimulationResults` with the given
-> number of flights and violations.
+> Helper: `results(SimulationStatus status, int flights, int violations)` builds a
+> `SimulationResults`; `simulation()` builds a `Simulation`. The pass/fail rule is derived from the
+> results: PASS iff `COMPLETED` and no violations.
 
-**Test:** `ensureReportCountsTotalFlights` (AC111.2)
-
-```java
-@Test
-void ensureReportCountsTotalFlights() {
-    final SimulationReport report = simulation.buildReport(validResults(3, 0));
-    assertEquals(3, report.totalFlights());
-}
-```
-
-**Test:** `ensureReportHasOneExecutionStatusPerFlight` (AC111.2)
-
-```java
-@Test
-void ensureReportHasOneExecutionStatusPerFlight() {
-    final SimulationReport report = simulation.buildReport(validResults(3, 0));
-    assertEquals(3, report.executionStatuses().size());
-}
-```
-
-**Test:** `ensureReportPassesWhenNoViolationsAndCompleted` (AC111.4)
-
-```java
-@Test
-void ensureReportPassesWhenNoViolationsAndCompleted() {
-    final SimulationReport report = completedSimulation.buildReport(validResults(3, 0));
-    assertTrue(report.passed());
-}
-```
-
-**Test:** `ensureReportFailsWhenViolationsExist` (AC111.3 + AC111.4)
+- `ensureReportCountsTotalFlights` (AC111.2) — total flights is carried into the report.
+- `ensureReportHasOneExecutionStatusPerFlight` (AC111.2) — one `FlightExecutionStatus` per flight.
+- `ensureReportPassesWhenCompletedAndNoViolations` (AC111.4) — `COMPLETED` + 0 violations ⇒ passed.
+- `ensureReportFailsWhenViolationsExist` (AC111.3 + AC111.4) — violations ⇒ failed, and they are kept.
+- `ensureReportFailsWhenSimulationAborted` (AC111.4) — `FAILED` status ⇒ not passed.
+- `ensureBuildReportSetsSimulationStatusFromResults` — the aggregate adopts the results' status.
+- `ensureBuildReportWithNullResultsThrows` — null results are rejected.
 
 ```java
 @Test
 void ensureReportFailsWhenViolationsExist() {
-    final SimulationReport report = completedSimulation.buildReport(validResults(3, 2));
+    final SimulationReport report = simulation().buildReport(results(SimulationStatus.COMPLETED, 3, 2));
     assertFalse(report.passed());
     assertEquals(2, report.safetyViolations().size());
-}
-```
-
-**Test:** `ensureReportFailsWhenSimulationAborted` (AC111.4)
-
-```java
-@Test
-void ensureReportFailsWhenSimulationAborted() {
-    final SimulationReport report = abortedSimulation.buildReport(validResults(3, 0));
-    assertFalse(report.passed());
 }
 ```
 
@@ -80,28 +45,10 @@ void ensureReportFailsWhenSimulationAborted() {
 
 Location: `src/test/java/aisafe/simulation/domain/SafetyViolationTest.java`
 
-**Test:** `ensureViolationCarriesTimestampAndPosition` (AC111.3)
-
-```java
-@Test
-void ensureViolationCarriesTimestampAndPosition() {
-    final SafetyViolation v = new SafetyViolation("proximity", "TP100",
-            LocalDateTime.of(2026, 6, 1, 12, 0), 250.0, 42.5, 41.2, -8.6, 9000.0);
-    assertEquals(LocalDateTime.of(2026, 6, 1, 12, 0), v.timestamp());
-    assertEquals(41.2, v.latitude());
-    assertEquals(-8.6, v.longitude());
-    assertEquals(9000.0, v.altitude());
-}
-```
-
-**Test:** `ensureTwoViolationsWithSameValuesAreEqual`
-
-```java
-@Test
-void ensureTwoViolationsWithSameValuesAreEqual() {
-    assertEquals(violation(), violation());
-}
-```
+- `ensureViolationCarriesTimestampAndPosition` (AC111.3) — timestamp, lat, lon, alt are preserved.
+- `ensureTwoViolationsWithSameValuesAreEqual` — value-object equality and hash code.
+- `ensureViolationsWithDifferentPositionAreNotEqual` — different position ⇒ not equal.
+- `ensureBlankFlightDesignatorIsRejected`, `ensureNullTimestampIsRejected` — invariants.
 
 ---
 
@@ -109,14 +56,34 @@ void ensureTwoViolationsWithSameValuesAreEqual() {
 
 Location: `src/test/java/aisafe/simulation/domain/FlightExecutionStatusTest.java`
 
-**Test:** `ensureExecutionStatusKeepsDesignatorAndStatus` (AC111.2)
+- `ensureExecutionStatusKeepsDesignatorAndStatus` (AC111.2)
+- `ensureTwoWithSameValuesAreEqual`, `ensureDifferentStatusAreNotEqual`
+- `ensureBlankDesignatorIsRejected`, `ensureBlankStatusIsRejected`
+
+---
+
+### `TextSimulationResultsReaderTest`
+
+Location: `src/test/java/aisafe/infrastructure/simulation/TextSimulationResultsReaderTest.java`
+
+Parses sample report files under `src/test/resources/simulation/`, so it does **not** require running
+the simulation. Verifies the Option A integration: parsing the real C `simulation_report.txt` format.
+
+- `ensureAbortedReportIsParsed` — status `FAILED`, 3 flights, 3 execution statuses, and **2**
+  `SafetyViolation`s (one C event = a pair = two domain violations).
+- `ensureViolationCarriesTimestampAndPosition` (AC111.3) — the parsed violation has the right flight,
+  timestamp and position; the pair maps to `FLIGHT_01` and `FLIGHT_02`.
+- `ensureCleanReportIsParsed` — status `COMPLETED`, 2 flights, no violations.
+- `ensureParsedResultsBuildACoherentReport` — integration: parser → `Simulation.buildReport` →
+  correct `passed` and counts.
 
 ```java
 @Test
-void ensureExecutionStatusKeepsDesignatorAndStatus() {
-    final FlightExecutionStatus s = new FlightExecutionStatus("TP100", "COMPLETED");
-    assertEquals("TP100", s.flightDesignator());
-    assertEquals("COMPLETED", s.status());
+void ensureAbortedReportIsParsed() throws IOException {
+    final SimulationResults r = reader.parse(resource("/simulation/sample_simulation_report.txt"));
+    assertEquals(SimulationStatus.FAILED, r.status());
+    assertEquals(3, r.totalFlights());
+    assertEquals(2, r.safetyViolations().size());   // one C event (a pair) -> two domain violations
 }
 ```
 
@@ -124,36 +91,45 @@ void ensureExecutionStatusKeepsDesignatorAndStatus() {
 
 ## Coverage by Acceptance Criterion
 
-- **AC111.1** (generate + store in file): `SimulationReportExporter` writing — validated by manual acceptance test (the report file is produced and contains the expected content)
-- **AC111.2** (total flights + execution status): `ensureReportCountsTotalFlights`, `ensureReportHasOneExecutionStatusPerFlight`, `ensureExecutionStatusKeepsDesignatorAndStatus`
-- **AC111.3** (violations with timestamp/position): `ensureReportFailsWhenViolationsExist`, `ensureViolationCarriesTimestampAndPosition`
-- **AC111.4** (pass/fail): `ensureReportPassesWhenNoViolationsAndCompleted`, `ensureReportFailsWhenViolationsExist`, `ensureReportFailsWhenSimulationAborted`
-- **Authorization** (FCO role): manual test — only a Flight Control Operator may generate the report
+- **AC111.1** (generate + store in file): the file is written by the reused US112 `ReportWriter`;
+  validated by the manual acceptance test (the report file is produced in `target/reports/`).
+- **AC111.2** (total flights + execution status): `ensureReportCountsTotalFlights`,
+  `ensureReportHasOneExecutionStatusPerFlight`, `ensureExecutionStatusKeepsDesignatorAndStatus`,
+  `ensureAbortedReportIsParsed`.
+- **AC111.3** (violations with timestamp/position): `ensureReportFailsWhenViolationsExist`,
+  `SafetyViolationTest.ensureViolationCarriesTimestampAndPosition`,
+  `TextSimulationResultsReaderTest.ensureViolationCarriesTimestampAndPosition`.
+- **AC111.4** (pass/fail): `ensureReportPassesWhenCompletedAndNoViolations`,
+  `ensureReportFailsWhenViolationsExist`, `ensureReportFailsWhenSimulationAborted`.
+- **Authorization** (FCO role): manual test — only a Flight Control Operator may generate the report.
 
 ---
 
 ## Acceptance Tests
 
-Role enforcement (FCO), the actual file export, and the parsing of the real simulation output are
-infrastructure concerns validated by manual integration testing. Domain report-assembly is fully
-covered by the automated unit tests above.
+Role enforcement (FCO) and the actual file export are validated by manual integration testing. Domain
+report-assembly and parsing are fully covered by the automated tests above.
 
-**Manual test — AC111.1 / AC111.2 / AC111.4 (successful report, no violations):**
+**Prerequisites:** a `simulation_report.txt` must exist at the configured path. Run the SCOMP/C
+simulation, or copy a sample, e.g.
+`copy src\test\resources\simulation\sample_simulation_report.txt simulation_report.txt`.
 
-1. Run `AiSafeApp` and login as a Flight Control Operator (e.g., `fco1` / `Password1`).
-2. Run the flight simulation (SCOMP component) with a non-colliding scenario.
-3. Navigate to `Simulation > Generate Simulation Report`.
-4. Expected: the system confirms `Simulation report generated: ... — result: PASSED`, the report file
-   exists, and it lists the total flights and one execution status per flight.
+**Manual test — AC111.1 / AC111.2 / AC111.4 (report with no violations):**
+
+1. Run `AiSafeConsoleApp` and login as a Flight Control Operator (`fco1` / `Password1`).
+2. Use a clean simulation result (e.g. copy `sample_simulation_report_clean.txt` to `simulation_report.txt`).
+3. Navigate to `Reports > Generate Simulation Report`.
+4. Expected: the UI prints `Result : PASSED`, the total flights and the file path, and the file exists
+   in `target/reports/` with one execution status per flight.
 
 **Manual test — AC111.3 / AC111.4 (report with violations):**
 
-1. Run the simulation with a colliding scenario (so safety violations occur).
+1. Use a colliding simulation result (e.g. `sample_simulation_report.txt`).
 2. Generate the report.
-3. Expected: the result is `FAILED`, and the report file lists each safety violation with its
+3. Expected: the UI prints `Result : FAILED`; the report file lists each safety violation with its
    timestamp and position.
 
 **Manual test — Authorization (non-FCO):**
 
 1. Login as a user without the Flight Control Operator role.
-2. Expected: the Generate Simulation Report option is not available / the action is rejected.
+2. Expected: the Reports menu / Generate Simulation Report option is not available.

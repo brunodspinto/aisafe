@@ -11,18 +11,14 @@ package "Presentation" {
 package "Application Layer" {
     class GenerateSimulationReportController <<UseCaseController>> {
         -authz : AuthorizationService
-        -simulations : SimulationRepository
         -resultsReader : SimulationResultsReader
-        -reportExporter : SimulationReportExporter
-        +generate(id : SimulationId) : SimulationReport
+        -reportFormatter : OperationalReportFormatter
+        -reportWriter : ReportWriter
+        +generate() : GeneratedReport
     }
 
     interface SimulationResultsReader {
-        +read(id : SimulationId) : SimulationResults
-    }
-
-    interface SimulationReportExporter {
-        +export(report : SimulationReport) : void
+        +read(source : Path) : SimulationResults
     }
 }
 
@@ -41,6 +37,7 @@ package "Domain Layer" {
 
     class FlightExecutionStatus <<value object>>
     class SafetyViolation <<value object>>
+    class SimulationResults <<value object>>
     enum SimulationStatus {
         PENDING
         RUNNING
@@ -49,29 +46,27 @@ package "Domain Layer" {
     }
 }
 
-package "Repository Layer" {
-    interface SimulationRepository {
-        +save(s : Simulation) : Simulation
-        +ofIdentity(id : SimulationId) : Optional<Simulation>
-    }
+package "Infrastructure" {
+    class TextSimulationResultsReader
 }
 
-package "Infrastructure" {
-    class FileSimulationResultsReader
-    class JpaSimulationRepository
+package "Reporting Framework (US112, reused)" {
+    class ReportData
+    class OperationalReportFormatter
+    class ReportWriter
 }
 
 GenerateSimulationReportUI ..> GenerateSimulationReportController : uses
-GenerateSimulationReportController ..> SimulationRepository : persists
 GenerateSimulationReportController ..> SimulationResultsReader : reads results
-GenerateSimulationReportController ..> SimulationReportExporter : exports file
 GenerateSimulationReportController ..> Simulation : builds report on
+GenerateSimulationReportController ..> ReportData : builds
+GenerateSimulationReportController ..> OperationalReportFormatter : formats
+GenerateSimulationReportController ..> ReportWriter : writes file
 Simulation *-- SimulationReport : produces
 Simulation --> SimulationStatus : has
 SimulationReport *-- "0..*" SafetyViolation : records
 SimulationReport *-- "0..*" FlightExecutionStatus : details
-SimulationRepository ..> Simulation : manages
-FileSimulationResultsReader ..|> SimulationResultsReader
-JpaSimulationRepository ..|> SimulationRepository
+TextSimulationResultsReader ..|> SimulationResultsReader
+SimulationResultsReader ..> SimulationResults : returns
 
 @enduml
