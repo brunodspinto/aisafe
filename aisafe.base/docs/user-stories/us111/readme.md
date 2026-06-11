@@ -100,20 +100,20 @@ All automated tests and manual acceptance scripts are documented in [tests.md](t
 
 The implementation is distributed across the following packages in `aisafe.base`:
 
-| Package | Class | Role |
-|---------|-------|------|
-| `aisafe.simulation.domain` | `Simulation` | Aggregate root; holds parameters, `SimulationStatus`, and the produced `SimulationReport` |
-| `aisafe.simulation.domain` | `SimulationReport` | Report entity (`totalFlights`, `passed`, `generatedAt`, violations, execution statuses) |
-| `aisafe.simulation.domain` | `FlightExecutionStatus` | Value object — per-flight execution status |
-| `aisafe.simulation.domain` | `SafetyViolation` | Value object — violation with timestamp, position and velocity vector |
-| `aisafe.simulation.repositories` | `SimulationRepository` | Repository interface for the `Simulation` aggregate |
-| `aisafe.simulation.application` | `GenerateSimulationReportController` | Use case orchestrator; enforces the FCO role |
-| `aisafe.simulation.application` | `SimulationResultsReader` | Interface that yields parsed simulation results to the controller |
-| `aisafe.simulation.application` | `SimulationReportExporter` | Writes the formatted report to a file |
-| `aisafe.infrastructure.persistence.jpa` | `JpaSimulationRepository` | JPA persistence for `Simulation` |
-| `aisafe.infrastructure.persistence.inmemory` | `InMemorySimulationRepository` | In-memory persistence for `Simulation` |
-| `aisafe.infrastructure.simulation` | `FileSimulationResultsReader` | Reads/parses the SCOMP simulation output (`simulation_report.txt`) |
-| `aisafe.app.console.presentation.simulation` | `GenerateSimulationReportUI` | Console UI for the FCO |
+| Package                                      | Class                                | Role                                                                                      |
+|----------------------------------------------|--------------------------------------|-------------------------------------------------------------------------------------------|
+| `aisafe.simulation.domain`                   | `Simulation`                         | Aggregate root; holds parameters, `SimulationStatus`, and the produced `SimulationReport` |
+| `aisafe.simulation.domain`                   | `SimulationReport`                   | Report entity (`totalFlights`, `passed`, `generatedAt`, violations, execution statuses)   |
+| `aisafe.simulation.domain`                   | `FlightExecutionStatus`              | Value object — per-flight execution status                                                |
+| `aisafe.simulation.domain`                   | `SafetyViolation`                    | Value object — violation with timestamp, position and velocity vector                     |
+| `aisafe.simulation.repositories`             | `SimulationRepository`               | Repository interface for the `Simulation` aggregate                                       |
+| `aisafe.simulation.application`              | `GenerateSimulationReportController` | Use case orchestrator; enforces the FCO role                                              |
+| `aisafe.simulation.application`              | `SimulationResultsReader`            | Interface that yields parsed simulation results to the controller                         |
+| `aisafe.simulation.application`              | `SimulationReportExporter`           | Writes the formatted report to a file                                                     |
+| `aisafe.infrastructure.persistence.jpa`      | `JpaSimulationRepository`            | JPA persistence for `Simulation`                                                          |
+| `aisafe.infrastructure.persistence.inmemory` | `InMemorySimulationRepository`       | In-memory persistence for `Simulation`                                                    |
+| `aisafe.infrastructure.simulation`           | `FileSimulationResultsReader`        | Reads/parses the SCOMP simulation output (`simulation_report.txt`)                        |
+| `aisafe.app.console.presentation.simulation` | `GenerateSimulationReportUI`         | Console UI for the FCO                                                                    |
 
 The controller orchestrates the use case without containing report-formatting or parsing logic — it delegates to the reader and the exporter:
 

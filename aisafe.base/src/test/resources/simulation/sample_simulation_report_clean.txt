@@ -1,0 +1,37 @@
+==================================================
+        FLIGHT SIMULATION - FINAL REPORT
+==================================================
+Generated on: Mon Jun  1 12:00:00 2026
+Simulation End Status: COMPLETED (Normal)
+Final Validation Result: PASS
+Total Flights: 2
+Total Safety Violations Detected: 0
+Detailed Safety Violation Events Stored: 0
+Dropped Live Violation Events: 0
+Live Safety Violation Log: simulation_violation_log.txt
+==================================================
+
+SAFETY VIOLATION EVENTS
+--------------------------------------------------
+No safety violation events were recorded.
+
+FLIGHT EXECUTION STATUSES
+==================================================
+
+--------------------------------------------------
+Aircraft Identifier: FLIGHT_01
+Execution Status: COMPLETED
+ACA Status: Exited ACA
+Logged Snapshots inside ACA: 1
+--------------------------------------------------
+  [001] Lat: 41.2629 | Lon: -8.6852 | Alt: 69m | Spd: 250kt | Hdg: 42.5 | Vz: 12.0m/s
+
+--------------------------------------------------
+Aircraft Identifier: FLIGHT_02
+Execution Status: COMPLETED
+ACA Status: Exited ACA
+Logged Snapshots inside ACA: 1
+--------------------------------------------------
+  [001] Lat: 41.3000 | Lon: -8.7000 | Alt: 9000m | Spd: 300kt | Hdg: 90.0 | Vz: 0.0m/s
+
+=================== END OF REPORT ===================

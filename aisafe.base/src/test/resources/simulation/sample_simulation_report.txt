@@ -1,0 +1,48 @@
+==================================================
+        FLIGHT SIMULATION - FINAL REPORT
+==================================================
+Generated on: Mon Jun  1 12:05:00 2026
+Simulation End Status: ABORTED (Threshold Reached)
+Final Validation Result: FAIL
+Total Flights: 3
+Total Safety Violations Detected: 1
+Detailed Safety Violation Events Stored: 1
+Dropped Live Violation Events: 0
+Live Safety Violation Log: simulation_violation_log.txt
+==================================================
+
+SAFETY VIOLATION EVENTS
+--------------------------------------------------
+[001] FLIGHT_01 <-> FLIGHT_02 | timestamp=2026-06-01 12:03:10 | horizontal=850.00m | vertical=120.00m
+  FLIGHT_01: lat=41.2000 | lon=-8.6000 | alt=9000m | speed=250kt | heading=42.5 | vertical_rate=0.0m/s
+  FLIGHT_02: lat=41.2050 | lon=-8.6010 | alt=9050m | speed=255kt | heading=43.0 | vertical_rate=2.0m/s
+
+FLIGHT EXECUTION STATUSES
+==================================================
+
+--------------------------------------------------
+Aircraft Identifier: FLIGHT_01
+Execution Status: STOPPED (simulation aborted)
+ACA Status: Exited ACA
+Logged Snapshots inside ACA: 2
+--------------------------------------------------
+  [001] Lat: 41.2629 | Lon: -8.6852 | Alt: 69m | Spd: 250kt | Hdg: 42.5 | Vz: 12.0m/s
+  [002] Lat: 41.3000 | Lon: -8.7000 | Alt: 5000m | Spd: 300kt | Hdg: 42.5 | Vz: 10.0m/s
+
+--------------------------------------------------
+Aircraft Identifier: FLIGHT_02
+Execution Status: STOPPED (simulation aborted)
+ACA Status: Exited ACA
+Logged Snapshots inside ACA: 1
+--------------------------------------------------
+  [001] Lat: 41.2050 | Lon: -8.6010 | Alt: 9050m | Spd: 255kt | Hdg: 43.0 | Vz: 2.0m/s
+
+--------------------------------------------------
+Aircraft Identifier: FLIGHT_03
+Execution Status: STOPPED (simulation aborted)
+ACA Status: Never entered ACA
+Logged Snapshots inside ACA: 0
+--------------------------------------------------
+  [INFO] Aircraft never entered the Air Control Area.
+
+=================== END OF REPORT ===================
