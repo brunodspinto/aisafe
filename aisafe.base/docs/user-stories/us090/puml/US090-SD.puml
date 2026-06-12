@@ -1,0 +1,57 @@
+@startuml sd090
+skinparam packageStyle rectangle
+skinparam shadowing false
+autonumber
+
+participant "Client App\n(US044/US078/US086)" as CLIENT
+
+box "Remote Accesses Logging Server (US090)" #FEF9E7
+    participant ":UdpLogReceiver" as RECV
+    participant ":LogEventParser" as PARSER
+    participant ":RemoteAccessLogStore" as STORE
+    participant ":LogFileWriter" as FILE
+end box
+
+participant ":LoggingHttpServer\n(US091)" as HTTP
+
+note over STORE : single shared store —\nUS090 writes, US091 reads
+
+== Reception of one remote-access event ==
+
+CLIENT ->> RECV : UDP datagram\n(<ts> | <user> | <ip> | <port> | <service> | <event>)
+activate RECV
+
+RECV -> RECV : decode payload (US-ASCII)
+RECV -> PARSER : parse(payload, sourceUdpIp)
+activate PARSER
+PARSER --> RECV : Optional<RemoteAccessEvent>
+deactivate PARSER
+
+alt malformed datagram (Optional.empty)
+    RECV -> RECV : log "Ignored malformed datagram" (loop continues)
+else valid event
+    RECV -> STORE : add(event)
+    activate STORE
+    STORE -> STORE : events.addFirst(event)
+    STORE -> STORE : update active sessions\n(LOGIN_SUCCESS add / LOGOUT|CONNECTION_LOST remove)
+    STORE --> RECV
+    deactivate STORE
+
+    RECV -> FILE : append(event)
+    activate FILE
+    FILE -> FILE : write toLogLine() + flush
+    FILE --> RECV
+    deactivate FILE
+
+    RECV -> RECV : print "[US90] " + event.toLogLine()
+end
+deactivate RECV
+
+== Visualization (US091, same shared store) ==
+
+HTTP -> STORE : recent(n) / activeUsers()
+activate STORE
+STORE --> HTTP : events / active users
+deactivate STORE
+
+@enduml

@@ -1,0 +1,101 @@
+@startuml class-diagram-us090
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+
+title Class Diagram - US090 External Logging of Remote Accesses
+
+package "aisafe.app.loggingserver" {
+    class RemoteAccessLoggingServerApp {
+        {static} -DEFAULT_PORT : int = 9090
+        {static} -DEFAULT_FILE : String = "logs.txt"
+        {static} +main(args : String[]) : void
+        {static} -reload(file : Path, store : RemoteAccessLogStore) : int
+    }
+
+    class LoggingHttpServer <<US091, reused>> {
+        {static} +HTTP_PORT : int = 8080
+        +LoggingHttpServer(store : RemoteAccessLogStore)
+        +start() : void
+    }
+}
+
+package "aisafe.app.loggingserver.udp" {
+    class UdpLogReceiver {
+        -port : int
+        -running : boolean
+        +UdpLogReceiver(port : int, store : RemoteAccessLogStore, fileWriter : LogFileWriter)
+        +run() : void
+        +stop() : void
+        -handle(packet : DatagramPacket) : void
+    }
+
+    class LogEventParser {
+        {static} -FIELD_COUNT : int = 6
+        {static} +parse(payload : String, sourceUdpIp : String) : Optional<RemoteAccessEvent>
+    }
+}
+
+package "aisafe.app.loggingserver.store" {
+    class RemoteAccessLogStore {
+        +add(event : RemoteAccessEvent) : void
+        +recent(limit : int) : List<RemoteAccessEvent>
+        +all() : List<RemoteAccessEvent>
+        +activeUsers() : List<ActiveUser>
+        +size() : int
+        +clear() : void
+    }
+
+    class LogFileWriter {
+        +LogFileWriter(file : Path)
+        +append(event : RemoteAccessEvent) : void
+        +close() : void
+    }
+}
+
+package "aisafe.app.loggingserver.model" {
+    class RemoteAccessEvent <<record>> {
+        +timestamp : LocalDateTime
+        +username : String
+        +clientIp : String
+        +clientPort : int
+        +service : String
+        +event : String
+        +sourceUdpIp : String
+        +sessionKey() : String
+        +toLogLine() : String
+    }
+
+    class ActiveUser <<record>> {
+        +username : String
+        +clientIp : String
+        +clientPort : int
+        +service : String
+        +since : LocalDateTime
+    }
+}
+
+package "JDK" <<frame>> {
+    interface Runnable
+    interface Closeable
+}
+
+UdpLogReceiver ..|> Runnable
+LogFileWriter ..|> Closeable
+
+RemoteAccessLoggingServerApp ..> RemoteAccessLogStore : creates (shared store)
+RemoteAccessLoggingServerApp ..> LogFileWriter : creates
+RemoteAccessLoggingServerApp ..> UdpLogReceiver : creates & run() (US090)
+RemoteAccessLoggingServerApp ..> LoggingHttpServer : start() (US091)
+RemoteAccessLoggingServerApp ..> LogEventParser : reload() existing file
+
+UdpLogReceiver ..> LogEventParser : parse(payload)
+UdpLogReceiver --> RemoteAccessLogStore : add(event)
+UdpLogReceiver --> LogFileWriter : append(event)
+
+LogEventParser ..> RemoteAccessEvent : creates
+LogFileWriter ..> RemoteAccessEvent : writes toLogLine()
+RemoteAccessLogStore o-- RemoteAccessEvent : events + active sessions
+RemoteAccessLogStore ..> ActiveUser : produces
+LoggingHttpServer ..> RemoteAccessLogStore : reads recent() / activeUsers()
+
+@enduml
