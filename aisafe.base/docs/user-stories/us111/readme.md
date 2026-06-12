@@ -134,8 +134,6 @@ public GeneratedReport generate() throws IOException {
 }
 ```
 
-> **Persistence note.** The acceptance criteria require only a *file*, so US111 does **not** persist the `Simulation` aggregate in the database. A `SimulationRepository` (JPA / in-memory) is a possible future extension; it is not part of the current implementation.
-
 ---
 
 ## 6. Integration/Demonstration
