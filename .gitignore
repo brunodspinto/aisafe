@@ -19,5 +19,10 @@ aisafe.base/simulation/flight_simulator
 aisafe.base/simulation/flight_tester
 aisafe.base/simulation/test_validation
 aisafe.base/simulation/test_flight_tester
-aisafe.base/simulation/*.o
+# Windows builds produce .exe variants of the above
+aisafe.base/simulation/*.exe
+# object files in the simulation dir and its subdirs (e.g. tests/)
+aisafe.base/simulation/**/*.o
+# generated runtime outputs (report + live violation log)
 aisafe.base/simulation/simulation_report.txt
+aisafe.base/simulation/simulation_violation_log.txt
