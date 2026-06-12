@@ -86,6 +86,62 @@ void ensureSessionHandlesUnknownCommandBeforeExit() throws IOException {
 }
 ```
 
+**Test:** `ensureFleetByModelWithoutArgumentReturnsError`
+
+```java
+@Test
+void ensureFleetByModelWithoutArgumentReturnsError() throws IOException {
+    assertTrue(runSession("LIST_FLEET_BY_MODEL\nEXIT").contains("ERROR"));
+}
+```
+
+**Test:** `ensureFleetByCapacityWithInvalidNumberReturnsError`
+
+```java
+@Test
+void ensureFleetByCapacityWithInvalidNumberReturnsError() throws IOException {
+    assertTrue(runSession("LIST_FLEET_BY_CAPACITY xyz\nEXIT").contains("invalid number"));
+}
+```
+
+**Test:** `ensureFleetByAgeWithInvalidNumberReturnsError`
+
+```java
+@Test
+void ensureFleetByAgeWithInvalidNumberReturnsError() throws IOException {
+    assertTrue(runSession("LIST_FLEET_BY_AGE notayear\nEXIT").contains("invalid number"));
+}
+```
+
+**Test:** `ensureDecommissionAircraftWithoutRegistrationReturnsError`
+
+```java
+@Test
+void ensureDecommissionAircraftWithoutRegistrationReturnsError() throws IOException {
+    assertTrue(runSession("DECOMMISSION_AIRCRAFT\nEXIT").contains("ERROR"));
+}
+```
+
+**Test:** `ensureRemovePilotWithoutIdReturnsError`
+
+```java
+@Test
+void ensureRemovePilotWithoutIdReturnsError() throws IOException {
+    assertTrue(runSession("REMOVE_PILOT\nEXIT").contains("ERROR"));
+}
+```
+
+**Test:** `ensureRemovePilotWithInvalidIdReturnsError`
+
+```java
+@Test
+void ensureRemovePilotWithInvalidIdReturnsError() throws IOException {
+    assertTrue(runSession("REMOVE_PILOT abc\nEXIT").contains("invalid pilot id"));
+}
+```
+
+> These validation tests exercise the fleet-filter and pilot commands (US072a-d, US071, US076, US077). They return `ERROR` before any controller is constructed, so they run without an EAPLI context — the controller-backed happy paths are covered by manual tests.
+
 ---
 
 ### `CollaboratorSessionHandlerIT`
@@ -158,7 +214,7 @@ void ensureMultipleCommandsOverRealSocketAreHandledInSequence() throws Exception
 
 ### `RemoteAccessLoggerTest`
 
-Location: `src/test/java/aisafe/app/collaborator/RemoteAccessLoggerTest.java`
+Location: `src/test/java/aisafe/app/logging/RemoteAccessLoggerTest.java`
 
 Verifies the client-side UDP datagram payload format (US090). A `DatagramSocket` bound to a random loopback port receives the datagram and the test asserts the pipe-delimited fields.
 
@@ -185,7 +241,7 @@ void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
 
 - **AC078.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
 - **AC078.2** (no direct DB access from client): structural — `CollaboratorTcpClientApp` has only JDK imports; verified by code inspection
-- **AC078.3** (ATCC USs available remotely): `ensureDeactivateRouteWithoutArgumentsReturnsError`, `ensureDeactivateRouteWithInvalidDateReturnsError`, `ensureCreateRouteWithMissingFieldsReturnsError` + manual tests (valid LIST_FLEET / DEACTIVATE_ROUTE flows)
+- **AC078.3** (ATCC USs available remotely): route tests (`ensureDeactivateRouteWithoutArgumentsReturnsError`, `ensureDeactivateRouteWithInvalidDateReturnsError`, `ensureCreateRouteWithMissingFieldsReturnsError`) + fleet-filter & pilot tests (`ensureFleetByModelWithoutArgumentReturnsError`, `ensureFleetByCapacityWithInvalidNumberReturnsError`, `ensureFleetByAgeWithInvalidNumberReturnsError`, `ensureDecommissionAircraftWithoutRegistrationReturnsError`, `ensureRemovePilotWithoutIdReturnsError`, `ensureRemovePilotWithInvalidIdReturnsError`) + manual tests (valid LIST_FLEET / filters / LIST_PILOTS / DECOMMISSION / REMOVE_PILOT flows)
 - **AC078.4** (authentication and authorization): manual tests (wrong password → `FAIL`; non-ATCC role → `UNAUTHORIZED`)
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 - **Client-side UDP logging (US090 dependency)**: `ensureLoginSuccessDatagramHasExpectedFormat`

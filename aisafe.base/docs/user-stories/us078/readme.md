@@ -54,7 +54,7 @@ The ATCC user stories that must be remotely available are the company-management
 |---------------|---------------------------------------------------------------------------------------------------------------------------|
 | US030         | Authentication and authorization must be in place; the `ATCC` role must exist.                                            |
 | US060 / US061 | The ATCC is a `Collaborator` linked to an `AirTransportCompany`; the company is resolved from the authenticated session.  |
-| US070–US075   | The collaborator use-case controllers reused server-side must already exist.                                              |
+| US070–US077   | The collaborator use-case controllers reused server-side must already exist.                                              |
 | US086         | Provides the shared TCP skeleton (`AiSafeTcpServer`, `TcpClientDispatcher`, `AuthenticationContext`) reused by US078.     |
 | US090         | The Remote Accesses Logging Server receives the UDP datagrams emitted by the US078 client app on login/logout/disconnect. |
 
@@ -195,7 +195,7 @@ On each authentication outcome and at session end, the **client application** (`
 |---------------------------------------------------------------------------------------------------------|--------------------------|--------------------------------------------------------------------------------------------------------------------------|
 | `CollaboratorTcpClientApp`                                                                              | Client Main              | Standalone client entry point; interactive ATCC menu; emits UDP log events                                               |
 | `CollaboratorTcpClient`                                                                                 | Client                   | Encapsulates TCP communication: `login()`, `listFleet()` (+ `listFleetBy*` filters), `decommissionAircraft()`, `listRoutes()`, `createRoute()`, `deactivateRoute()`, `listPilots()`, `removePilot()`, `exit()` |
-| `RemoteAccessLogger`                                                                                    | UDP logger (client-side) | Lives in the client app (`aisafe.app.collaborator`); sends remote-access events to the US090 logging server              |
+| `RemoteAccessLogger`                                                                                    | UDP logger (client-side) | Lives in the shared package (`aisafe.app.logging`); sends remote-access events to the US090 logging server              |
 | `AiSafeTcpServer` *(existing)*                                                                          | Server                   | Opens `ServerSocket` on port 9999; accepts connections; spawns dispatcher threads                                        |
 | `TcpClientDispatcher` *(modified)*                                                                      | `Runnable`               | Authenticates one connection; adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
 | `CollaboratorSessionHandler`                                                                            | Session Handler          | ATCC command loop; delegates each command to an existing controller                                                      |
@@ -257,7 +257,7 @@ The implementation is distributed across the following packages in `aisafe.base`
 | `aisafe.tcpserver`              | `AiSafeTcpServer` *(existing)*     | Accepts connections; spawns `TcpClientDispatcher` daemon threads                           |
 | `aisafe.tcpserver`              | `TcpClientDispatcher` *(modified)* | Adds the `ATCC` branch delegating to `CollaboratorSessionHandler`                          |
 | `aisafe.tcpserver.collaborator` | `CollaboratorSessionHandler`       | ATCC command loop: `LIST_FLEET` (+ `_BY_MODEL`/`_BY_MAKER`/`_BY_CAPACITY`/`_BY_AGE`), `DECOMMISSION_AIRCRAFT`, `LIST_ROUTES`, `CREATE_ROUTE`, `DEACTIVATE_ROUTE`, `LIST_PILOTS`, `REMOVE_PILOT`, `EXIT` |
-| `aisafe.app.collaborator`       | `RemoteAccessLogger`               | Client-side UDP logger; sends datagrams to US090 on login/logout/disconnect                |
+| `aisafe.app.logging`            | `RemoteAccessLogger`               | Client-side UDP logger (shared package, reused by US078/US086); sends datagrams to US090 on login/logout/disconnect |
 | `aisafe.app.collaborator`       | `CollaboratorTcpClient`            | Client-side TCP communication                                                              |
 | `aisafe.app.collaborator`       | `CollaboratorTcpClientApp`         | Standalone client entry point; interactive ATCC menu; emits UDP log events                 |
 | `aisafe.app.console`            | `AiSafeConsoleApp` *(existing)*    | Already starts `AiSafeTcpServer` in a daemon thread                                        |
@@ -288,7 +288,7 @@ out.println("OK " + saved.identity() + " deactivated from " + date);
 The UDP event is emitted client-side, fire-and-forget:
 
 ```java
-// RemoteAccessLogger (aisafe.app.collaborator) — invoked by CollaboratorTcpClientApp.
+// RemoteAccessLogger (aisafe.app.logging) — invoked by CollaboratorTcpClientApp.
 // host, port and serviceId ("US78") are set in the constructor.
 public void log(String username, String clientIp, int clientPort, String event) {
     final String payload = String.join(" | ",

@@ -22,6 +22,8 @@ end box
 participant "AuthenticationContext" as AUTH
 participant "US090 Logging Server" as UDP
 
+note over LOG : serviceId "US78" is set in the\nRemoteAccessLogger constructor
+
 activate ATCC
 ATCC -> APP : run client application
 activate APP
@@ -30,7 +32,7 @@ APP --> ATCC : requests credentials
 ATCC -> APP : enters username and password
 APP -> CLIENT : login(username, password)
 activate CLIENT
-CLIENT -> TCP : LOGIN <username> <password>
+CLIENT -> TCP : LOGIN <username> <password> ATCC
 activate TCP
 TCP -> DISP : read line
 activate DISP
@@ -43,7 +45,7 @@ alt invalid credentials
     DISP -> TCP : FAIL invalid credentials
     TCP --> CLIENT : FAIL ...
     CLIENT --> APP : false
-    APP -> LOG : log(user, localIp, localPort, US78, LOGIN_FAILED)
+    APP -> LOG : log(user, clientIp, clientPort, LOGIN_FAILED)
     LOG -> UDP : UDP datagram
     APP --> ATCC : authentication failed
 else role != ATCC
@@ -56,12 +58,12 @@ else authenticated with ATCC role
     DISP -> TCP : OK
     TCP --> CLIENT : OK
     deactivate CLIENT
-    APP -> LOG : log(user, localIp, localPort, US78, LOGIN_SUCCESS)
+    APP -> LOG : log(user, clientIp, clientPort, LOGIN_SUCCESS)
     LOG -> UDP : UDP datagram
     APP --> ATCC : authenticated — shows menu
     deactivate APP
 
-    ATCC -> APP : selects "Deactivate Flight Route"
+    ATCC -> APP : selects a command (e.g. "Deactivate Flight Route")
     activate APP
     APP -> CLIENT : deactivateRoute("TP100", "2026-08-01")
     activate CLIENT
@@ -80,6 +82,7 @@ else authenticated with ATCC role
     deactivate CLIENT
     APP --> ATCC : displays confirmation
     deactivate APP
+    note right of HANDLER : the other commands (LIST_FLEET[_BY_*],\nDECOMMISSION_AIRCRAFT, CREATE_ROUTE,\nLIST_ROUTES, LIST_PILOTS, REMOVE_PILOT)\nfollow the same delegate-to-controller flow
 
     alt clean exit
         ATCC -> APP : selects "Exit"
@@ -93,12 +96,12 @@ else authenticated with ATCC role
         TCP --> CLIENT : BYE
         deactivate TCP
         deactivate CLIENT
-        APP -> LOG : log(user, localIp, localPort, US78, LOGOUT)
+        APP -> LOG : log(user, clientIp, clientPort, LOGOUT)
         LOG -> UDP : UDP datagram
         APP --> ATCC : session ended
         deactivate APP
     else connection lost (IOException)
-        APP -> LOG : log(user, localIp, localPort, US78, CONNECTION_LOST)
+        APP -> LOG : log(user, clientIp, clientPort, CONNECTION_LOST)
         LOG -> UDP : UDP datagram
     end
 end

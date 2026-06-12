@@ -154,7 +154,7 @@ Each scenario = a fresh run of `CollaboratorTcpClientApp` (Window C). Inputs: ho
 
 ---
 
-## Part 4 — Talking points (if asked "why this way?")
+## Part 4 — Talking points
 
 **🟢 EAPLI (architecture):**
 - `CollaboratorSessionHandler` is a delivery mechanism — **no business logic**, only delegates to the

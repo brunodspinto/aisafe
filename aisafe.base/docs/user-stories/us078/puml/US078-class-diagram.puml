@@ -15,15 +15,27 @@ package "Client Application" {
         +CollaboratorTcpClient(host : String, port : int)
         +login(username : String, password : String) : boolean
         +listFleet() : List<String>
+        +listFleetByModel(model : String) : List<String>
+        +listFleetByMaker(maker : String) : List<String>
+        +listFleetByCapacity(minSeats : String) : List<String>
+        +listFleetByAge(fromYear : String) : List<String>
+        +decommissionAircraft(registration : String) : String
         +listRoutes() : List<String>
-        +deactivateRoute(routeName : String, date : String) : String
         +createRoute(name : String, origin : String, dest : String) : String
+        +deactivateRoute(routeName : String, date : String) : String
+        +listPilots() : List<String>
+        +removePilot(pilotId : String) : String
+        +getLocalAddress() : InetAddress
+        +getLocalPort() : int
         +exit() : void
         +close() : void
     }
+}
 
+package "aisafe.app.logging (shared)" {
     class RemoteAccessLogger {
-        +log(username : String, localIp : String, localPort : int, service : String, event : String) : void
+        +RemoteAccessLogger(host : String, port : int, serviceId : String)
+        +log(username : String, clientIp : String, clientPort : int, event : String) : void
     }
 }
 
@@ -45,16 +57,26 @@ package "Server Application" {
         +CollaboratorSessionHandler(in : BufferedReader, out : PrintWriter)
         +handle() : void
         -handleListFleet() : void
+        -handleFleetByModel(cmd : String) : void
+        -handleFleetByMaker(cmd : String) : void
+        -handleFleetByCapacity(cmd : String) : void
+        -handleFleetByAge(cmd : String) : void
+        -handleDecommissionAircraft(cmd : String) : void
         -handleListRoutes() : void
-        -handleDeactivateRoute(args : String[]) : void
-        -handleCreateRoute(args : String[]) : void
+        -handleCreateRoute(cmd : String) : void
+        -handleDeactivateRoute(cmd : String) : void
+        -handleListPilots() : void
+        -handleRemovePilot(cmd : String) : void
     }
 }
 
 package "Application Layer (existing)" {
     class ListFleetController <<UseCaseController>>
-    class DeactivateFlightRouteController <<UseCaseController>>
+    class DecommissionAircraftController <<UseCaseController>>
     class CreateFlightRouteController <<UseCaseController>>
+    class DeactivateFlightRouteController <<UseCaseController>>
+    class ListPilotRosterController <<UseCaseController>>
+    class RemovePilotController <<UseCaseController>>
 }
 
 package "EAPLI Framework" <<frame>> {
@@ -77,8 +99,11 @@ AiSafeTcpServer ..> TcpClientDispatcher : spawns
 TcpClientDispatcher ..> AuthenticationContext : authenticates via
 TcpClientDispatcher ..> AiSafeRoles : checks ATCC role
 TcpClientDispatcher ..> CollaboratorSessionHandler : delegates to
-CollaboratorSessionHandler ..> ListFleetController : LIST_FLEET
-CollaboratorSessionHandler ..> DeactivateFlightRouteController : LIST_ROUTES / DEACTIVATE_ROUTE
+CollaboratorSessionHandler ..> ListFleetController : LIST_FLEET (+ _BY_MODEL/MAKER/CAPACITY/AGE)
+CollaboratorSessionHandler ..> DecommissionAircraftController : DECOMMISSION_AIRCRAFT
 CollaboratorSessionHandler ..> CreateFlightRouteController : CREATE_ROUTE
+CollaboratorSessionHandler ..> DeactivateFlightRouteController : LIST_ROUTES / DEACTIVATE_ROUTE
+CollaboratorSessionHandler ..> ListPilotRosterController : LIST_PILOTS
+CollaboratorSessionHandler ..> RemovePilotController : REMOVE_PILOT
 
 @enduml

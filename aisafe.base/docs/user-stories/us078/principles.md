@@ -38,13 +38,21 @@ The `tcpserver` package imports no JPA class and no repository. Its only link to
 `CollaboratorSessionHandler` is the information expert for ATCC commands — it owns the knowledge of which commands are valid and how to dispatch each one to the right controller:
 
 ```java
-switch (command) {
-    case "LIST_FLEET"        -> handleListFleet();
-    case "LIST_ROUTES"       -> handleListRoutes();
-    case "DEACTIVATE_ROUTE"  -> handleDeactivateRoute(args);
-    case "CREATE_ROUTE"      -> handleCreateRoute(args);
-    case "EXIT"              -> { out.println("BYE"); return; }
-    default                  -> out.println("UNKNOWN_COMMAND");
+final String verb = command.split(" ", 2)[0];
+switch (verb) {
+    case "LIST_FLEET"            -> handleListFleet();
+    case "LIST_FLEET_BY_MODEL"   -> handleFleetByModel(command);
+    case "LIST_FLEET_BY_MAKER"   -> handleFleetByMaker(command);
+    case "LIST_FLEET_BY_CAPACITY"-> handleFleetByCapacity(command);
+    case "LIST_FLEET_BY_AGE"     -> handleFleetByAge(command);
+    case "DECOMMISSION_AIRCRAFT" -> handleDecommissionAircraft(command);
+    case "LIST_ROUTES"           -> handleListRoutes();
+    case "CREATE_ROUTE"          -> handleCreateRoute(command);
+    case "DEACTIVATE_ROUTE"      -> handleDeactivateRoute(command);
+    case "LIST_PILOTS"           -> handleListPilots();
+    case "REMOVE_PILOT"          -> handleRemovePilot(command);
+    case "EXIT"                  -> { out.println("BYE"); return; }
+    default                      -> out.println("UNKNOWN_COMMAND");
 }
 ```
 
@@ -145,7 +153,8 @@ if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
 
 ```java
 public boolean login(final String username, final String password) throws IOException {
-    out.println("LOGIN " + username + " " + password);
+    // the 4th token declares the ATCC service to the shared dispatcher (US078, AC078.4)
+    out.println("LOGIN " + username + " " + password + " ATCC");
     return "OK".equals(in.readLine());
 }
 
