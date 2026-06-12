@@ -262,17 +262,41 @@ The implementation is distributed across the following packages in `aisafe.base`
 | `aisafe.app.collaborator`       | `CollaboratorTcpClientApp`         | Standalone client entry point; interactive ATCC menu; emits UDP log events                 |
 | `aisafe.app.console`            | `AiSafeConsoleApp` *(existing)*    | Already starts `AiSafeTcpServer` in a daemon thread                                        |
 
-The `ATCC` branch added to `TcpClientDispatcher` (the OCP extension point already present for `PILOT`):
+The `ATCC` branch added to `TcpClientDispatcher`. Routing is driven by the optional **service
+token** (the 4th token of the `LOGIN` line), the OCP extension point already present for the
+other remote-access apps. The US086 pilot client omits the token (3-token `LOGIN`), so its
+legacy path is preserved:
 
 ```java
-if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
-    out.println("OK");
-    new PilotSessionHandler(in, out).handle();
-} else if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {     // US078
-    out.println("OK");
-    new CollaboratorSessionHandler(in, out).handle();
-} else {
-    out.println("UNAUTHORIZED");
+// LOGIN <username> <password> [service]  — the optional 4th token selects the service.
+final String service = parts.length >= 4 ? parts[3].trim() : "";
+
+if (!AuthenticationContext.authenticate(username, password)) {
+    out.println("FAIL invalid credentials");
+    return;
+}
+
+if ("ATCC".equals(service)) {                            // US078 — Air Transport Company App
+    if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
+        out.println("OK");
+        new CollaboratorSessionHandler(in, out).handle();
+    } else {
+        out.println("UNAUTHORIZED");
+    }
+} else if ("WEATHER".equals(service)) {                  // US044 — Weather Person App
+    if (AuthenticationContext.hasRole(AiSafeRoles.WEATHER_PERSON)) {
+        out.println("OK");
+        new WeatherPersonSessionHandler(in, out).handle();
+    } else {
+        out.println("UNAUTHORIZED");
+    }
+} else {                                                 // US086 — Pilot App / no token declared
+    if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
+        out.println("OK");
+        new PilotSessionHandler(in, out).handle();
+    } else {
+        out.println("UNAUTHORIZED");
+    }
 }
 ```
 

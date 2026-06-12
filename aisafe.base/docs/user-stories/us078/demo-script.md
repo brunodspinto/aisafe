@@ -33,7 +33,7 @@ $env:JAVA_HOME = "C:\Users\hugom\.jdks\ms-21.0.11"
 cd "C:\Users\hugom\Documents\GitHub\sem4pi2526-sem4pi2526_2dc2\aisafe.base"
 & "C:\Program Files\JetBrains\IntelliJ IDEA 2024.3.2.2\plugins\maven\lib\maven3\bin\mvn.cmd" "-Dtest=CollaboratorSessionHandlerTest,CollaboratorSessionHandlerIT,RemoteAccessLoggerTest" test
 ```
-**Say:** "14 US078 tests — unit (in-memory streams), integration (real socket) and the UDP logging — all green."
+**Say:** "21 US078 tests — 13 unit (in-memory streams), 5 integration (real socket) and 3 UDP logging — all green."
 
 ---
 
@@ -80,7 +80,7 @@ Each scenario = a fresh run of `CollaboratorTcpClientApp` (Window C). Inputs: ho
    --- Fleet (1) ---
    CS-TUA | 737-800 | Boeing | 2018 | ACTIVE
    ```
-5. Option **2 (List Flight Routes):**
+5. Option **7 (List Flight Routes):**
    ```
    --- Routes (2) ---
    TP100 | LIS | OPO | ACTIVE
@@ -92,11 +92,11 @@ Each scenario = a fresh run of `CollaboratorTcpClientApp` (Window C). Inputs: ho
 > The company (TAP) is resolved from the authenticated session."
 
 ### 🟢 AC078.3 — Write command (US074)
-6. Option **3 (Deactivate)** → Route `TP100`, date `2026-12-01`:
+6. Option **9 (Deactivate)** → Route `TP100`, date `2026-12-01`:
    ```
    OK TP100 deactivated from 2026-12-01
    ```
-7. Option **2** again → now only `TP200` (TP100 became inactive):
+7. Option **7** again → now only `TP200` (TP100 became inactive):
    ```
    --- Routes (1) ---
    TP200 | OPO | LIS | ACTIVE
@@ -105,7 +105,7 @@ Each scenario = a fresh run of `CollaboratorTcpClientApp` (Window C). Inputs: ho
 > **Say:** "Remote write works and is reflected in the state."
 
 ### 🟢 AC078.3 — Business rule enforced over TCP (AC074.3)
-8. Option **3 (Deactivate)** → Route `TP200`, date `2026-08-01`:
+8. Option **9 (Deactivate)** → Route `TP200`, date `2026-08-01`:
    ```
    ERROR Cannot deactivate: there are planned flights on this route from 2026-08-01 onwards.
    ```
@@ -115,7 +115,7 @@ Each scenario = a fresh run of `CollaboratorTcpClientApp` (Window C). Inputs: ho
 > `CollaboratorSessionHandler` only parsed and delegated."
 
 ### 🟢 AC078.3 — Create route (US073)
-9. Option **4 (Create Route)** → `TP300` / `LIS` / `OPO`:
+9. Option **8 (Create Route)** → `TP300` / `LIS` / `OPO`:
    ```
    OK TP300
    ```

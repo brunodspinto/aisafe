@@ -216,14 +216,14 @@ void ensureMultipleCommandsOverRealSocketAreHandledInSequence() throws Exception
 
 Location: `src/test/java/aisafe/app/logging/RemoteAccessLoggerTest.java`
 
-Verifies the client-side UDP datagram payload format (US090). A `DatagramSocket` bound to a random loopback port receives the datagram and the test asserts the pipe-delimited fields.
+Verifies the client-side UDP datagram payload format (US090). A `DatagramSocket` bound to a random loopback port receives the datagram and the test asserts the pipe-delimited fields. The `serviceId` (e.g. `US78`/`US86`) is set in the `RemoteAccessLogger` constructor, not passed to `log()`.
 
 **Test:** `ensureLoginSuccessDatagramHasExpectedFormat`
 
 ```java
 @Test
 void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
-    // serviceId "US78" is set in the RemoteAccessLogger constructor, not passed to log()
+    final RemoteAccessLogger logger = new RemoteAccessLogger("127.0.0.1", port, "US78");
     logger.log("atcc1", "127.0.0.1", 50231, "LOGIN_SUCCESS");
     final String[] fields = receiveOnePacket().split("\\|");   // blocks on the test DatagramSocket
     assertEquals(6, fields.length);
@@ -232,6 +232,28 @@ void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
     assertEquals("50231", fields[3].trim());
     assertEquals("US78", fields[4].trim());
     assertEquals("LOGIN_SUCCESS", fields[5].trim());
+}
+```
+
+**Test:** `ensureEventNameIsCarriedInPayload` — the `EVENT` field (position 6) carries the event name passed to `log()`.
+
+```java
+@Test
+void ensureEventNameIsCarriedInPayload() throws Exception {
+    final RemoteAccessLogger logger = new RemoteAccessLogger("127.0.0.1", port, "US78");
+    logger.log("atcc2", "10.0.0.5", 40000, "CONNECTION_LOST");
+    assertEquals("CONNECTION_LOST", receiveOnePacket().split("\\|")[5].trim());
+}
+```
+
+**Test:** `ensureServiceIdIsCarriedInPayload` — the `serviceId` (position 5) is the one set in the constructor, confirming the same logger is reusable by US044/US078/US086.
+
+```java
+@Test
+void ensureServiceIdIsCarriedInPayload() throws Exception {
+    final RemoteAccessLogger logger = new RemoteAccessLogger("127.0.0.1", port, "US86");
+    logger.log("pilot1", "10.0.0.9", 41000, "LOGIN_SUCCESS");
+    assertEquals("US86", receiveOnePacket().split("\\|")[4].trim());
 }
 ```
 
@@ -244,7 +266,7 @@ void ensureLoginSuccessDatagramHasExpectedFormat() throws Exception {
 - **AC078.3** (ATCC USs available remotely): route tests (`ensureDeactivateRouteWithoutArgumentsReturnsError`, `ensureDeactivateRouteWithInvalidDateReturnsError`, `ensureCreateRouteWithMissingFieldsReturnsError`) + fleet-filter & pilot tests (`ensureFleetByModelWithoutArgumentReturnsError`, `ensureFleetByCapacityWithInvalidNumberReturnsError`, `ensureFleetByAgeWithInvalidNumberReturnsError`, `ensureDecommissionAircraftWithoutRegistrationReturnsError`, `ensureRemovePilotWithoutIdReturnsError`, `ensureRemovePilotWithInvalidIdReturnsError`) + manual tests (valid LIST_FLEET / filters / LIST_PILOTS / DECOMMISSION / REMOVE_PILOT flows)
 - **AC078.4** (authentication and authorization): manual tests (wrong password → `FAIL`; non-ATCC role → `UNAUTHORIZED`)
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
-- **Client-side UDP logging (US090 dependency)**: `ensureLoginSuccessDatagramHasExpectedFormat`
+- **Client-side UDP logging (US090 dependency)**: `ensureLoginSuccessDatagramHasExpectedFormat`, `ensureEventNameIsCarriedInPayload`, `ensureServiceIdIsCarriedInPayload`
 
 ---
 
