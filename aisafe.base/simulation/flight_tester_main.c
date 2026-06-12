@@ -60,6 +60,7 @@ static void sigusr1_handler(int sig) {
  * reliably on Linux/macOS; this is best-effort cleanup on abnormal termination. */
 static void sigterm_handler(int sig) {
     (void)sig;
+    if (g_child_pid > 0)     kill(g_child_pid, SIGKILL); /* prevent orphan child */
     if (g_sem_name[0])       sem_unlink(g_sem_name);
     if (g_shm_mutex_name[0]) sem_unlink(g_shm_mutex_name);
     if (g_shm_name[0])       shm_unlink(g_shm_name);
@@ -296,6 +297,7 @@ int main(int argc, char *argv[]) {
 
     if (g_child_pid == 0) {
         /* ---- Child process ---- */
+        signal(SIGTERM, SIG_DFL); /* child dies cleanly; parent owns IPC cleanup */
         close(pfd[0]);  /* close unused read end */
         child_simulate(plan, pfd[1], go_sem, shm_mutex, (aircraft_position_t *)shm_ptr);
         /* child_simulate calls exit() */
