@@ -69,7 +69,7 @@ package "Domain Layer" {
 
 package "Repository Layer" {
     interface FlightRouteRepository {
-        +findActiveByCompany(company : AirTransportCompany) : Iterable<FlightRoute>
+        +findActiveByCompany(companyIataCode : IATACode) : Iterable<FlightRoute>
         +ofIdentity(name : RouteName) : Optional<FlightRoute>
         +save(route : FlightRoute) : FlightRoute
     }

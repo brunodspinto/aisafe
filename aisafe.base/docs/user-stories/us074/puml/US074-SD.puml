@@ -63,7 +63,7 @@ CTRL -> COMPANY_REPO : ofIdentity(collaborator.companyIataCode())
 activate COMPANY_REPO
 COMPANY_REPO --> CTRL : company
 deactivate COMPANY_REPO
-CTRL -> ROUTE_REPO : findActiveByCompany(company)
+CTRL -> ROUTE_REPO : findActiveByCompany(company.identity())
 activate ROUTE_REPO
 ROUTE_REPO --> CTRL : activeRoutes
 deactivate ROUTE_REPO
