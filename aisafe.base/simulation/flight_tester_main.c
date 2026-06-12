@@ -39,7 +39,12 @@
 /* ---- global state (written by SIGUSR1 handler, read by main) ---- */
 
 static volatile pid_t   g_child_pid      = -1;
-static volatile int     g_sigusr1_fired  = 0;
+static volatile sig_atomic_t g_sigusr1_fired  = 0;
+
+/* IPC resource names stored for SIGTERM cleanup (written before handlers are installed) */
+static char g_sem_name[64]       = "";
+static char g_shm_mutex_name[64] = "";
+static char g_shm_name[64]       = "";
 
 static void sigusr1_handler(int sig) {
     (void)sig;
@@ -47,6 +52,18 @@ static void sigusr1_handler(int sig) {
     if (g_child_pid > 0) {
         kill(g_child_pid, SIGTERM);
     }
+}
+
+/* Handles SIGTERM (sent by Java on timeout via process.destroy()).
+ * Unlinks named IPC objects so they are not leaked in /dev/shm, then exits.
+ * sem_unlink/shm_unlink are not in the POSIX async-signal-safe list but work
+ * reliably on Linux/macOS; this is best-effort cleanup on abnormal termination. */
+static void sigterm_handler(int sig) {
+    (void)sig;
+    if (g_sem_name[0])       sem_unlink(g_sem_name);
+    if (g_shm_mutex_name[0]) sem_unlink(g_shm_mutex_name);
+    if (g_shm_name[0])       shm_unlink(g_shm_name);
+    _exit(1);
 }
 
 /* ---- coordinator thread state ---- */
@@ -88,7 +105,7 @@ static void *coordinator_thread(void *arg) {
 /* ---- child: simulate flight step by step ---- */
 
 static void child_simulate(flight_plan_t *plan, int pipe_write_fd, sem_t *go_sem,
-                            aircraft_position_t *shm_pos) {
+                            sem_t *shm_mutex, aircraft_position_t *shm_pos) {
     for (int li = 0; li < plan->leg_count; li++) {
         leg_t *leg = &plan->legs[li];
         for (int si = 0; si < leg->segment_count; si++) {
@@ -113,9 +130,11 @@ static void child_simulate(flight_plan_t *plan, int pipe_write_fd, sem_t *go_sem
                 exit(1);
             }
 
-            /* Update shared memory with latest position */
+            /* Update shared memory with latest position (mutex-protected per SCOMP T6) */
             if (shm_pos) {
+                sem_wait(shm_mutex);
                 memcpy(shm_pos, &pos, sizeof(pos));
+                sem_post(shm_mutex);
             }
 
             /* Wait for GO signal from coordinator (step synchronisation) */
@@ -165,9 +184,11 @@ int main(int argc, char *argv[]) {
 
     /* ---- IPC resource names (pid-suffixed to avoid collisions) ---- */
     char sem_name[64];
+    char shm_mutex_name[64];
     char shm_name[64];
-    snprintf(sem_name, sizeof(sem_name), "/fp_test_%d", (int)getpid());
-    snprintf(shm_name, sizeof(shm_name), "/fp_shm_%d",  (int)getpid());
+    snprintf(sem_name,       sizeof(sem_name),       "/fp_test_%d",  (int)getpid());
+    snprintf(shm_mutex_name, sizeof(shm_mutex_name), "/fp_shm_m_%d", (int)getpid());
+    snprintf(shm_name,       sizeof(shm_name),       "/fp_shm_%d",   (int)getpid());
 
     /* ---- Named semaphore (initial value 0 — child waits, coordinator posts GO) ---- */
     sem_t *go_sem = sem_open(sem_name, O_CREAT | O_EXCL, 0600, 0);
@@ -223,12 +244,39 @@ int main(int argc, char *argv[]) {
     }
     memset(shm_ptr, 0, sizeof(aircraft_position_t));
 
+    /* ---- Named semaphore for shared-memory write protection (init=1 → binary mutex) ---- */
+    sem_t *shm_mutex = sem_open(shm_mutex_name, O_CREAT | O_EXCL, 0600, 1);
+    if (shm_mutex == SEM_FAILED) {
+        perror("sem_open shm_mutex");
+        munmap(shm_ptr, sizeof(aircraft_position_t));
+        close(pfd[0]); close(pfd[1]);
+        sem_close(go_sem); sem_unlink(sem_name);
+        shm_unlink(shm_name);
+        printf("{\"identifier\":\"%s\",\"status\":\"FAIL\","
+               "\"reason\":\"sem_open shm_mutex failed\"}\n", identifier);
+        for (int i = 0; i < n_plans; i++) { free(plans[i].legs); }
+        free(plans);
+        return 1;
+    }
+
+    /* Publish IPC names for signal handlers before installing them */
+    strncpy(g_sem_name,       sem_name,       sizeof(g_sem_name)       - 1);
+    strncpy(g_shm_mutex_name, shm_mutex_name, sizeof(g_shm_mutex_name) - 1);
+    strncpy(g_shm_name,       shm_name,       sizeof(g_shm_name)       - 1);
+
     /* ---- SIGUSR1 handler (external abort) ---- */
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = sigusr1_handler;
     sigemptyset(&sa.sa_mask);
     sigaction(SIGUSR1, &sa, NULL);
+
+    /* ---- SIGTERM handler (Java timeout: destroy() → graceful IPC cleanup) ---- */
+    struct sigaction sa_term;
+    memset(&sa_term, 0, sizeof(sa_term));
+    sa_term.sa_handler = sigterm_handler;
+    sigemptyset(&sa_term.sa_mask);
+    sigaction(SIGTERM, &sa_term, NULL);
 
     /* ---- Fork child ---- */
     g_child_pid = fork();
@@ -237,6 +285,7 @@ int main(int argc, char *argv[]) {
         munmap(shm_ptr, sizeof(aircraft_position_t));
         close(pfd[0]); close(pfd[1]);
         sem_close(go_sem); sem_unlink(sem_name);
+        sem_close(shm_mutex); sem_unlink(shm_mutex_name);
         shm_unlink(shm_name);
         printf("{\"identifier\":\"%s\",\"status\":\"FAIL\","
                "\"reason\":\"fork failed\"}\n", identifier);
@@ -248,7 +297,7 @@ int main(int argc, char *argv[]) {
     if (g_child_pid == 0) {
         /* ---- Child process ---- */
         close(pfd[0]);  /* close unused read end */
-        child_simulate(plan, pfd[1], go_sem, (aircraft_position_t *)shm_ptr);
+        child_simulate(plan, pfd[1], go_sem, shm_mutex, (aircraft_position_t *)shm_ptr);
         /* child_simulate calls exit() */
         exit(0);
     }
@@ -283,6 +332,7 @@ int main(int argc, char *argv[]) {
         munmap(shm_ptr, sizeof(aircraft_position_t));
         close(pfd[0]);
         sem_close(go_sem); sem_unlink(sem_name);
+        sem_close(shm_mutex); sem_unlink(shm_mutex_name);
         shm_unlink(shm_name);
         printf("{\"identifier\":\"%s\",\"status\":\"FAIL\","
                "\"reason\":\"pthread_create failed\"}\n", identifier);
@@ -308,11 +358,19 @@ int main(int argc, char *argv[]) {
         child_exit = 1;
     }
 
+    /* Read final position from shared memory.
+     * Child has exited; no concurrent writer, so no synchronisation needed here. */
+    aircraft_position_t shm_last;
+    memset(&shm_last, 0, sizeof(shm_last));
+    memcpy(&shm_last, shm_ptr, sizeof(shm_last));
+
     /* ---- Cleanup IPC ---- */
     close(pfd[0]);
     munmap(shm_ptr, sizeof(aircraft_position_t));
     sem_close(go_sem);
     sem_unlink(sem_name);
+    sem_close(shm_mutex);
+    sem_unlink(shm_mutex_name);
     shm_unlink(shm_name);
 
     /* ---- Free parsed plans ---- */
@@ -328,8 +386,10 @@ int main(int argc, char *argv[]) {
 
     /* ---- Output result ---- */
     if (child_exit == 0) {
-        printf("{\"identifier\":\"%s\",\"status\":\"PASS\",\"steps\":%d}\n",
-               identifier, history_count);
+        printf("{\"identifier\":\"%s\",\"status\":\"PASS\",\"steps\":%d,"
+               "\"last_lat\":%.6f,\"last_lon\":%.6f}\n",
+               identifier, history_count,
+               shm_last.latitude, shm_last.longitude);
         return 0;
     } else {
         const char *reason = g_sigusr1_fired

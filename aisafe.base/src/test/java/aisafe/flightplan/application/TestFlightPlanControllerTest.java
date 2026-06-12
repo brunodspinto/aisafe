@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -114,5 +115,27 @@ class TestFlightPlanControllerTest {
         final List<FlightPlan> result = controller.listValidatedDslPlans();
 
         assertTrue(result.isEmpty());
+    }
+
+    // ---- testFlightPlan guard conditions (via package-private executeTestFlightPlan) ----
+
+    @Test
+    void testFlightPlan_throwsIllegalArgumentWhenPlanNotFound() {
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.executeTestFlightPlan("NOTEXIST"));
+    }
+
+    @Test
+    void testFlightPlan_throwsIllegalStateWhenPlanNotValidated() {
+        repo.save(dslDraftPlan("TP2001")); // DRAFT status — cannot be tested
+        assertThrows(IllegalStateException.class,
+                () -> controller.executeTestFlightPlan("TP2001"));
+    }
+
+    @Test
+    void testFlightPlan_throwsIllegalStateWhenDslContentIsNull() {
+        repo.save(formBasedValidatedPlan("TP2001")); // VALIDATED but dslContent == null
+        assertThrows(IllegalStateException.class,
+                () -> controller.executeTestFlightPlan("TP2001"));
     }
 }

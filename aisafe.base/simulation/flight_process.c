@@ -21,6 +21,7 @@
 #include "types.h"
 #include "shared_memory.h"
 #include "flight_process.h"
+#include "environment.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -171,6 +172,9 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
                 alt += vz * STEP_SECONDS;
                 if (is_climb   && alt > alt_target) alt = alt_target;
                 if (is_descend && alt < alt_target) alt = alt_target;
+
+                /* US110: apply lateral wind drift — affects lat/lon only, not dist_covered_m/alt */
+                apply_wind_drift(&lat, &lon, segment, STEP_SECONDS);
 
                 /* US105: escrever posição em shared memory e sinalizar coordinator */
                 aircraft_position_t pos;

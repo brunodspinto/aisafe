@@ -59,7 +59,7 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
 
     int num_flight_plans = cJSON_GetArraySize(root);
     *num_flight_plans_out = num_flight_plans;
-    flight_plan_t *flight_plans = (flight_plan_t *)malloc(num_flight_plans * sizeof(flight_plan_t));
+    flight_plan_t *flight_plans = (flight_plan_t *)calloc(num_flight_plans, sizeof(flight_plan_t));
     if (!flight_plans) {
         fprintf(stderr, "Failed to allocate memory for flight plans.\n");
         cJSON_Delete(root);
@@ -86,11 +86,13 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
         cJSON *legs_json = cJSON_GetObjectItemCaseSensitive(flight_plan_json, "legs");
         if (cJSON_IsArray(legs_json)) {
             current_plan->leg_count = cJSON_GetArraySize(legs_json);
-            current_plan->legs = (leg_t *)malloc(current_plan->leg_count * sizeof(leg_t));
+            current_plan->legs = (leg_t *)calloc(current_plan->leg_count, sizeof(leg_t));
             if (!current_plan->legs) {
                 fprintf(stderr, "Failed to allocate memory for legs.\n");
-                // Cleanup previously allocated memory
                 for (int j = 0; j < i; j++) {
+                    for (int k = 0; k < flight_plans[j].leg_count; k++) {
+                        free(flight_plans[j].legs[k].segments);
+                    }
                     free(flight_plans[j].legs);
                 }
                 free(flight_plans);
@@ -106,10 +108,20 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
                 cJSON *segments_json = cJSON_GetObjectItemCaseSensitive(leg_json, "segments");
                 if (cJSON_IsArray(segments_json)) {
                     current_leg->segment_count = cJSON_GetArraySize(segments_json);
-                    current_leg->segments = (segment_t *)malloc(current_leg->segment_count * sizeof(segment_t));
-                     if (!current_leg->segments) {
+                    current_leg->segments = (segment_t *)calloc(current_leg->segment_count, sizeof(segment_t));
+                    if (!current_leg->segments) {
                         fprintf(stderr, "Failed to allocate memory for segments.\n");
-                        // Complex cleanup needed here, simplified for brevity
+                        for (int l = 0; l < j; l++) {
+                            free(current_plan->legs[l].segments);
+                        }
+                        free(current_plan->legs);
+                        for (int p = 0; p < i; p++) {
+                            for (int l = 0; l < flight_plans[p].leg_count; l++) {
+                                free(flight_plans[p].legs[l].segments);
+                            }
+                            free(flight_plans[p].legs);
+                        }
+                        free(flight_plans);
                         cJSON_Delete(root);
                         return -1;
                     }
@@ -146,6 +158,13 @@ int parse_flight_plans_from_json(const char *filename, flight_plan_t **flight_pl
                             strncpy(current_segment->mode, "cruise",
                                     sizeof(current_segment->mode) - 1);
                         }
+
+                        /* US110: parse wind data (default 0 when absent — backward compatible) */
+                        cJSON *wind_dir = cJSON_GetObjectItemCaseSensitive(segment_json, "wind_dir_deg");
+                        current_segment->wind_direction = cJSON_IsNumber(wind_dir) ? wind_dir->valuedouble : 0.0;
+
+                        cJSON *wind_spd = cJSON_GetObjectItemCaseSensitive(segment_json, "wind_speed_mps");
+                        current_segment->wind_speed = cJSON_IsNumber(wind_spd) ? wind_spd->valuedouble : 0.0;
 
                         k++;
                     }

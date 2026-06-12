@@ -100,7 +100,15 @@ public class TestFlightPlanController {
      */
     public FlightPlan testFlightPlan(final String designator) throws IOException {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT);
+        return executeTestFlightPlan(designator);
+    }
 
+    /**
+     * Implements the test-flight-plan business logic without an authorisation check.
+     * Package-private so unit tests can exercise the guard conditions directly, without
+     * needing a live auth context or a C binary on the test classpath.
+     */
+    FlightPlan executeTestFlightPlan(final String designator) throws IOException {
         final FlightPlan plan = repository
                 .ofIdentity(FlightPlanDesignator.valueOf(designator.trim().toUpperCase()))
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -169,7 +177,18 @@ public class TestFlightPlanController {
                 throw new RuntimeException("Flight tester interrupted while waiting.", e);
             }
             if (!finished) {
-                process.destroyForcibly();
+                // SIGTERM first — gives the C binary a chance to unlink named IPC objects.
+                process.destroy();
+                boolean terminated;
+                try {
+                    terminated = process.waitFor(5, TimeUnit.SECONDS);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    terminated = false;
+                }
+                if (!terminated) {
+                    process.destroyForcibly(); // SIGKILL — last resort
+                }
                 throw new RuntimeException(
                         "Flight tester timed out after " + TIMEOUT_SECONDS + " seconds.");
             }

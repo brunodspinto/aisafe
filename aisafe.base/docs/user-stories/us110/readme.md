@@ -1,9 +1,7 @@
 # US110 — Integrate Environmental Influences into Simulation
 
-> **Status:** design / planned. This document describes the intended
-> implementation of US110. The acceptance criteria are marked *Planned* and the
-> file list in §5 describes the files to be created/modified — they are flipped to
-> *Done* once the code is committed.
+> **Status:** implemented. The acceptance criteria are marked *Done* and all
+> files listed in §5 have been created/modified.
 
 ## 1. Context
 
@@ -47,10 +45,10 @@ V10. They should be confirmed with the PO/assignment.
 
 | ID | Criterion (derived) | Where it will be met | Status |
 |----|---------------------|----------------------|--------|
-| AC110.1 | The simulation reads the **environmental data (wind direction and speed)** defined for each flight segment. | `flight_parser.c` parses `wind_dir_deg`→`wind_direction` and `wind_speed_mps`→`wind_speed` into `segment_t` (default 0 when absent) | Planned |
-| AC110.2 | The wind **alters the path actually taken** by each aircraft (its position deviates from the planned route). | `environment.c` (`apply_wind_drift`) applies a per-step lateral drift, called from `flight_process.c` | Planned |
-| AC110.3 | The environmental influence is applied **per simulation step**, inside each flight process, consistently with the step synchronisation (US108). | `apply_wind_drift(&lat,&lon,segment,STEP_SECONDS)` inside the per-step loop of `flight_process.c` | Planned |
-| AC110.4 | Wind-induced deviations are subject to the same **Safety Cylinder verification**, so resulting violations are detected, logged and signalled in real time (US102/US107). | no change required — the drifted position flows child → shared memory → `safety_thread` → US107 | Planned |
+| AC110.1 | The simulation reads the **environmental data (wind direction and speed)** defined for each flight segment. | `flight_parser.c` parses `wind_dir_deg`→`wind_direction` and `wind_speed_mps`→`wind_speed` into `segment_t` (default 0 when absent) | Done |
+| AC110.2 | The wind **alters the path actually taken** by each aircraft (its position deviates from the planned route). | `environment.c` (`apply_wind_drift`) applies a per-step lateral drift, called from `flight_process.c` | Done |
+| AC110.3 | The environmental influence is applied **per simulation step**, inside each flight process, consistently with the step synchronisation (US108). | `apply_wind_drift(&lat,&lon,segment,STEP_SECONDS)` inside the per-step loop of `flight_process.c` | Done |
+| AC110.4 | Wind-induced deviations are subject to the same **Safety Cylinder verification**, so resulting violations are detected, logged and signalled in real time (US102/US107). | no change required — the drifted position flows child → shared memory → `safety_thread` → US107 | Done |
 
 ### Dependencies / References
 
