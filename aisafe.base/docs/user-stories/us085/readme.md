@@ -70,11 +70,6 @@ The `FlightPlan` aggregate already defines the `TESTED` status and the `markTest
 
 ## 3. Analysis
 
-The system-level interaction between the Pilot and the system:
-
-![System Sequence Diagram](svg/US085-SSD.svg)
-> Source: [puml/US085-SSD.puml](puml/US085-SSD.puml)
-
 The `FlightPlan` aggregate is the central concept. It already supports the full lifecycle
 (`DRAFT` → `VALIDATED` → `TESTED`) and exposes `markTested()`. No new aggregates or value
 objects are required — this US completes the lifecycle that US080/US081 designed.

@@ -29,11 +29,6 @@ It depends on US075 (Add Pilot) which must have registered at least one pilot, a
 
 ## 3. Analysis
 
-The system-level interaction between the Air Transport Company Collaborator and the system:
-
-![System Sequence Diagram](svg/US076-SSD.svg)
-> Source: [puml/US076-SSD.puml](puml/US076-SSD.puml)
-
 The `PilotRepository` already exposes `findByAirTransportCompany(company)`, which returns all pilots for a given company. The controller resolves the authenticated user's company via a two-step lookup — `CollaboratorRepository.findBySystemUser()` returns the collaborator's IATA code, then `AirTransportCompanyRepository.ofIdentity(iataCode)` resolves it to the `AirTransportCompany` aggregate root (identical pattern used by `AddPilotController`). The full pilot list is then retrieved and the selected filter is applied in memory.
 
 **Pilot ↔ AircraftModel relationship (DDD cross-aggregate reference by identity):**

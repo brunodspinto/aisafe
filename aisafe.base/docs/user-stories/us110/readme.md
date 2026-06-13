@@ -108,18 +108,6 @@ already represents.
 
 ## 4. Design
 
-### 4.0 Diagrams
-
-System sequence diagram (operator ↔ simulation, with wind):
-
-![System Sequence Diagram](svg/US110-SSD.svg)
-> Source: [puml/US110-SSD.puml](puml/US110-SSD.puml)
-
-Internal sequence — wind publication by the environment thread and lateral drift in each flight child:
-
-![Sequence Diagram](svg/US110-SD.svg)
-> Source: [puml/US110-SD.puml](puml/US110-SD.puml)
-
 ### 4.1 Wind drift model (`environment.h` / `environment.c`)
 
 The wind is a horizontal vector applied as a **lateral drift** added to the

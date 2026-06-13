@@ -31,11 +31,6 @@ A non-functional requirement (Supplementary Specification — Supportability) st
 
 ## 3. Analysis
 
-The system-level interaction between the Weather Person and the system:
-
-![System Sequence Diagram](svg/US042-SSD.svg)
-> Source: [puml/US042-SSD.puml](puml/US042-SSD.puml)
-
 The `WeatherData` aggregate and `WeatherSource` value object from US041 require no changes. The controller resolves the authenticated user's role, delegates file parsing to a `WeatherDataParser` implementation, validates each parsed record against the `AirControlAreaRepository`, and persists valid records via `WeatherDataRepository.save()`. The cross-aggregate reference pattern remains unchanged: `WeatherData` stores only the area code string, not an entity reference.
 
 The extensibility requirement is fulfilled at the application layer: `WeatherDataParser` is an interface; `CsvWeatherDataParser` is the sole implementation for now. Adding a new format requires only a new class implementing that interface — no domain or repository changes.
