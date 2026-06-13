@@ -311,8 +311,13 @@ int main(int argc, char *argv[]) {
     static aircraft_position_t history[MAX_POSITIONS];
     static int                 history_count = 0;
 
-    pthread_mutex_t mutex     = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t  done_cond = PTHREAD_COND_INITIALIZER;
+    /* Stack-allocated sync primitives MUST be runtime-initialised: POSIX only
+     * guarantees the PTHREAD_*_INITIALIZER macros for objects with static storage
+     * duration. (Consistent with the US105 shared-memory simulator.) */
+    pthread_mutex_t mutex;
+    pthread_cond_t  done_cond;
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&done_cond, NULL);
 
     coord_args_t coord_args = {
         .pipe_read_fd  = pfd[0],
@@ -336,6 +341,8 @@ int main(int argc, char *argv[]) {
         sem_close(go_sem); sem_unlink(sem_name);
         sem_close(shm_mutex); sem_unlink(shm_mutex_name);
         shm_unlink(shm_name);
+        pthread_mutex_destroy(&mutex);
+        pthread_cond_destroy(&done_cond);
         printf("{\"identifier\":\"%s\",\"status\":\"FAIL\","
                "\"reason\":\"pthread_create failed\"}\n", identifier);
         for (int i = 0; i < n_plans; i++) { free(plans[i].legs); }
@@ -354,6 +361,8 @@ int main(int argc, char *argv[]) {
     int child_status = 0;
     waitpid(g_child_pid, &child_status, 0);
     pthread_join(coord_thread, NULL);
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&done_cond);
 
     int child_exit = (WIFEXITED(child_status)) ? WEXITSTATUS(child_status) : 1;
     if (g_sigusr1_fired) {

@@ -68,7 +68,14 @@ Two approaches for the parent's internal structure were considered:
 | Thread | Responsibility | Synchronization |
 |--------|---------------|-----------------|
 | `coordinator_thread` | Collect positions via `pos_sems`, run safety checks (US102), send GO/STOP via `ctrl_sems`, signal report thread at end | Named semaphores (inter-process), mutex + condition variable (intra-process) |
+| `safety_thread` | Dedicated real-time safety-violation detection/notification channel (US106/US107), kept off the coordinator's critical path | `pthread_cond_wait` on the notification mutex/condition |
 | `report_thread` | Wait for end-of-simulation signal, then generate final report (US109) | `pthread_cond_wait` on `g_done_cond` |
+
+> **Note:** US105 establishes the multi-threaded parent with the `coordinator_thread`
+> and `report_thread`. The third thread, `safety_thread`, is **integrated from US106**
+> (real-time safety detection). The current `main.c` therefore spawns **three** parent
+> threads — `safety_tid`, `coordinator_tid`, `report_tid` — joined in that order before
+> the children are reaped.
 
 ### 3.3 Semaphore design
 

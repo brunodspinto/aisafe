@@ -447,3 +447,13 @@ mvn -f aisafe.base/pom.xml exec:java
 - **TCP integration deferred** — US086 specifies that all Pilot USs must be remotely
   accessible. US085 will be added to `PilotSessionHandler` as a `TEST_FLIGHT_PLAN` command
   in a future sprint, following the same temporary-file pattern used for `CREATE_FLIGHT_PLAN`.
+- **IPC data path vs AC compliance** — the live position data flows child → **pipe** →
+  coordinator thread; the **shared-memory** segment carries only the *latest* position and is
+  read once at the end for the `last_lat`/`last_lon` output. The shm path therefore primarily
+  satisfies the AC085.4 requirement to exercise `shm_open`/`mmap`, while the pipe is the
+  load-bearing channel. Worth stating explicitly in the oral defence.
+- **Sync-primitive initialisation** — the parent's `mutex`/`done_cond` are stack-allocated and
+  are runtime-initialised with `pthread_mutex_init`/`pthread_cond_init` (and destroyed on
+  cleanup), not the `PTHREAD_*_INITIALIZER` macros — POSIX only guarantees those macros for
+  static storage. This aligns `flight_tester_main.c` with the same principle stated for the
+  US105 simulator.

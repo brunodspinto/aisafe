@@ -36,14 +36,15 @@ and the shared `flight_process.c` gains only a single call.
 > reflect realistic environmental effects and the resulting safety risks are
 > detected.
 
-### Acceptance Criteria
+### Acceptance Criteria — Proposed (pending PO confirmation)
 
-The `us110/readme.md` had no formal criteria; the criteria below are **derived**
-from the Sprint 3 assignment (*"Influence of climatic conditions on the path taken
-by the aircraft — evaluated as an integral part of US107"*) and from Domain Model
-V10. They should be confirmed with the PO/assignment.
+> ⚠️ **Status: PROPOSED.** The assignment defines no formal acceptance criteria for
+> US110. The criteria below are **derived** from the Sprint 3 statement (*"Influence of
+> climatic conditions on the path taken by the aircraft — evaluated as an integral part
+> of US107"*) and from Domain Model V10. **They are not yet ratified and must be
+> confirmed with the PO/assignment before being treated as binding.**
 
-| ID | Criterion (derived) | Where it will be met | Status |
+| ID | Criterion (proposed) | Where it will be met | Status |
 |----|---------------------|----------------------|--------|
 | AC110.1 | The simulation reads the **environmental data (wind direction and speed)** defined for each flight segment. | `flight_parser.c` parses `wind_dir_deg`→`wind_direction` and `wind_speed_mps`→`wind_speed` into `segment_t` (default 0 when absent) | Done |
 | AC110.2 | The wind **alters the path actually taken** by each aircraft (its position deviates from the planned route). | `environment.c` (`apply_wind_drift`) applies a per-step lateral drift, called from `flight_process.c` | Done |
