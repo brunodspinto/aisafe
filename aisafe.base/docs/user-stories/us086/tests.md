@@ -278,12 +278,39 @@ void ensurePilotLoginReturnsOK() throws Exception {
 
 ---
 
+**Test:** `ensureWeatherPersonLoginWithServiceTokenReturnsOK`
+
+```java
+@Test
+void ensureWeatherPersonLoginWithServiceTokenReturnsOK() throws Exception {
+    clientOut.println("LOGIN weather-disp-test Password1 WEATHER");
+    assertEquals("OK", clientIn.readLine());
+    clientOut.println("EXIT");
+    assertEquals("BYE", clientIn.readLine());
+}
+```
+
+---
+
+**Test:** `ensureWeatherPersonLoginWithoutServiceTokenReturnsUnauthorized`
+
+```java
+@Test
+void ensureWeatherPersonLoginWithoutServiceTokenReturnsUnauthorized() throws Exception {
+    // WEATHER_PERSON user without WEATHER token — dispatcher treats as Pilot path → UNAUTHORIZED
+    clientOut.println("LOGIN weather-disp-test Password1");
+    assertEquals("UNAUTHORIZED", clientIn.readLine());
+}
+```
+
+---
+
 ## Coverage by Acceptance Criterion
 
 - **AC086.1** (TCP client + command loop): `ensureExitCommandReturnsBye`, `ensureSessionHandlesUnknownCommandBeforeExit` + manual test (successful session)
 - **AC086.2** (no direct DB access from client): structural — `PilotTcpClientApp` has only JDK imports; verified by code inspection
 - **AC086.3** (Pilot USs available remotely): `ensureCreateFlightPlanWithoutByteLengthReturnsError`, `ensureCreateFlightPlanWithInvalidByteLengthReturnsError`, `ensureCreateFlightPlanWithNegativeByteLengthReturnsError`, `ensureInsertWeatherDataWithoutArgsReturnsError`, `ensureInsertWeatherDataWithMissingIdReturnsError`, `ensureInsertWeatherDataWithNonNumericIdReturnsError`, `ensureInsertWeatherDataWithNegativeIdReturnsError`, `ensureTestFlightPlanWithoutArgsReturnsError` + manual tests (valid flows)
-- **AC086.4** (authentication and authorization): `ensureInvalidCredentialsReturnFail`, `ensureNonPilotRoleReturnsUnauthorized`, `ensurePilotLoginReturnsOK`
+- **AC086.4** (authentication and authorization): `ensureInvalidCredentialsReturnFail`, `ensureNonPilotRoleReturnsUnauthorized`, `ensurePilotLoginReturnsOK`, `ensureWeatherPersonLoginWithServiceTokenReturnsOK`, `ensureWeatherPersonLoginWithoutServiceTokenReturnsUnauthorized`
 - **Protocol robustness**: `ensureUnknownCommandReturnsUnknownCommand`, `ensureMultipleUnknownCommandsAreEachRejected`
 
 ---
