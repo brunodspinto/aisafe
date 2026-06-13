@@ -64,6 +64,11 @@ public class CreateFlightRouteController {
 
         final RouteName routeName = new RouteName(routeNameStr.trim().toUpperCase());
 
+        final String iata = company.identity().toString().toUpperCase();
+        if (!routeName.name().startsWith(iata))
+            throw new IllegalArgumentException(
+                    "Route name must start with the company's IATA code '" + iata + "'.");
+
         if (flightRouteRepository.existsByName(routeName))
             throw new IllegalArgumentException(
                     "A flight route with name '" + routeName + "' already exists.");
