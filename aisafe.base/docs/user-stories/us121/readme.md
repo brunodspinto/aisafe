@@ -1,135 +1,149 @@
-# US121 — Create a valid flight plan from a file
+# US121 - Create a Flight Plan from a File
 
-## 1. Context
+## 1. Requirements
 
-This user story allows a Pilot to create a flight plan by uploading a file written in a specific Flight DSL (Domain-Specific Language). This provides an efficient alternative to manual data entry, especially for complex or standardized routes. The system must parse the file, validate its contents against business rules, and create a new `FlightPlan` entity.
-
----
-
-## 2. Requirements
-
-**US121** As a Pilot, I want to create a valid flight plan from a file so that I can formally submit a flight plan defined using the Flight DSL.
+**US121:** As a Pilot, I want to create a valid flight plan from a file so that I can
+formally submit a flight plan defined using the Flight DSL.
 
 **Acceptance Criteria:**
 
-- **AC121.1** The system must accept a text file with a specific extension (e.g., `.fpdsl`).
-- **AC121.2** The file's content must be parsed according to the defined Flight DSL grammar.
-- **AC121.3** If the file has syntax errors, the system must reject it and inform the user of the error.
-- **AC121.4** The data extracted from the file must be validated against all business rules applicable to a flight plan (e.g., valid aircraft, future departure time).
-- **AC121.5** If the data fails validation, the system must reject it and inform the user of the specific validation failure.
-- **AC121.6** Upon successful parsing and validation, a new `FlightPlan` must be created with the status "draft".
-
-**Dependencies/References:**
-
-- This US depends on **US030** for user authentication, as only a `PILOT` can perform this action.
-- It relies on the same `FlightPlan` entity and business rules defined in **US080**.
-- A formal grammar for the Flight DSL must be defined and available.
+| AC | Description |
+|----|-------------|
+| AC121.1 | The file must conform to the Flight DSL defined in US120. |
+| AC121.2 | The file is validated through lexical, syntactic, range and semantic analysis. |
+| AC121.3 | Invalid files produce meaningful error messages. |
+| AC121.4 | Only valid flight plans may be imported and used by the system. |
+| AC121.5 | Only authenticated Pilots can create flight plans from files. |
 
 ---
 
-## 3. Analysis
+## 2. Analysis
 
-This story introduces a new mechanism for creating `FlightPlan` entities but reuses the core domain model. The main addition is a parser responsible for interpreting the DSL.
+US121 reuses the Flight DSL pipeline delivered by US120. The application does not create a
+second flight-plan model for file imports; a valid DSL file is mapped to the existing
+`FlightPlan` aggregate through `FlightPlan.fromDsl(ast, dslContent)`.
 
-**Domain Model Impact:**
+The use case has four relevant checks before persistence:
 
-*   **`FlightPlanDSLParser`**: A new service or component responsible for reading the content of a `.fpdsl` file and transforming it into a `FlightPlan` data structure (or DTO). This parser will be the entry point for this US's logic.
-*   **`FlightPlanFactory`**: Can be reused or extended to create a `FlightPlan` from the data structure provided by the parser.
-*   The core **`FlightPlan`** aggregate and its business rules remain the same as defined in US080.
+1. **Authorization** - the current user must have the `PILOT` role.
+2. **File input validation** - the path must refer to a regular `.dsl` or `.fpdsl` file.
+3. **DSL validation** - `FlightPlanParserFacade` runs lexical, syntactic, range and semantic
+   analysis according to US120.
+4. **Uniqueness validation** - a flight plan with the parsed designator must not already
+   exist.
 
-**Business Rules:**
-
-*   **BR01**: The user must be an authenticated `PILOT`.
-*   **BR02**: The input file must conform to the specified Flight DSL grammar.
-*   **BR03**: All data extracted from the file must pass the `FlightPlan`'s domain validations.
-*   **BR04**: Error messages for parsing and validation failures must be clear and guide the user to fix the file.
-*   **BR05**: A successfully created flight plan is persisted with the `DRAFT` status.
+Only after all checks pass is the aggregate saved. Invalid files therefore never reach the
+repository.
 
 ---
 
-## 4. Design
+## 3. Design
 
-### 4.1. Realization
+### Sequence
 
-The implementation will extend the existing flight plan creation mechanism.
-
-1.  **UI Layer**: A new `CreateFlightPlanFromFileUI` will be added to the `exemplo.app.backoffice.console` module. It will prompt the user to provide a file path.
-2.  **Controller Layer**: A `CreateFlightPlanFromFileController` will handle the request. It will read the file content and pass it to the application service.
-3.  **Application Service**: The `FlightPlanService` will be extended with a new method, `createFlightPlanFromFile(fileContent)`. This method will:
-    a. Invoke the `FlightPlanDSLParser` to parse the text.
-    b. Validate the resulting data against business rules.
-    c. Use the `FlightPlanFactory` and `FlightPlanRepository` to create and save the new `FlightPlan`.
-4.  **Parser**: A new `FlightPlanDSLParser` component will be created. Given the need for a formal grammar, using a parser generator tool like ANTLR is highly recommended to create the lexer and parser based on a `.g4` grammar file.
-
-**Class Diagram:**
-
-```mermaid
-classDiagram
-    class CreateFlightPlanFromFileController {
-        +createFlightPlan(filePath)
-    }
-    class FlightPlanService {
-        +createFlightPlanFromFile(fileContent) FlightPlan
-    }
-    class FlightPlanDSLParser {
-        +parse(fileContent) FlightPlanData
-    }
-    class FlightPlanRepository {
-        +save(flightPlan) FlightPlan
-    }
-    class FlightPlan {
-        -status: FlightPlanStatus
-        +validate()
-    }
-
-    CreateFlightPlanFromFileController ..> FlightPlanService
-    FlightPlanService ..> FlightPlanDSLParser : uses
-    FlightPlanService ..> FlightPlanRepository : uses
-    FlightPlanDSLParser --> FlightPlan : creates data for
+```
+Pilot
+  |
+  v
+CreateFlightPlanFromFileUI
+  |
+  v
+CreateFlightPlanFromFileController
+  |-- ensure PILOT role
+  |-- read .dsl/.fpdsl file
+  |-- FlightPlanParserFacade.parse(dsl)
+  |     |-- ANTLR lexer/parser
+  |     |-- FlightPlanValidationListener
+  |     |-- FlightPlanAstBuilderVisitor
+  |     `-- FlightPlanSemanticValidator
+  |-- reject parse errors with line/column/message
+  |-- reject duplicate designator
+  |-- FlightPlan.fromDsl(ast, dslContent)
+  `-- FlightPlanRepository.save(plan)
 ```
 
-### 4.2. Sequence Diagram
+![Sequence Diagram](svg/US121-SD.svg)
 
-This diagram shows the flow of creating a flight plan from a file.
+![Class Diagram](svg/US121-class-diagram.svg)
 
-```mermaid
-sequenceDiagram
-    actor Pilot
-    participant UI as CreateFlightPlanFromFileUI
-    participant Controller as CreateFlightPlanFromFileController
-    participant Service as FlightPlanService
-    participant Parser as FlightPlanDSLParser
-    participant Repo as FlightPlanRepository
+![Domain Model](svg/US121-domain-model.svg)
 
-    Pilot->>UI: Select "Create from File"
-    UI->>Pilot: Request file path
-    Pilot->>UI: Provide file path
-    UI->>Controller: createFlightPlan(filePath)
-    Controller->>Service: createFlightPlanFromFile(fileContent)
-    Service->>Parser: parse(fileContent)
-    alt File is invalid
-        Parser-->>Service: throw ParsingException
-        Service-->>Controller: return error
-        Controller-->>UI: displaySyntaxError()
-        UI-->>Pilot: Show "Invalid file syntax"
-    else File is valid
-        Parser-->>Service: return flightPlanData
-        Service->>Service: validateBusinessRules(flightPlanData)
-        alt Data is invalid
-            Service-->>Controller: return error
-            Controller-->>UI: displayValidationError()
-            UI-->>Pilot: Show "Invalid data (e.g., time in past)"
-        else Data is valid
-            Service->>Repo: save(newFlightPlan)
-            Repo-->>Service: return savedFlightPlan
-            Service-->>Controller: return success
-            Controller-->>UI: displaySuccess()
-            UI-->>Pilot: Show "Flight Plan created successfully"
-        end
-    end
+### Key Classes
+
+| Class | Role |
+|-------|------|
+| `CreateFlightPlanFromFileUI` | Console UI that collects the DSL file path. |
+| `CreateFlightPlanFromFileController` | Use-case controller that authorizes, reads, validates and persists the imported plan. |
+| `FlightPlanParserFacade` | US120 facade for lexical, syntactic, range and semantic analysis. |
+| `FlightPlanAst` | Parsed internal representation produced from valid DSL. |
+| `FlightPlan` | Aggregate root persisted in `DRAFT` status. |
+| `FlightPlanRepository` | Repository used to check uniqueness and save valid plans. |
+
+---
+
+## 4. Implementation
+
+| File | Responsibility |
+|------|----------------|
+| `src/main/java/aisafe/app/console/presentation/flightplan/CreateFlightPlanFromFileUI.java` | Presents the console flow to the Pilot. |
+| `src/main/java/aisafe/flightplan/application/CreateFlightPlanFromFileController.java` | Implements US121 authorization, file validation, parser delegation, duplicate check and persistence. |
+| `src/main/java/aisafe/dsl/parser/FlightPlanParserFacade.java` | Reused US120 parser/validator pipeline. |
+| `src/main/java/aisafe/flightplan/domain/FlightPlan.java` | Creates the `DRAFT` aggregate through `fromDsl(ast, dslContent)`. |
+
+Invalid parser results are converted into a user-facing message:
+
+```java
+Flight plan file is invalid:
+  [line 6, col 4] missing ';' at 'ARRIVAL' (near 'ARRIVAL')
 ```
 
 ---
 
-_This design is a preliminary step. The implementation will follow._
+## 5. How to Run
 
+```bash
+cd aisafe.base
+mvn exec:java
+```
+
+1. Login as a Pilot.
+2. Open **Flight Plans > Create Flight Plan from DSL File**.
+3. Enter the path to a `.dsl` or `.fpdsl` file.
+
+Successful import:
+
+```text
+Flight plan successfully created!
+  Designator : TP123
+  Type       : REGULAR
+  Status     : DRAFT
+```
+
+---
+
+## 6. Tests
+
+Automated tests are documented in [tests.md](tests.md).
+
+Run the US121 controller tests:
+
+```bash
+mvn test -Dtest=CreateFlightPlanFromFileControllerTest
+```
+
+Run the full DSL validation suite inherited from US120:
+
+```bash
+mvn test -Dtest=FlightPlanDslFileTest,FlightPlanSemanticValidatorTest,FlightPlanAstBuilderVisitorTest
+```
+
+---
+
+## 7. Observations
+
+- US121 is intentionally thin in the domain layer: it reuses US120 for validation and the
+  existing `FlightPlan` aggregate for persistence.
+- The controller rejects invalid files before saving, satisfying the "only valid flight plans"
+  acceptance criterion.
+- `.dsl` is the canonical extension used by the project resources; `.fpdsl` is also accepted
+  to support the extension mentioned in earlier story drafts.

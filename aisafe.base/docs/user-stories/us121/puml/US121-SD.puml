@@ -1,0 +1,38 @@
+@startuml
+title US121 - Create a Flight Plan from a File
+
+actor Pilot
+boundary "CreateFlightPlanFromFileUI" as UI
+control "CreateFlightPlanFromFileController" as Controller
+control "FlightPlanParserFacade" as Parser
+entity "FlightPlanRepository" as Repo
+entity "FlightPlan" as FlightPlan
+
+Pilot -> UI : Provide DSL file path
+UI -> Controller : createFromFile(filePath)
+Controller -> Controller : ensure PILOT role
+Controller -> Controller : validate path and extension
+Controller -> Parser : parse(dslContent)
+
+alt invalid DSL
+    Parser --> Controller : ParseResult(errors)
+    Controller --> UI : IllegalArgumentException(errors)
+    UI --> Pilot : Show meaningful error
+else valid DSL
+    Parser --> Controller : ParseResult(ast)
+    Controller -> Repo : ofIdentity(ast.identifier)
+    alt duplicate designator
+        Repo --> Controller : present
+        Controller --> UI : IllegalStateException
+    else unique designator
+        Repo --> Controller : empty
+        Controller -> FlightPlan : fromDsl(ast, dslContent)
+        FlightPlan --> Controller : DRAFT flight plan
+        Controller -> Repo : save(flightPlan)
+        Repo --> Controller : saved flight plan
+        Controller --> UI : saved flight plan
+        UI --> Pilot : Show designator, type, status
+    end
+end
+
+@enduml
