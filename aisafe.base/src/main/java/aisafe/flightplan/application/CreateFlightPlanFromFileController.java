@@ -10,7 +10,6 @@ import aisafe.flightplan.repositories.FlightPlanRepository;
 import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import eapli.framework.application.UseCaseController;
-import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.application.AuthzRegistry;
 
 import java.io.IOException;
@@ -19,17 +18,38 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Controller for US081 - Create a flight plan from a DSL file.
+ * Controller for US121 - Create a flight plan from a DSL file.
  * Reads the file, validates it (lexical, syntactic and semantic),
  * and if valid creates a FlightPlan in DRAFT status.
  */
 @UseCaseController
 public class CreateFlightPlanFromFileController {
 
-    private final AuthorizationService authz = AuthzRegistry.authorizationService();
-    private final FlightPlanRepository repository =
-            PersistenceContext.repositories().flightPlans();
-    private final FlightPlanParserFacade parser = new FlightPlanParserFacade();
+    private final FlightPlanRepository repository;
+    private final FlightPlanParserFacade parser;
+    private final Runnable authorizationGuard;
+
+    public CreateFlightPlanFromFileController() {
+        this(PersistenceContext.repositories().flightPlans(),
+                new FlightPlanParserFacade(),
+                null);
+    }
+
+    CreateFlightPlanFromFileController(final FlightPlanRepository repository,
+                                       final FlightPlanParserFacade parser,
+                                       final Runnable authorizationGuard) {
+        if (repository == null) {
+            throw new IllegalArgumentException("Flight Plan repository cannot be null.");
+        }
+        if (parser == null) {
+            throw new IllegalArgumentException("Flight Plan parser cannot be null.");
+        }
+        this.repository = repository;
+        this.parser = parser;
+        this.authorizationGuard = authorizationGuard != null
+                ? authorizationGuard
+                : this::ensureAuthenticatedPilot;
+    }
 
     /**
      * Creates a flight plan from a DSL file path.
@@ -41,9 +61,10 @@ public class CreateFlightPlanFromFileController {
      * @throws IllegalStateException    if a flight plan with the same designator already exists
      */
     public FlightPlan createFromFile(final String filePath) throws IOException {
-        authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT);
+        authorizationGuard.run();
 
-        final String dslContent = readFile(filePath);
+        final Path path = validateFilePath(filePath);
+        final String dslContent = readFile(path);
         final ParseResult result = parser.parse(dslContent);
 
         if (!result.isValid()) {
@@ -63,8 +84,27 @@ public class CreateFlightPlanFromFileController {
         return repository.save(flightPlan);
     }
 
-    private String readFile(final String filePath) throws IOException {
-        return Files.readString(Path.of(filePath));
+    private void ensureAuthenticatedPilot() {
+        AuthzRegistry.authorizationService().ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT);
+    }
+
+    private Path validateFilePath(final String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("Flight plan file path cannot be null or blank.");
+        }
+        final Path path = Path.of(filePath.trim());
+        if (!Files.isRegularFile(path)) {
+            throw new IllegalArgumentException("Flight plan file does not exist or is not a regular file: " + path);
+        }
+        final String lowerName = path.getFileName().toString().toLowerCase();
+        if (!lowerName.endsWith(".dsl") && !lowerName.endsWith(".fpdsl")) {
+            throw new IllegalArgumentException("Flight plan file must use .dsl or .fpdsl extension.");
+        }
+        return path;
+    }
+
+    private String readFile(final Path path) throws IOException {
+        return Files.readString(path);
     }
 
     private String buildErrorMessage(final List<ParseError> errors) {
