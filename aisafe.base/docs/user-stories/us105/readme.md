@@ -99,18 +99,6 @@ mutual-exclusion pattern (initial value 1) used in `ex2-6.c`.
 
 ## 4. Design
 
-### 4.0 Diagrams
-
-System sequence diagram (operator ↔ simulation):
-
-![System Sequence Diagram](svg/US105-SSD.svg)
-> Source: [puml/US105-SSD.puml](puml/US105-SSD.puml)
-
-Internal sequence — the multi-process / multi-threaded shared-memory lock-step:
-
-![Sequence Diagram](svg/US105-SD.svg)
-> Source: [puml/US105-SD.puml](puml/US105-SD.puml)
-
 ### 4.1 Shared memory structure (`shared_memory.h`)
 
 ```c
@@ -164,11 +152,13 @@ if ctrl[i] == 0 → flight_done(), exit(1)
 When a flight finishes all its segments it calls `flight_done()`:
 
 ```c
-static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem) {
+static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem,
+                        sem_t *env_sem) {
     shm->active[idx] = 0;
     sem_post(pos_sem);          /* wake coordinator to see active[idx]=0 */
     sem_close(pos_sem);
     sem_close(ctrl_sem);
+    sem_close(env_sem);         /* US110 — close the environment-block mutex */
     munmap(shm, sizeof(sim_shm_t));   /* pattern ex1-7.c: child releases mapping */
 }
 ```
