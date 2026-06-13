@@ -224,7 +224,7 @@ The flight-plan guard is enforced at the application layer, not inside the domai
 
 `RemovePilotController` uses auto-tx (no explicit `tx.begin/commit/rollback`) because the operation updates a single aggregate — consistent with the pattern used by `DecommissionAircraftController`.
 
-The test suite comprises **2 domain unit tests** (`PilotTest`) + **12 integration tests** (`RemovePilotControllerTest`) = **14 automated tests**, all passing.
+The test suite comprises **2 US077-specific deactivation tests** added to `PilotTest` (18 methods total, shared with US075) + **12 integration tests** (`RemovePilotControllerTest`) = **14 automated tests**, all passing.
 
 ---
 
