@@ -6,7 +6,7 @@ This US is being implemented for the first time in Sprint 3. It allows a Pilot t
 
 The TCP server is shared across all remote access user stories (US044, US078, US086). Each actor connects to the same server on the same port and, after authentication, is granted access only to the commands corresponding to their role. For US086, the role is `PILOT`.
 
-The Pilot user stories that must be remotely available are US081 (Create a flight plan from a DSL file), US082 (Insert weather data in a flight) and US085 (Test/validate a flight plan). Of these, only US081 is fully implemented in Sprint 3.
+The Pilot user stories that must be remotely available are US081 (Create a flight plan from a DSL file), US082 (Insert weather data in a flight) and US085 (Test/validate a flight plan). All three are fully implemented and exposed in Sprint 3.
 
 ### 1.1 List of issues
 
@@ -359,13 +359,13 @@ The implementation is distributed across the following packages in `aisafe.base`
 |---------|-------|------|
 | `aisafe.tcpserver` | `AiSafeTcpServer` | Opens `ServerSocket` on port 9999; accepts connections; spawns `TcpClientDispatcher` daemon threads |
 | `aisafe.tcpserver` | `TcpClientDispatcher` | Handles one connection: reads `LOGIN`, authenticates via `AuthenticationContext`, checks `PILOT` role, delegates to `PilotSessionHandler` |
-| `aisafe.tcpserver.pilot` | `PilotSessionHandler` | Command loop: `CREATE_FLIGHT_PLAN`, `EXIT`, `UNKNOWN_COMMAND` |
-| `aisafe.app.pilot` | `PilotTcpClient` | Client-side TCP communication: `login()`, `createFlightPlanFromFile()`, `exit()` |
+| `aisafe.tcpserver.pilot` | `PilotSessionHandler` | Command loop: `CREATE_FLIGHT_PLAN`, `INSERT_WEATHER_DATA`, `TEST_FLIGHT_PLAN`, `LIST_MY_PLANS`, `LIST_WEATHER_DATA`, `EXIT`, `UNKNOWN_COMMAND` |
+| `aisafe.app.pilot` | `PilotTcpClient` | Client-side TCP communication: `login()`, `createFlightPlanFromFile()`, `insertWeatherData()`, `testFlightPlan()`, `listMyPlans()`, `listWeatherData()`, `exit()` |
 | `aisafe.app.pilot` | `PilotTcpClientApp` | Standalone client entry point; interactive Pilot menu |
 | `aisafe.app.console` | `AiSafeConsoleApp` | Modified to start `AiSafeTcpServer` in a daemon thread before the console menu |
 | `aisafe.app.console` | `AiSafeBootstrap` | Modified to create `pilot1 / Password1` (role `PILOT`, company TAP, certified for Boeing 737-800) |
 
-The test suite comprises **7 unit tests** (`PilotSessionHandlerTest`) + **5 implementation tests** (`PilotSessionHandlerIT`) + **3 integration tests** (`TcpClientDispatcherTest`) = **15 automated tests**, all passing.
+The test suite comprises **12 unit tests** (`PilotSessionHandlerTest`) + **8 implementation tests** (`PilotSessionHandlerIT`) + **5 integration tests** (`TcpClientDispatcherTest`) = **25 automated tests**, all passing.
 
 The `CREATE_FLIGHT_PLAN` command is handled by writing the received DSL content to a temporary file and delegating to the existing `CreateFlightPlanFromFileController.createFromFile(path)`. The temp file is deleted after the controller returns, regardless of outcome:
 
@@ -395,6 +395,8 @@ out.println("OK " + flightPlan.identity());
    ```
    === Pilot Remote Menu ===
    1. Create Flight Plan from DSL File
+   2. Insert Weather Data in a Flight
+   3. Test/Validate a Flight Plan
    0. Exit
    ```
 
@@ -422,4 +424,4 @@ out.println("OK " + flightPlan.identity());
 - The `TcpClientDispatcher` always calls `AuthenticationContext.clear()` in a `finally` block to ensure the EAPLI session is released even if the connection is closed unexpectedly. EAPLI's authentication context is thread-local, so concurrent sessions do not interfere with each other.
 - The temporary-file approach for DSL transfer reuses `CreateFlightPlanFromFileController` without any modification — the full 4-stage validation pipeline (lexical → syntactic → range → semantic) is exercised server-side exactly as it is in the console UI.
 - `PilotTcpClientApp` is a standalone application with its own `main` method. It has no dependency on any JPA or repository class — all persistence is performed exclusively server-side (AC086.2).
-- US082 (Insert weather data) and US085 (Test/validate a flight plan) are not yet implemented in Sprint 3 and are therefore not exposed by `PilotSessionHandler`. The command loop returns `UNKNOWN_COMMAND` for any unrecognised input, so the server behaves safely even if a client sends unsupported commands.
+- All mandatory Pilot user stories (US081, US082, US085) are exposed by `PilotSessionHandler` via five commands: `CREATE_FLIGHT_PLAN`, `INSERT_WEATHER_DATA`, `TEST_FLIGHT_PLAN`, `LIST_MY_PLANS`, `LIST_WEATHER_DATA`. The command loop returns `UNKNOWN_COMMAND` for any unrecognised input, so the server behaves safely if a client sends unsupported commands.
