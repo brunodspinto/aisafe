@@ -74,7 +74,7 @@ sem_post(pos_sems[i])      ──────────►
                                         sem_wait(pos_sems[i])
                                         pos = shm->positions[i]
                                         ACA filter + history (US101)
-                                        safety check (US102/US106)
+                                        hand off snapshot to safety_thread (US106)
                                         shm->ctrl[i] = 1 (GO) or 0 (STOP)
                                         sem_post(ctrl_sems[i])
 sem_wait(ctrl_sems[i])     ◄──────────
@@ -94,11 +94,13 @@ When a flight completes all its segments it calls `flight_done()`, which signals
 coordinator via `pos_sem` one last time with `active[i] = 0`:
 
 ```c
-static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem) {
+static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem,
+                        sem_t *env_sem) {
     shm->active[idx] = 0;
     sem_post(pos_sem);          /* wake coordinator to see active[idx]=0 */
     sem_close(pos_sem);
     sem_close(ctrl_sem);
+    sem_close(env_sem);         /* US110 — close the environment-block mutex */
     munmap(shm, sizeof(sim_shm_t));   /* pattern ex1-7.c */
 }
 ```
@@ -157,8 +159,9 @@ Parent (main):
       close all inherited sem handles
       open_pos_sem(i, 0)           ← attach to /aisafe_pos_i
       open_ctrl_sem(i, 0)          ← attach to /aisafe_ctrl_i
+      open_env_sem(0)              ← attach to /aisafe_env (US110)
       flight_process_main(...)
-      flight_done() → sem_close ×2, munmap, exit
+      flight_done() → sem_close ×3 (pos, ctrl, env), munmap, exit
   pthread_create(coordinator_thread)
     coordinator_thread:
       sem_wait(pos_sems[i]) ×N per step
