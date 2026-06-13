@@ -1,0 +1,24 @@
+@startuml US042-SSD
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US042 - Import Bulk Weather Data (SSD)
+
+autonumber
+actor "Weather Person" as WP
+participant ":System" as SYS
+
+activate WP
+WP -> SYS : requests to import bulk weather data
+activate SYS
+SYS --> WP : asks for the data file path
+deactivate SYS
+
+WP -> SYS : provides CSV file path
+activate SYS
+SYS --> WP : import summary\n(X record(s) saved, Y failure(s) with reasons)
+deactivate SYS
+deactivate WP
+
+@enduml

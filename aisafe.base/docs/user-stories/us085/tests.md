@@ -162,11 +162,14 @@ void ensureMultiLegPlanSerializesAllLegs() throws Exception {
     final Path tmp = new FlightPlanJsonSerializer().toTempFile(ast);
     try {
         final String json = Files.readString(tmp);
-        // both legs' segments must appear
-        final long segCount = json.chars()
-                .filter(c -> json.indexOf("start_coord") != -1)
-                .count();
-        assertTrue(segCount > 0);
+        // Both legs contribute segments; start_coord should appear at least twice
+        int count = 0;
+        int idx = 0;
+        while ((idx = json.indexOf("start_coord", idx)) >= 0) {
+            count++;
+            idx++;
+        }
+        assertTrue(count >= 2, "multi-leg plan must serialise all segments");
     } finally {
         Files.deleteIfExists(tmp);
     }

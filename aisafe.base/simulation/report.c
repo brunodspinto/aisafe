@@ -3,6 +3,7 @@
 #include <time.h>
 #include "types.h"
 #include "report.h"
+#include "thread_io.h"   /* ex1-9.c: generate_final_report runs in the report thread */
 
 static const char *LIVE_VIOLATION_LOG = "simulation_violation_log.txt";
 
@@ -75,7 +76,9 @@ void generate_final_report(const flight_history_t *histories, int n_flights,
                            int violation_event_count,
                            int total_violations, int dropped_events,
                            int was_aborted) {
-    printf("[REPORT US109] Report thread generating final simulation report...\n");
+    /* ex1-9.c: tprintf() (write-based) — esta função corre na report_thread,
+     * em concorrência com as outras threads do processo pai. */
+    tprintf("[REPORT US109] Report thread generating final simulation report...\n");
 
     FILE *file = fopen("simulation_report.txt", "w");
     if (!file) {
@@ -164,5 +167,5 @@ void generate_final_report(const flight_history_t *histories, int n_flights,
 
     fprintf(file, "=================== END OF REPORT ===================\n");
     fclose(file);
-    printf("[REPORT US109] Final simulation report saved to simulation_report.txt\n");
+    tprintf("[REPORT US109] Final simulation report saved to simulation_report.txt\n");
 }

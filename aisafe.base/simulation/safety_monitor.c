@@ -7,6 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include "safety_monitor.h"
+#include "thread_io.h"   /* ex1-9.c: write()-based stdout from the safety thread */
 
 
 int kill(pid_t pid, int sig);
@@ -82,7 +83,7 @@ int predict_future_collisions(flight_plan_t *const *plans,
 
             if (check_trajectory_intersection(&a_prev, &a_curr, &b_prev, &b_curr,
                                               safe_dist_horiz_m, safe_dist_vert_m)) {
-                printf("[PREDICTION] Future collision risk: %s seg %d"
+                tprintf("[PREDICTION] Future collision risk: %s seg %d"
                        " vs %s seg %d\n",
                        pa->identifier, sa, pb->identifier, sb);
                 return 1;
@@ -111,8 +112,8 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
                                           &prev_positions[j], &current_positions[j],
                                           safe_dist_horiz_m, safe_dist_vert_m)) {
             time_t now = time(NULL);
-            printf("\n[CYLINDER ALERT] Intersection risk detected at %s", ctime(&now));
-            printf("Flights: %s and %s crossed paths (H < %.0fm and V < %.0fm).\n",
+            tprintf("\n[CYLINDER ALERT] Intersection risk detected at %s", ctime(&now));
+            tprintf("Flights: %s and %s crossed paths (H < %.0fm and V < %.0fm).\n",
                    current_positions[i].flight_id, current_positions[j].flight_id,
                    safe_dist_horiz_m, safe_dist_vert_m);
 
@@ -142,7 +143,7 @@ int monitor_safety_violations(int updated_flight_idx, aircraft_position_t *prev_
             pthread_mutex_unlock(notification_mutex);
 
             if (*total_violations >= max_violations) {
-                printf("\n[CRITICAL] Violation limit reached (%d). Aborting...\n",
+                tprintf("\n[CRITICAL] Violation limit reached (%d). Aborting...\n",
                        *total_violations);
                 for (int k = 0; k < n_flights; k++) {
                     if (pipe_open[k]) kill(pids[k], SIGTERM);

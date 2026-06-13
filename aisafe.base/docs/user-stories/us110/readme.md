@@ -1,9 +1,7 @@
 # US110 — Integrate Environmental Influences into Simulation
 
-> **Status:** design / planned. This document describes the intended
-> implementation of US110. The acceptance criteria are marked *Planned* and the
-> file list in §5 describes the files to be created/modified — they are flipped to
-> *Done* once the code is committed.
+> **Status:** implemented. The acceptance criteria are marked *Done* and all
+> files listed in §5 have been created/modified.
 
 ## 1. Context
 
@@ -20,12 +18,13 @@ planned track, which can bring two flights inside the Safety Cylinder (US102), a
 that violation is detected, logged and signalled in real time by the US107
 notification channel.
 
-The implementation is written in C and lives under `aisafe.base/simulation/`. The
-environmental influence is computed **inside each flight child process**
-(`flight_process.c`, the process model from US100/US105), one simulation step at a
-time, consistently with the step-by-step synchronisation of US108. The wind logic
-is isolated in a dedicated `environment` module so that US110 is self-contained
-and the shared `flight_process.c` gains only a single call.
+The implementation is written in C and lives under `aisafe.base/simulation/`. A
+dedicated **parent "environment" thread** loads the wind from a weather service and
+writes it into the shared-memory segment each simulation step; each flight child then
+reads that shared wind and applies a lateral drift to its position, one step at a
+time, consistently with the step-by-step synchronisation of US108. The drift maths is
+isolated in the `environment` module and the weather-service source in
+`weather_service`, so the shared `flight_process.c` gains only a small read-and-drift block.
 
 ---
 
@@ -33,24 +32,27 @@ and the shared `flight_process.c` gains only a single call.
 
 **US110 — Integrate environmental influences into simulation.**
 
-> As a Flight Control Operator, I want climatic conditions (wind) to influence the
-> path taken by each aircraft during the simulation, so that the simulated flights
-> reflect realistic environmental effects and the resulting safety risks are
-> detected.
+> As a PO, I want the simulation to incorporate environmental factors such as wind
+> into the simulation, so that the flight paths become more realistic and adapt to
+> dynamic conditions.
 
-### Acceptance Criteria
+### Acceptance Criteria (from the assignment, p.22)
 
-The `us110/readme.md` had no formal criteria; the criteria below are **derived**
-from the Sprint 3 assignment (*"Influence of climatic conditions on the path taken
-by the aircraft — evaluated as an integral part of US107"*) and from Domain Model
-V10. They should be confirmed with the PO/assignment.
+| ID | Criterion (assignment) | Where met | Status |
+|----|------------------------|-----------|--------|
+| AC110.1 | The parent process spawns an additional **"environment" thread** at simulation start. | `main.c` — `environment_thread` created as the 4th parent thread alongside coordinator/safety/report; joined after the coordinator. | Done |
+| AC110.2 | This thread **loads environmental configuration (wind speed/direction) from a weather service**. | `weather_service.{c,h}` — `weather_service_fetch()` is the weather-service source (reads `AISAFE_WIND="speed,dir"`, calm `0,0` if unset). | Done |
+| AC110.3 | Environment data is **written into the shared memory segment at each time step**. | `environment_thread` writes `shm->environment` (+`env_step`) under the `/aisafe_env` mutex semaphore, signalled once per step by `coordinator_thread`. | Done |
 
-| ID | Criterion (derived) | Where it will be met | Status |
-|----|---------------------|----------------------|--------|
-| AC110.1 | The simulation reads the **environmental data (wind direction and speed)** defined for each flight segment. | `flight_parser.c` parses `wind_dir_deg`→`wind_direction` and `wind_speed_mps`→`wind_speed` into `segment_t` (default 0 when absent) | Planned |
-| AC110.2 | The wind **alters the path actually taken** by each aircraft (its position deviates from the planned route). | `environment.c` (`apply_wind_drift`) applies a per-step lateral drift, called from `flight_process.c` | Planned |
-| AC110.3 | The environmental influence is applied **per simulation step**, inside each flight process, consistently with the step synchronisation (US108). | `apply_wind_drift(&lat,&lon,segment,STEP_SECONDS)` inside the per-step loop of `flight_process.c` | Planned |
-| AC110.4 | Wind-induced deviations are subject to the same **Safety Cylinder verification**, so resulting violations are detected, logged and signalled in real time (US102/US107). | no change required — the drifted position flows child → shared memory → `safety_thread` → US107 | Planned |
+**How the wind influences the path:** each flight child reads `shm->environment`
+(under the `/aisafe_env` mutex semaphore) every step and applies a lateral drift via
+`apply_wind_drift_values()` (`environment.c`) — affecting `lat`/`lon` only, never the
+progress variables, so every segment still terminates (US108 lockstep preserved). When
+the weather service reports calm, the child falls back to the per-segment wind from the
+flight plan, keeping older plans backward-compatible. Wind-drifted positions flow
+through the existing Safety Cylinder pipeline (US102/US107) unchanged, so weather-induced
+conflicts are detected and logged in real time — the integration point on which US110 is
+evaluated.
 
 ### Dependencies / References
 
@@ -77,10 +79,17 @@ V10. They should be confirmed with the PO/assignment.
 
 ### 3.2 Decomposition decision
 
-| Approach | Description | Decision |
-|----------|-------------|----------|
-| Inline the wind maths in `flight_process.c` | Add the vector maths directly in the movement loop | Rejected — mixes US110 into a shared US100/US105 file; less modular |
-| **Isolate in an `environment` module** | New `environment.{c,h}`; `flight_process.c` gains one `#include` + one call | **Chosen** — keeps US110 self-contained (Code Quality / modularity) and the shared file barely changes |
+The assignment is prescriptive: the wind must come from a **parent "environment"
+thread** that loads it from a weather service and writes it into shared memory each
+step (AC110.1–3). The drift maths is isolated in the `environment` module; the
+weather-service source is isolated in `weather_service`.
+
+| Concern | Mechanism | Rationale |
+|---------|-----------|-----------|
+| Environment as a parent thread (AC110.1) | `environment_thread` in `main.c` | Required by the assignment; runs concurrently with coordinator/safety/report. |
+| Weather-service source (AC110.2) | `weather_service_fetch()` (`weather_service.{c,h}`) | Isolates "where wind comes from" (env var now; a real feed later) from the drift physics. |
+| Per-step publication to shm (AC110.3) | `shm->environment` guarded by the named semaphore `/aisafe_env` (value 1) as a mutex; coordinator ticks the env thread each step | A **named semaphore** is the professor's cross-process mutual-exclusion primitive (`ex2-6.c`) and the project's existing convention (`/aisafe_pos_*`, `/aisafe_ctrl_*`); it works across the parent thread and the **forked** child processes. |
+| Drift maths | `apply_wind_drift_values()` (`environment.c`) | Stateless; affects lat/lon only (termination invariant). |
 
 ### 3.3 Alignment with Domain Model V10
 
@@ -98,6 +107,18 @@ already represents.
 ---
 
 ## 4. Design
+
+### 4.0 Diagrams
+
+System sequence diagram (operator ↔ simulation, with wind):
+
+![System Sequence Diagram](svg/US110-SSD.svg)
+> Source: [puml/US110-SSD.puml](puml/US110-SSD.puml)
+
+Internal sequence — wind publication by the environment thread and lateral drift in each flight child:
+
+![Sequence Diagram](svg/US110-SD.svg)
+> Source: [puml/US110-SD.puml](puml/US110-SD.puml)
 
 ### 4.1 Wind drift model (`environment.h` / `environment.c`)
 
@@ -127,14 +148,25 @@ consistent with the existing physics.
 ### 4.2 Integration point (`flight_process.c`)
 
 The drift is applied inside the per-step loop, **after** the planned-route update
-and **before** the position is written to shared memory:
+and **before** the position is written to shared memory. The wind is read from the
+shared-memory environment block (written by the environment thread) under the
+`/aisafe_env` mutex semaphore; if the weather service reports calm, the child falls
+back to the per-segment wind:
 
 ```c
 lat += (dlat / dist_total_m) * horiz_step_m;   /* planned route (existing) */
 lon += (dlon / dist_total_m) * horiz_step_m;
 dist_covered_m += horiz_step_m;
 alt += vz * STEP_SECONDS;
-apply_wind_drift(&lat, &lon, segment, STEP_SECONDS);   /* << US110 */
+
+environment_t env;                              /* << US110: wind from env thread */
+sem_wait(env_sem);                              /* mutex (ex2-6.c) */
+env = shm->environment;
+sem_post(env_sem);
+if (env.wind_speed > 0.0)
+    apply_wind_drift_values(&lat, &lon, env.wind_speed, env.wind_direction, STEP_SECONDS);
+else
+    apply_wind_drift(&lat, &lon, segment, STEP_SECONDS);  /* fallback: plan wind */
 /* ... build aircraft_position_t and write to shm + sem_post(pos_sem) ... */
 ```
 
@@ -155,15 +187,16 @@ is left as the realistic interpretation and is worth noting in the oral defence.
 
 ### 4.5 Alignment with the professor's examples / domain
 
-US110 is domain physics inside the existing process model rather than a new SCOMP
-primitive; it leverages, without changing, the IPC pipeline from earlier US:
+US110 adds one parent thread and reuses the existing IPC pipeline:
 
 | Mechanism | Origin | Use in US110 |
 |-----------|--------|--------------|
-| One process per flight (`fork`) | US100/US105 | the drift is computed in each flight child |
+| `pthread_create` / `pthread_join` | US105/US106 (`ex1-9.c`) | the **environment thread** is the 4th parent thread |
+| Mutex + condition variable (while-pred) | US106/US107 (T7/T8) | coordinator ticks the environment thread once per step |
+| Named semaphore as mutex (value 1) | `ex2-6.c` | `/aisafe_env` guards the env block between the parent thread and the forked children |
 | Shared memory + `sem_post(pos_sem)` | US105 (`ex1-7.c`, `ex2-5.c`) | the **drifted** position is published to the parent |
 | Per-step lock-step | US103/US108 | the drift is integrated once per `STEP_SECONDS` |
-| `FlightSegment.windDirection`/`windSpeed` | Domain Model V10 | the wind source consumed by `apply_wind_drift` |
+| `FlightSegment.windDirection`/`windSpeed` | Domain Model V10 | the per-segment **fallback** wind when the service is calm |
 
 ---
 
@@ -173,16 +206,21 @@ primitive; it leverages, without changing, the IPC pipeline from earlier US:
 
 | File | Change summary |
 |------|---------------|
-| `simulation/environment.h` | **New** — `apply_wind_drift` prototype (the US110 module interface) |
-| `simulation/environment.c` | **New** — the wind-drift maths (self-contained, with its own `M_PI`/`DEG_TO_RAD`); depends only on `types.h` (`segment_t`) and `<math.h>` |
-| `simulation/flight_parser.c` | Parse `wind_dir_deg`→`wind_direction` and `wind_speed_mps`→`wind_speed` in the segment loop (default `0`) |
-| `simulation/flight_process.c` | `#include "environment.h"` + one `apply_wind_drift(...)` call after the route update |
-| `simulation/Makefile` | `SRCS += environment.c` |
-| `simulation/flight_plans.json` | (demonstration) tune the segment wind to force a visible violation |
+| `simulation/weather_service.{c,h}` | **New** — the weather-service source (AC110.2); `weather_service_fetch()` reads wind from `AISAFE_WIND="speed,dir"`, calm if unset. |
+| `simulation/environment.h` | `apply_wind_drift` + new `apply_wind_drift_values` prototypes. |
+| `simulation/environment.c` | Drift maths refactored into `apply_wind_drift_values`; `apply_wind_drift(seg,…)` is a thin wrapper. Affects lat/lon only. |
+| `simulation/types.h` | **New** `environment_t { wind_speed; wind_direction; }`. |
+| `simulation/shared_memory.h/.c` | `sim_shm_t` gains `environment` + `env_step`; new `open_env_sem()` opens the `/aisafe_env` mutex semaphore (value 1, `ex2-6.c`); `cleanup_sems` unlinks it. `open_named_sem` gained an init-value parameter. |
+| `simulation/main.c` | **New** `environment_thread` (AC110.1) + `environment_ctx_t`; spawned as 4th parent thread and joined; coordinator ticks it once per step (AC110.3); `env_mutex`/`env_cond` (intra-process tick) and `/aisafe_env` semaphore (cross-process block guard) lifecycle. |
+| `simulation/flight_process.c` | Opens `/aisafe_env` (`open_env_sem`), reads `shm->environment` under it each step and applies `apply_wind_drift_values`, falling back to the per-segment wind when calm; closes it in `flight_done`. |
+| `simulation/flight_parser.c` | Parses `wind_dir_deg`/`wind_speed_mps` into `segment_t` (default `0`) — feeds the fallback path. |
+| `simulation/Makefile` | `SRCS += weather_service.c` (plus the pre-existing `environment.c`). |
+| `simulation/flight_plans.json` | (demonstration) optional segment wind for the fallback path. |
 
 > The Safety pipeline (`safety_monitor.c`, `safety_thread.c`), the ACA filter
-> (`aca_filter.c`), the parent threads (`main.c`) and the report (`report.c`) are
-> **unchanged**: the drifted position flows through them as any other position.
+> (`aca_filter.c`) and the report (`report.c`) are **unchanged**: the drifted position
+> flows through them as any other position. `main.c` gains only the environment thread
+> and its per-step tick.
 
 ### 5.2 Key Implementation Details (planned)
 
@@ -260,15 +298,23 @@ The conflict — caused purely by the wind drift — is detected by the
 
 ## 7. Observations
 
-- **Evaluated through US107** — US110 has little *new* SCOMP machinery; it is
-  domain physics in the existing flight process. Its worth is shown by the existing
-  real-time detection chain (US102/US107) reacting to weather-induced deviations.
-- **No new domain concept** — the wind is already in Domain Model V10
-  (`FlightSegment.windDirection`/`windSpeed`); US110 only *consumes* it. The broader
-  `WeatherData` aggregate (US082) is the source the flight plan carries.
-- **Modularity** — the wind maths lives in its own `environment` module; the shared
-  `flight_process.c` changes by one include and one call, keeping US110's footprint
-  on other stories minimal.
+- **Dedicated environment thread (AC110.1–3)** — US110 adds a 4th parent thread that
+  loads wind from the weather service and publishes it to shared memory each step. Its
+  worth is also shown by the existing real-time detection chain (US102/US107) reacting
+  to weather-induced deviations.
+- **Weather-service source** — `weather_service_fetch()` is the (simulated) weather
+  service: wind is read from `AISAFE_WIND="speed,dir"`, calm if unset. When calm, the
+  child falls back to the per-segment wind from Domain Model V10
+  (`FlightSegment.windDirection`/`windSpeed`); the broader `WeatherData` aggregate
+  (US082) is the eventual real source.
+- **Cross-process synchronisation** — the env block in shm is guarded by the named
+  semaphore `/aisafe_env` (value 1) used as a mutex — the professor's `ex2-6.c` pattern
+  and the same primitive the project already uses for `/aisafe_pos_*` / `/aisafe_ctrl_*`
+  (a named semaphore works across the parent thread and the forked children, unlike a
+  plain pthread mutex). Coordinator↔env per-step signalling uses a parent-local
+  mutex+cond (intra-process).
+- **Modularity** — drift maths in `environment`, weather source in `weather_service`;
+  `flight_process.c` gains only a small read-and-drift block.
 - **Termination guaranteed** — applying the drift only to `lat`/`lon` (never to the
   progress variables) is what keeps every segment finite; this is the single most
   important correctness invariant of the feature.

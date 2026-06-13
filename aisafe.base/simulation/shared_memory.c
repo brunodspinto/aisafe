@@ -50,12 +50,14 @@ void shm_destroy(sim_shm_t *shm) {
     shm_unlink(SHM_NAME);
 }
 
-static sem_t *open_named_sem(const char *name, int create) {
+/* value is the initial count when the semaphore is created (create=1): 0 for the
+ * event-signalling pos/ctrl semaphores (ex2-5.c), 1 for the env mutex (ex2-6.c). */
+static sem_t *open_named_sem(const char *name, int create, unsigned int value) {
     sem_t *sem;
     if (create) {
         /* Remove any leftover from a previous crashed run before re-creating. */
         sem_unlink(name);
-        sem = sem_open(name, O_CREAT | O_EXCL, 0644, 0);
+        sem = sem_open(name, O_CREAT | O_EXCL, 0644, value);
     } else {
         sem = sem_open(name, 0);
     }
@@ -66,13 +68,18 @@ static sem_t *open_named_sem(const char *name, int create) {
 sem_t *open_pos_sem(int idx, int create) {
     char name[SEM_NAME_MAX];
     snprintf(name, SEM_NAME_MAX, SEM_POS_FMT, idx);
-    return open_named_sem(name, create);
+    return open_named_sem(name, create, 0);
 }
 
 sem_t *open_ctrl_sem(int idx, int create) {
     char name[SEM_NAME_MAX];
     snprintf(name, SEM_NAME_MAX, SEM_CTRL_FMT, idx);
-    return open_named_sem(name, create);
+    return open_named_sem(name, create, 0);
+}
+
+sem_t *open_env_sem(int create) {
+    /* US110 — value 1: mutual-exclusion mutex pattern from ex2-6.c. */
+    return open_named_sem(SEM_ENV_NAME, create, 1);
 }
 
 void cleanup_sems(int n_flights) {
@@ -83,4 +90,5 @@ void cleanup_sems(int n_flights) {
         snprintf(name, SEM_NAME_MAX, SEM_CTRL_FMT, i);
         sem_unlink(name);
     }
+    sem_unlink(SEM_ENV_NAME);   /* US110 */
 }

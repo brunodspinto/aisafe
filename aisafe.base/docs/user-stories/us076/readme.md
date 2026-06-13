@@ -29,6 +29,11 @@ It depends on US075 (Add Pilot) which must have registered at least one pilot, a
 
 ## 3. Analysis
 
+The system-level interaction between the Air Transport Company Collaborator and the system:
+
+![System Sequence Diagram](svg/US076-SSD.svg)
+> Source: [puml/US076-SSD.puml](puml/US076-SSD.puml)
+
 The `PilotRepository` already exposes `findByAirTransportCompany(company)`, which returns all pilots for a given company. The controller resolves the authenticated user's company via a two-step lookup — `CollaboratorRepository.findBySystemUser()` returns the collaborator's IATA code, then `AirTransportCompanyRepository.ofIdentity(iataCode)` resolves it to the `AirTransportCompany` aggregate root (identical pattern used by `AddPilotController`). The full pilot list is then retrieved and the selected filter is applied in memory.
 
 **Pilot ↔ AircraftModel relationship (DDD cross-aggregate reference by identity):**
@@ -92,7 +97,7 @@ The following class diagram shows the classes involved:
 | AC076.2 | Filter active only; one active, one inactive pilot exist | Only the active pilot is returned |
 | AC076.3 | Filter by model name "A320"; pilot 1 certified for A320, pilot 2 not | Only pilot 1 returned |
 | AC076.3b | Filter by model name "a320" (lowercase) | Same result as above (case-insensitive) |
-| AC076.4 | Non-ATCC user attempts to list roster | `IllegalStateException` thrown |
+| AC076.4 | Non-ATCC user attempts to list roster | `UnauthorizedException` thrown |
 | AC076.5 | Filter active only; company has no active pilots | Empty result message displayed |
 
 ---

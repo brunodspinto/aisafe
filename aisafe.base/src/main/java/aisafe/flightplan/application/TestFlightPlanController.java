@@ -37,6 +37,13 @@ public class TestFlightPlanController {
 
     private static final int TIMEOUT_SECONDS = 30;
 
+    /**
+     * Grace period for the stdout reader thread to drain after the process exits. The process has
+     * already terminated by this point, so EOF is imminent; a generous bound (vs. a tight 1s)
+     * avoids abandoning the daemon thread with partial output on slow/loaded machines.
+     */
+    private static final long READER_JOIN_TIMEOUT_MS = 5000L;
+
     private final AuthorizationService    authz;
     private final FlightPlanRepository    repository;
     private final FlightPlanParserFacade  parser;
@@ -100,7 +107,15 @@ public class TestFlightPlanController {
      */
     public FlightPlan testFlightPlan(final String designator) throws IOException {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.PILOT);
+        return executeTestFlightPlan(designator);
+    }
 
+    /**
+     * Implements the test-flight-plan business logic without an authorisation check.
+     * Package-private so unit tests can exercise the guard conditions directly, without
+     * needing a live auth context or a C binary on the test classpath.
+     */
+    FlightPlan executeTestFlightPlan(final String designator) throws IOException {
         final FlightPlan plan = repository
                 .ofIdentity(FlightPlanDesignator.valueOf(designator.trim().toUpperCase()))
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -169,13 +184,24 @@ public class TestFlightPlanController {
                 throw new RuntimeException("Flight tester interrupted while waiting.", e);
             }
             if (!finished) {
-                process.destroyForcibly();
+                // SIGTERM first — gives the C binary a chance to unlink named IPC objects.
+                process.destroy();
+                boolean terminated;
+                try {
+                    terminated = process.waitFor(5, TimeUnit.SECONDS);
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    terminated = false;
+                }
+                if (!terminated) {
+                    process.destroyForcibly(); // SIGKILL — last resort
+                }
                 throw new RuntimeException(
                         "Flight tester timed out after " + TIMEOUT_SECONDS + " seconds.");
             }
 
             try {
-                outputReader.join(1000);
+                outputReader.join(READER_JOIN_TIMEOUT_MS);
             } catch (final InterruptedException ignored) {
                 Thread.currentThread().interrupt();
             }

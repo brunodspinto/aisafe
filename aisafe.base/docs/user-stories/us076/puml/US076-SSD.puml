@@ -1,0 +1,24 @@
+@startuml US076-SSD
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US076 - List Company Pilot Roster (SSD)
+
+autonumber
+actor "Air Transport Company\nCollaborator" as ATCC
+participant ":System" as SYS
+
+activate ATCC
+ATCC -> SYS : requests to list the company pilot roster
+activate SYS
+SYS --> ATCC : asks which filter to apply\n(all / active only / by certified aircraft model)
+deactivate SYS
+
+ATCC -> SYS : selects a filter (and model name, if applicable)
+activate SYS
+SYS --> ATCC : displays matching pilots\n(or "No pilots found for the selected filter.")
+deactivate SYS
+deactivate ATCC
+
+@enduml

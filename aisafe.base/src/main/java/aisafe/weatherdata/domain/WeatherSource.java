@@ -34,6 +34,17 @@ public class WeatherSource implements ValueObject {
         this.format = format.trim();
     }
 
+    /**
+     * Factory method mirroring the {@code valueOf} convention used by the other value objects.
+     *
+     * @param provider the data provider (non-null, non-blank)
+     * @param format   the data format (non-null, non-blank)
+     * @return a new {@code WeatherSource}
+     */
+    public static WeatherSource valueOf(final String provider, final String format) {
+        return new WeatherSource(provider, format);
+    }
+
     public String provider() {
         return provider;
     }
