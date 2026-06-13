@@ -210,6 +210,13 @@ class CreateFlightRouteControllerTest {
                 () -> controller.createFlightRoute("INVALID", "OPO", "LIS"));
     }
 
+    @Test
+    void ensureCreateFlightRouteThrowsWhenPrefixDoesNotMatchCompanyIATA() {
+        AuthenticationContext.authenticate(ATCC_USERNAME, ATCC_PASSWORD);
+        assertThrows(IllegalArgumentException.class,
+                () -> controller.createFlightRoute("XY1", "OPO", "LIS"));
+    }
+
     // -----------------------------------------------------------------------
     // Bootstrap helpers
     // -----------------------------------------------------------------------
