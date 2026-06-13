@@ -27,6 +27,16 @@ TEST_TESTER_SRCS = tests/test_flight_tester.c flight_parser.c validation.c cJSON
 TEST_TESTER_OBJS = $(TEST_TESTER_SRCS:.c=.o)
 TEST_TESTER_EXECUTABLE = test_flight_tester
 
+# ---- test_shared_memory (US105) ----
+TEST_SHM_SRCS = tests/test_shared_memory.c shared_memory.c
+TEST_SHM_OBJS = $(TEST_SHM_SRCS:.c=.o)
+TEST_SHM_EXECUTABLE = test_shared_memory
+
+# ---- test_environment (US110) ----
+TEST_ENV_SRCS = tests/test_environment.c environment.c
+TEST_ENV_OBJS = $(TEST_ENV_SRCS:.c=.o)
+TEST_ENV_EXECUTABLE = test_environment
+
 all: $(EXECUTABLE) $(TESTER_EXECUTABLE)
 
 $(EXECUTABLE): $(OBJS)
@@ -43,9 +53,12 @@ run: $(EXECUTABLE)
 
 # $(TESTER_EXECUTABLE) é pré-requisito porque os testes de integração de
 # test_flight_tester invocam ./flight_tester via system().
-test: $(TEST_EXECUTABLE) $(TEST_TESTER_EXECUTABLE) $(TESTER_EXECUTABLE)
+test: $(TEST_EXECUTABLE) $(TEST_TESTER_EXECUTABLE) $(TESTER_EXECUTABLE) \
+      $(TEST_SHM_EXECUTABLE) $(TEST_ENV_EXECUTABLE)
 	./$(TEST_EXECUTABLE)
 	./$(TEST_TESTER_EXECUTABLE)
+	./$(TEST_SHM_EXECUTABLE)
+	./$(TEST_ENV_EXECUTABLE)
 
 $(TEST_EXECUTABLE): $(TEST_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -53,11 +66,19 @@ $(TEST_EXECUTABLE): $(TEST_OBJS)
 $(TEST_TESTER_EXECUTABLE): $(TEST_TESTER_OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+$(TEST_SHM_EXECUTABLE): $(TEST_SHM_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(TEST_ENV_EXECUTABLE): $(TEST_ENV_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 clean:
 	rm -f $(OBJS) $(EXECUTABLE) \
 	      $(TESTER_OBJS) $(TESTER_EXECUTABLE) \
 	      $(TEST_OBJS) $(TEST_EXECUTABLE) \
-	      $(TEST_TESTER_OBJS) $(TEST_TESTER_EXECUTABLE)
+	      $(TEST_TESTER_OBJS) $(TEST_TESTER_EXECUTABLE) \
+	      $(TEST_SHM_OBJS) $(TEST_SHM_EXECUTABLE) \
+	      $(TEST_ENV_OBJS) $(TEST_ENV_EXECUTABLE)
 
 .PHONY: all run test clean
 
