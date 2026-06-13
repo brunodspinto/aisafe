@@ -270,6 +270,10 @@ ps -T -C flight_simulator
 The parent process shows **three threads** (LWPs): coordinator, safety and
 report — direct evidence of the function-specific separation required by US106.
 
+> Note: US110 later adds a 4th parent thread (`environment_thread`), so on the
+> current binary `ps -T` shows **four** threads — coordinator, safety, report and
+> environment. The three above are the ones US106 introduces/separates.
+
 > Note: execution requires a native POSIX environment (Linux). On Cygwin without
 > `cygserver`, named semaphores fail to be shared across the forked children
 > (`sem_open` → "Connection timed out"); this is an environment limitation, not a
