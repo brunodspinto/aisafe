@@ -2,7 +2,7 @@
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 
-title Domain Model V9
+title Domain Model V10
 
 package "User Aggregate" <<Rectangle>> {
 
@@ -34,6 +34,7 @@ package "User Aggregate" <<Rectangle>> {
         ADMIN
         BACKOFFICE_OPERATOR
         ATCC
+        PILOT
         FLIGHT_CONTROL_OPERATOR
         WEATHER_PERSON
     }
@@ -348,6 +349,7 @@ FlightPlan "1" *-- "1..*" FlightSegment : "composed of"
 FlightPlan "1" --> "1" FlightPlanStatus : "has"
 FlightPlan "1" --> "1" AirportIATACode : "alternate airport"
 FlightPlan "1" --> "0..1" User : "reviewed by"
+FlightPlan "1" --> "0..*" WeatherData : "uses"
 
 FlightSegment "1" *-- "2" Node : "has"
 
