@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "ipc.h"
+#include "thread_io.h"   /* ex1-9.c: print_history runs in the coordinator thread */
 
 int find_or_create_flight(flight_history_t *histories, int n_flights,
                           const char *flight_id) {
@@ -26,28 +27,28 @@ void print_history(const flight_history_t *histories, int n_flights) {
     int i, j;
     const aircraft_position_t *p;
 
-    printf("\n=== Position History (ACA only) ===\n");
+    tprintf("\n=== Position History (ACA only) ===\n");
     for (i = 0; i < n_flights; i++) {
         if (histories[i].flight_id[0] == '\0') continue;
 
         if (histories[i].count == 0) {
-            printf("Flight %s: never entered ACA\n", histories[i].flight_id);
+            tprintf("Flight %s: never entered ACA\n", histories[i].flight_id);
             continue;
         }
 
-        printf("Flight %s: %d positions inside ACA",
-               histories[i].flight_id, histories[i].count);
+        tprintf("Flight %s: %d positions inside ACA",
+                histories[i].flight_id, histories[i].count);
         if (histories[i].aca_state == ACA_AFTER)
-            printf(" [exited ACA]");
+            tprintf(" [exited ACA]");
         else if (histories[i].aca_state == ACA_INSIDE)
-            printf(" [still inside ACA at end]");
-        printf("\n");
+            tprintf(" [still inside ACA at end]");
+        tprintf("\n");
 
         for (j = 0; j < histories[i].count; j++) {
             p = &histories[i].positions[j];
-            printf("  [%d] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt hdg=%.1f\n",
-                   j, p->latitude, p->longitude,
-                   p->altitude_meters, p->speed_knots, p->heading_deg);
+            tprintf("  [%d] lat=%.4f lon=%.4f alt=%.0fm spd=%.0fkt hdg=%.1f\n",
+                    j, p->latitude, p->longitude,
+                    p->altitude_meters, p->speed_knots, p->heading_deg);
         }
     }
 }

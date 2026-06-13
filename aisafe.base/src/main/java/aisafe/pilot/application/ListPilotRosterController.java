@@ -16,6 +16,7 @@ import eapli.framework.infrastructure.authz.domain.model.SystemUser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Application-layer controller for the "List Company Pilot Roster" use case (US076).
@@ -43,16 +44,16 @@ public class ListPilotRosterController {
     }
 
     /**
-     * Testing constructor — accepts injected repositories so no JPA context is required.
-     * {@code authz} is intentionally null; only the package-private method overloads are
-     * called from tests and none of them perform the auth check.
-     * Package-private; not intended for production use.
+     * Testing constructor — accepts an injected {@link AuthorizationService} and repositories so
+     * no JPA context is required. The authorization service must not be null; tests pass a
+     * lightweight double. Package-private; not intended for production use.
      */
-    ListPilotRosterController(final PilotRepository pilotRepo,
+    ListPilotRosterController(final AuthorizationService authz,
+                               final PilotRepository pilotRepo,
                                final AircraftModelRepository modelRepo,
                                final AirTransportCompanyRepository companyRepo,
                                final CollaboratorRepository collaboratorRepo) {
-        this.authz = null;
+        this.authz = Objects.requireNonNull(authz, "authz must not be null");
         this.pilotRepo = pilotRepo;
         this.modelRepo = modelRepo;
         this.companyRepo = companyRepo;

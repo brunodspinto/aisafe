@@ -55,7 +55,7 @@ The `FlightPlan` aggregate already defines the `TESTED` status and the `markTest
 | US030 | Authentication and authorisation (`PILOT` role) must be in place. |
 | US081 | Creates DSL-based flight plans (the input for US085). |
 | US083 | Validates DSL plans and transitions them to `VALIDATED` — prerequisite state for US085. |
-| US086 | US085 must eventually be exposed remotely via the TCP pilot client (`PilotSessionHandler`). Not implemented in the current sprint for the TCP path — the console path is the focus. |
+| US086 | US085 is exposed remotely via the TCP pilot client. `PilotSessionHandler` handles the `TEST_FLIGHT_PLAN` command by delegating to `TestFlightPlanController`, so US085 is reachable both from the console UI and over TCP — contributing to the mandatory AC086.3 ("all Pilot user stories must be remotely available"). |
 
 **Out of scope for this user story:**
 
@@ -69,6 +69,11 @@ The `FlightPlan` aggregate already defines the `TESTED` status and the `markTest
 ---
 
 ## 3. Analysis
+
+The system-level interaction between the Pilot and the system:
+
+![System Sequence Diagram](svg/US085-SSD.svg)
+> Source: [puml/US085-SSD.puml](puml/US085-SSD.puml)
 
 The `FlightPlan` aggregate is the central concept. It already supports the full lifecycle
 (`DRAFT` → `VALIDATED` → `TESTED`) and exposes `markTested()`. No new aggregates or value
@@ -444,9 +449,16 @@ mvn -f aisafe.base/pom.xml exec:java
 - **C binary separation** — Using a dedicated `flight_tester` binary (not the full
   `flight_simulator`) keeps the US100 multi-flight simulation independent of the
   single-plan test. The `flight_tester` links only the minimum set of object files.
-- **TCP integration deferred** — US086 specifies that all Pilot USs must be remotely
-  accessible. US085 will be added to `PilotSessionHandler` as a `TEST_FLIGHT_PLAN` command
-  in a future sprint, following the same temporary-file pattern used for `CREATE_FLIGHT_PLAN`.
+- **TCP integration implemented** — US086 requires all Pilot USs to be remotely
+  accessible. `PilotSessionHandler` already handles the `TEST_FLIGHT_PLAN` command
+  (`handleTestFlightPlan` → `TestFlightPlanController.testFlightPlan`), so US085 is
+  available both via the console UI and over TCP, satisfying mandatory AC086.3.
+- **Actor scope (PILOT vs FCO)** — AC085.1 currently restricts triggering a test to the
+  `PILOT` role. The assignment's use-case model (Fig.1 + §3.1.4, "FCOs … must test flight
+  plans") also lets the **Flight Control Operator** test flight plans. The US085 story
+  text says "As Pilot", so this is left PILOT-only pending confirmation with the PO; if
+  FCO testing is required it is a one-line change to the role check in
+  `TestFlightPlanController`.
 - **IPC data path vs AC compliance** — the live position data flows child → **pipe** →
   coordinator thread; the **shared-memory** segment carries only the *latest* position and is
   read once at the end for the `last_lat`/`last_lon` output. The shm path therefore primarily

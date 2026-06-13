@@ -37,6 +37,13 @@ public class TestFlightPlanController {
 
     private static final int TIMEOUT_SECONDS = 30;
 
+    /**
+     * Grace period for the stdout reader thread to drain after the process exits. The process has
+     * already terminated by this point, so EOF is imminent; a generous bound (vs. a tight 1s)
+     * avoids abandoning the daemon thread with partial output on slow/loaded machines.
+     */
+    private static final long READER_JOIN_TIMEOUT_MS = 5000L;
+
     private final AuthorizationService    authz;
     private final FlightPlanRepository    repository;
     private final FlightPlanParserFacade  parser;
@@ -194,7 +201,7 @@ public class TestFlightPlanController {
             }
 
             try {
-                outputReader.join(1000);
+                outputReader.join(READER_JOIN_TIMEOUT_MS);
             } catch (final InterruptedException ignored) {
                 Thread.currentThread().interrupt();
             }

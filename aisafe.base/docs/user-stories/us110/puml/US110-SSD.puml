@@ -1,0 +1,22 @@
+@startuml US110-SSD
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US110 - Integrate Environmental Influences / Wind (SSD)
+
+autonumber
+actor "Flight Control Operator" as OP
+participant ":Simulation\n(flight_simulator)" as SYS
+
+activate OP
+OP -> SYS : starts the simulation\n(optionally with AISAFE_WIND="speed,dir")
+activate SYS
+note over SYS : environment thread loads wind\nand publishes it to shared memory each step;\nflight processes drift laterally with the wind
+SYS --> OP : per-step progress with wind-drifted positions
+SYS --> OP : real-time safety violations caused by wind\n(detected via the US102/US107 pipeline)
+SYS --> OP : final report
+deactivate SYS
+deactivate OP
+
+@enduml

@@ -72,10 +72,13 @@ Two approaches for the parent's internal structure were considered:
 | `report_thread` | Wait for end-of-simulation signal, then generate final report (US109) | `pthread_cond_wait` on `g_done_cond` |
 
 > **Note:** US105 establishes the multi-threaded parent with the `coordinator_thread`
-> and `report_thread`. The third thread, `safety_thread`, is **integrated from US106**
-> (real-time safety detection). The current `main.c` therefore spawns **three** parent
-> threads — `safety_tid`, `coordinator_tid`, `report_tid` — joined in that order before
-> the children are reaped.
+> and `report_thread`. The `safety_thread` is **integrated from US106** (real-time
+> safety detection), and an `environment_thread` is **added by US110** (wind). The
+> current `main.c` therefore spawns **four** parent threads — created in the order
+> `environment_tid`, `safety_tid`, `coordinator_tid`, `report_tid`, and **joined** in
+> the order `coordinator_tid`, `environment_tid`, `safety_tid`, `report_tid` (the
+> coordinator is joined first because it signals the others to finish) before the
+> children are reaped.
 
 ### 3.3 Semaphore design
 
@@ -96,6 +99,18 @@ mutual-exclusion pattern (initial value 1) used in `ex2-6.c`.
 
 ## 4. Design
 
+### 4.0 Diagrams
+
+System sequence diagram (operator ↔ simulation):
+
+![System Sequence Diagram](svg/US105-SSD.svg)
+> Source: [puml/US105-SSD.puml](puml/US105-SSD.puml)
+
+Internal sequence — the multi-process / multi-threaded shared-memory lock-step:
+
+![Sequence Diagram](svg/US105-SD.svg)
+> Source: [puml/US105-SD.puml](puml/US105-SD.puml)
+
 ### 4.1 Shared memory structure (`shared_memory.h`)
 
 ```c
@@ -106,6 +121,14 @@ typedef struct {
     int n_flights;
     int total_violations;       /* written by coordinator at end            */
     int sim_aborted;            /* written by coordinator at end            */
+    /* added by US106 — real-time violation event queue */
+    violation_event_t violation_events[MAX_VIOLATION_EVENTS];
+    int violation_event_count;
+    int dropped_violation_events;
+    /* added by US110 — environment (wind) block; guarded by the named
+     * semaphore /aisafe_env (value 1) as a cross-process mutex */
+    environment_t   environment;
+    int             env_step;
 } sim_shm_t;
 ```
 

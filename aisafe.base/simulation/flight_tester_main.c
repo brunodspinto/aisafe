@@ -228,6 +228,15 @@ int main(int argc, char *argv[]) {
     }
     if (ftruncate(shm_fd, (off_t)sizeof(aircraft_position_t)) < 0) {
         perror("ftruncate");
+        close(shm_fd);
+        close(pfd[0]); close(pfd[1]);
+        sem_close(go_sem); sem_unlink(sem_name);
+        shm_unlink(shm_name);
+        printf("{\"identifier\":\"%s\",\"status\":\"FAIL\","
+               "\"reason\":\"ftruncate failed\"}\n", identifier);
+        for (int i = 0; i < n_plans; i++) { free(plans[i].legs); }
+        free(plans);
+        return 1;
     }
     void *shm_ptr = mmap(NULL, sizeof(aircraft_position_t),
                          PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);

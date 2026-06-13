@@ -82,11 +82,13 @@ static void lookup_perf(const perf_point_t *table, int count, double alt_m,
 
 /* Sinaliza ao coordinator que este voo terminou e liberta os recursos de IPC.
  * Padrão ex1-7.c: filho chama munmap antes de sair. */
-static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem) {
+static void flight_done(int idx, sim_shm_t *shm, sem_t *pos_sem, sem_t *ctrl_sem,
+                        sem_t *env_sem) {
     shm->active[idx] = 0;
     sem_post(pos_sem);   /* acorda coordinator para que veja active[idx]=0 */
     sem_close(pos_sem);
     sem_close(ctrl_sem);
+    sem_close(env_sem);  /* US110 — fechar o mutex do bloco de ambiente */
     munmap(shm, sizeof(sim_shm_t));  /* padrão ex1-7.c: filho desliga a memória partilhada */
 }
 
@@ -112,6 +114,9 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
 
     printf("[Flight %s] Starting simulation\n", plan->identifier);
     fflush(stdout);
+
+    /* US110 — abrir o mutex nomeado do bloco de ambiente (padrão ex2-6.c). */
+    sem_t *env_sem = open_env_sem(0);
 
     time_t sim_time = time(NULL);
 
@@ -173,8 +178,19 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
                 if (is_climb   && alt > alt_target) alt = alt_target;
                 if (is_descend && alt < alt_target) alt = alt_target;
 
-                /* US110: apply lateral wind drift — affects lat/lon only, not dist_covered_m/alt */
-                apply_wind_drift(&lat, &lon, segment, STEP_SECONDS);
+                /* US110: apply lateral wind drift — affects lat/lon only, not dist_covered_m/alt.
+                 * Wind comes from the environment thread via shared memory, read under the
+                 * env mutex semaphore (sem_wait/sem_post around the shared block, ex2-6.c).
+                 * If the weather service reports calm, fall back to the per-segment wind. */
+                environment_t env;
+                sem_wait(env_sem);
+                env = shm->environment;
+                sem_post(env_sem);
+                if (env.wind_speed > 0.0)
+                    apply_wind_drift_values(&lat, &lon, env.wind_speed,
+                                            env.wind_direction, STEP_SECONDS);
+                else
+                    apply_wind_drift(&lat, &lon, segment, STEP_SECONDS);
 
                 /* US105: escrever posição em shared memory e sinalizar coordinator */
                 aircraft_position_t pos;
@@ -196,7 +212,7 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
                  * SA_RESTART garante que sem_wait() é retomado após SIGUSR1. */
                 sem_wait(ctrl_sem);
                 if (shm->ctrl[flight_idx] == 0 || collision_alert) {
-                    flight_done(flight_idx, shm, pos_sem, ctrl_sem);
+                    flight_done(flight_idx, shm, pos_sem, ctrl_sem, env_sem);
                     exit(1);
                 }
             }
@@ -204,6 +220,6 @@ void flight_process_main(int flight_idx, const flight_plan_t *plan,
     }
 
     /* Todos os segmentos e legs concluídos — voo terminou normalmente. */
-    flight_done(flight_idx, shm, pos_sem, ctrl_sem);
+    flight_done(flight_idx, shm, pos_sem, ctrl_sem, env_sem);
     exit(0);
 }

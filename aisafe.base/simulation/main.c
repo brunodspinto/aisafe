@@ -38,6 +38,7 @@
 #include "report.h"
 #include "shared_memory.h"
 #include "safety_thread.h"   /* US106 — safety_thread + safety_channel_t */
+#include "weather_service.h" /* US110 — environment (wind) data source */
 
 #define FLIGHT_PLANS_FILE "flight_plans.json"
 #define CONFIG_FILE       "simulation.conf"
@@ -79,7 +80,22 @@ typedef struct {
     pthread_mutex_t     *g_notification_mutex;
     pthread_cond_t      *g_report_cond;
     int                 *g_sim_done;
+    /* US110 — per-step tick to the environment thread */
+    pthread_mutex_t     *env_mutex;
+    pthread_cond_t      *env_cond;
+    int                 *env_tick;
+    int                 *env_done;
 } coordinator_ctx_t;
+
+/* US110 — contexto da environment thread (escreve o vento em shm a cada passo) */
+typedef struct {
+    sim_shm_t       *shm;
+    sem_t           *env_sem;     /* mutex nomeado do bloco de ambiente (ex2-6.c) */
+    pthread_mutex_t *env_mutex;   /* sinalização coordinator↔env (intra-processo) */
+    pthread_cond_t  *env_cond;
+    int             *env_tick;
+    int             *env_done;
+} environment_ctx_t;
 
 typedef struct {
     sim_shm_t        *shm;
@@ -215,6 +231,13 @@ static void *coordinator_thread(void *arg) {
             break;
         }
 
+        /* US110 — sinalizar a environment thread para actualizar o vento em shm
+         * antes de libertar os voos para o próximo passo. */
+        pthread_mutex_lock(ctx->env_mutex);
+        (*ctx->env_tick)++;
+        pthread_cond_signal(ctx->env_cond);
+        pthread_mutex_unlock(ctx->env_mutex);
+
         /* Enviar GO a todos os voos activos */
         for (int i = 0; i < n_flights; i++) {
             if (local_active[i]) {
@@ -246,6 +269,56 @@ static void *coordinator_thread(void *arg) {
     *ctx->g_sim_done      = 1;
     pthread_cond_signal(ctx->g_report_cond);
     pthread_mutex_unlock(ctx->g_notification_mutex);
+
+    /* US110 — acordar a environment thread para que saia do cond_wait e termine. */
+    pthread_mutex_lock(ctx->env_mutex);
+    *ctx->env_done = 1;
+    pthread_cond_broadcast(ctx->env_cond);
+    pthread_mutex_unlock(ctx->env_mutex);
+
+    pthread_exit(NULL);
+}
+
+/* ------------------------------------------------------------------ */
+/* environment_thread: carrega o vento do "weather service" e escreve-o */
+/* em shared memory a cada passo da simulação (US110)                    */
+/* ------------------------------------------------------------------ */
+static void *environment_thread(void *arg) {
+    environment_ctx_t *ctx = (environment_ctx_t *)arg;
+    char buf[160];
+    int  n;
+
+    /* Escrita inicial (passo 0) para que os voos já tenham vento no 1º passo. */
+    environment_t env;
+    weather_service_fetch(&env, 0);
+    sem_wait(ctx->env_sem);
+    ctx->shm->environment = env;
+    ctx->shm->env_step    = 0;
+    sem_post(ctx->env_sem);
+    n = snprintf(buf, sizeof(buf),
+                 "[ENV US110] weather service: wind %.1f m/s from %.0f deg\n",
+                 env.wind_speed, env.wind_direction);
+    safe_write(STDOUT_FILENO, buf, n);
+
+    int last_tick = 0;
+    for (;;) {
+        pthread_mutex_lock(ctx->env_mutex);
+        while (*ctx->env_tick == last_tick && !*ctx->env_done)
+            pthread_cond_wait(ctx->env_cond, ctx->env_mutex);   /* while-pred */
+        if (*ctx->env_done && *ctx->env_tick == last_tick) {
+            pthread_mutex_unlock(ctx->env_mutex);
+            break;
+        }
+        int tick = *ctx->env_tick;
+        pthread_mutex_unlock(ctx->env_mutex);
+
+        weather_service_fetch(&env, tick);
+        sem_wait(ctx->env_sem);
+        ctx->shm->environment = env;
+        ctx->shm->env_step    = tick;
+        sem_post(ctx->env_sem);
+        last_tick = tick;
+    }
 
     pthread_exit(NULL);
 }
@@ -388,6 +461,8 @@ int main(int argc, char *argv[]) {
         pos_sems[i]  = open_pos_sem(i, 1);
         ctrl_sems[i] = open_ctrl_sem(i, 1);
     }
+    /* US110 — mutex nomeado (valor 1) que protege o bloco de ambiente em shm. */
+    sem_t *env_sem = open_env_sem(1);
 
     pid_t            pids[MAX_FLIGHTS];
     flight_history_t histories[MAX_FLIGHTS];
@@ -417,6 +492,7 @@ int main(int argc, char *argv[]) {
                 sem_close(pos_sems[j]);
                 sem_close(ctrl_sems[j]);
             }
+            sem_close(env_sem);   /* US110 — fechar handle herdado; o filho abre o seu */
 
             /* Processo filho: ligar-se ao shm e abrir os seus dois semáforos */
             sim_shm_t *child_shm  = shm_attach();
@@ -434,6 +510,15 @@ int main(int argc, char *argv[]) {
     int             g_sim_done  = 0;
     pthread_mutex_init(&g_notification_mutex, NULL);
     pthread_cond_init(&g_report_cond, NULL);
+
+    /* US110 — sincronização coordinator ↔ environment thread (stack/automático,
+     * por isso pthread_*_init e não os _INITIALIZER). */
+    pthread_mutex_t env_mutex;
+    pthread_cond_t  env_cond;
+    int             env_tick = 0;
+    int             env_done = 0;
+    pthread_mutex_init(&env_mutex, NULL);
+    pthread_cond_init(&env_cond, NULL);
 
     /* US106 — Inicializar o canal de handoff coordinator ↔ safety.
      * pthread_mutex_init/pthread_cond_init (não os _INITIALIZER) porque a
@@ -456,10 +541,23 @@ int main(int argc, char *argv[]) {
     coord_ctx.g_notification_mutex = &g_notification_mutex;
     coord_ctx.g_report_cond = &g_report_cond;
     coord_ctx.g_sim_done = &g_sim_done;
+    coord_ctx.env_mutex = &env_mutex;       /* US110 */
+    coord_ctx.env_cond  = &env_cond;
+    coord_ctx.env_tick  = &env_tick;
+    coord_ctx.env_done  = &env_done;
     for (int i = 0; i < n_flights; i++) {
         coord_ctx.pos_sems[i]  = pos_sems[i];
         coord_ctx.ctrl_sems[i] = ctrl_sems[i];
     }
+
+    /* US110 — Contexto para environment_thread */
+    environment_ctx_t env_ctx;
+    env_ctx.shm       = shm;
+    env_ctx.env_sem   = env_sem;
+    env_ctx.env_mutex = &env_mutex;
+    env_ctx.env_cond  = &env_cond;
+    env_ctx.env_tick  = &env_tick;
+    env_ctx.env_done  = &env_done;
 
     /* US106 — Contexto para safety_thread */
     safety_ctx_t safety_ctx;
@@ -484,7 +582,13 @@ int main(int argc, char *argv[]) {
     /* US106 — Lançar as TRÊS threads função-específicas do processo pai.
      * A safety_thread é criada primeiro para já estar à espera do primeiro
      * snapshot quando o coordinator começar o loop. */
-    pthread_t coordinator_tid, safety_tid, report_tid;
+    pthread_t coordinator_tid, safety_tid, report_tid, environment_tid;
+    /* US110 — environment thread criada primeiro para escrever o vento inicial
+     * antes do coordinator libertar o primeiro passo. */
+    if (pthread_create(&environment_tid, NULL, environment_thread, &env_ctx) != 0) {
+        perror("pthread_create environment");
+        exit(1);
+    }
     if (pthread_create(&safety_tid, NULL, safety_thread, &safety_ctx) != 0) {
         perror("pthread_create safety");
         exit(1);
@@ -498,8 +602,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    /* Aguardar conclusão das três threads */
+    /* Aguardar conclusão das quatro threads. O coordinator sinaliza env_done ao
+     * terminar, pelo que a environment thread é juntada logo a seguir. */
     pthread_join(coordinator_tid, NULL);
+    pthread_join(environment_tid, NULL);
     pthread_join(safety_tid, NULL);
     pthread_join(report_tid, NULL);
 
@@ -516,11 +622,14 @@ int main(int argc, char *argv[]) {
     pthread_cond_destroy(&chan.cond);
     pthread_mutex_destroy(&g_notification_mutex);
     pthread_cond_destroy(&g_report_cond);
+    pthread_mutex_destroy(&env_mutex);    /* US110 */
+    pthread_cond_destroy(&env_cond);
 
     for (int i = 0; i < n_flights; i++) {
         sem_close(pos_sems[i]);
         sem_close(ctrl_sems[i]);
     }
+    sem_close(env_sem);          /* US110 */
     cleanup_sems(n_flights);
     shm_destroy(shm);
     free(plans);

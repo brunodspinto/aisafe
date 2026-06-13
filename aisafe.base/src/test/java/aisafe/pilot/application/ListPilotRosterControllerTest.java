@@ -18,6 +18,7 @@ import aisafe.usermanagement.domain.MecanographicNumber;
 import aisafe.usermanagement.domain.SecurityClearance;
 import aisafe.usermanagement.domain.SecurityLevel;
 import aisafe.usermanagement.domain.User;
+import eapli.framework.infrastructure.authz.application.AuthorizationService;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class ListPilotRosterControllerTest {
 
+    /**
+     * Lightweight authorization double. The package-private filter overloads exercised by these
+     * tests never invoke it, but injecting a real (unconfigured) instance keeps the controller's
+     * {@code authz} field non-null, avoiding the previous fragile {@code null} seam.
+     */
+    private static final AuthorizationService NO_AUTH = new AuthorizationService() { };
+
     private InMemoryPilotRepository pilotRepo;
     private InMemoryAircraftModelRepository modelRepo;
     private ListPilotRosterController controller;
@@ -61,7 +69,7 @@ class ListPilotRosterControllerTest {
 
         pilotRepo = new InMemoryPilotRepository();
         modelRepo = new InMemoryAircraftModelRepository();
-        controller = new ListPilotRosterController(pilotRepo, modelRepo, null, null);
+        controller = new ListPilotRosterController(NO_AUTH, pilotRepo, modelRepo, null, null);
 
         iataA = IATACode.valueOf("TP");
         iataB = IATACode.valueOf("AF");

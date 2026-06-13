@@ -1,0 +1,21 @@
+@startuml US105-SSD
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+title US105 - Hybrid Simulation Environment with Shared Memory (SSD)
+
+autonumber
+actor "Flight Control Operator" as OP
+participant ":Simulation\n(flight_simulator)" as SYS
+
+activate OP
+OP -> SYS : starts the simulation
+activate SYS
+note over SYS : allocates shared memory,\nspawns one process per flight,\nstarts the multi-threaded parent
+SYS --> OP : per-step progress\n(positions, safety checks)
+SYS --> OP : final report\n(total violations, aborted?)
+deactivate SYS
+deactivate OP
+
+@enduml

@@ -8,12 +8,17 @@
 
 #define DEG_TO_RAD (M_PI / 180.0)
 
-void apply_wind_drift(double *lat, double *lon, const segment_t *seg, double dt) {
-    if (seg->wind_speed <= 0.0) return;                           /* no wind → no drift */
-    double drift_m = seg->wind_speed * dt;                        /* metres this step   */
-    double bearing = (seg->wind_direction + 180.0) * DEG_TO_RAD; /* FROM → TO bearing  */
+void apply_wind_drift_values(double *lat, double *lon,
+                             double wind_speed, double wind_direction, double dt) {
+    if (wind_speed <= 0.0) return;                            /* no wind → no drift */
+    double drift_m = wind_speed * dt;                         /* metres this step   */
+    double bearing = (wind_direction + 180.0) * DEG_TO_RAD;  /* FROM → TO bearing  */
     double north_m = drift_m * cos(bearing);
     double east_m  = drift_m * sin(bearing);
     *lat += north_m / 110574.0;
     *lon += east_m  / (111320.0 * cos(*lat * DEG_TO_RAD));
+}
+
+void apply_wind_drift(double *lat, double *lon, const segment_t *seg, double dt) {
+    apply_wind_drift_values(lat, lon, seg->wind_speed, seg->wind_direction, dt);
 }

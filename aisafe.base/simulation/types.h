@@ -47,6 +47,14 @@ typedef struct {
     time_t datetime;
 } endpoint_t;
 
+/* US110: current environmental conditions published by the environment thread
+ * into shared memory each simulation step. wind_direction is meteorological
+ * (direction the wind blows FROM). wind_speed <= 0 means calm. */
+typedef struct {
+    double wind_speed;      /* m/s */
+    double wind_direction;  /* degrees, meteorological (FROM) */
+} environment_t;
+
 typedef struct {
     int              segment_count;
     segment_t       *segments;

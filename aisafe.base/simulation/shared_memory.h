@@ -15,6 +15,7 @@
 #define SHM_NAME      "/aisafe_sim"
 #define SEM_POS_FMT   "/aisafe_pos_%d"   /* child posts → coordinator waits */
 #define SEM_CTRL_FMT  "/aisafe_ctrl_%d"  /* coordinator posts → child waits */
+#define SEM_ENV_NAME  "/aisafe_env"      /* US110 — mutex (init 1) for env block (ex2-6.c) */
 #define SEM_NAME_MAX  32
 
 /* Shared memory layout: one slot per flight. */
@@ -28,6 +29,12 @@ typedef struct {
     violation_event_t violation_events[MAX_VIOLATION_EVENTS];
     int violation_event_count;
     int dropped_violation_events;
+    /* US110 — environment block written by the environment thread each step,
+     * read by every flight child. Mutual exclusion is provided by the named
+     * semaphore SEM_ENV_NAME (value 1), the cross-process mutex pattern from
+     * the professor's ex2-6.c — the same approach as the pos/ctrl semaphores. */
+    environment_t   environment;
+    int             env_step;
 } sim_shm_t;
 
 /* Parent creates the segment; sets n_flights and initialises active[] to 1. */
@@ -44,7 +51,10 @@ void shm_destroy(sim_shm_t *shm);
 sem_t *open_pos_sem(int idx, int create);
 sem_t *open_ctrl_sem(int idx, int create);
 
-/* Unlink all named semaphores created for n_flights. */
+/* US110 — open the environment mutex semaphore (value 1 when created). */
+sem_t *open_env_sem(int create);
+
+/* Unlink all named semaphores created for n_flights (plus the env semaphore). */
 void cleanup_sems(int n_flights);
 
 #endif /* SHARED_MEMORY_H */

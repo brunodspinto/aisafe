@@ -9,4 +9,9 @@
  * alt — so every segment remains finite (termination invariant). */
 void apply_wind_drift(double *lat, double *lon, const segment_t *seg, double dt);
 
+/* US110: same drift maths from explicit wind values, used when the wind comes
+ * from the environment thread (shared memory) rather than the segment. */
+void apply_wind_drift_values(double *lat, double *lon,
+                             double wind_speed, double wind_direction, double dt);
+
 #endif /* ENVIRONMENT_H */
