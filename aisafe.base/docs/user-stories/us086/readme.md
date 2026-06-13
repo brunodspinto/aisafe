@@ -138,18 +138,6 @@ The `CREATE_FLIGHT_PLAN` command is handled server-side by writing the received 
 
 Authentication reuses `AuthenticationContext.authenticate(username, password)`, which delegates to the EAPLI `AuthenticationService`. After authentication, role verification uses `AuthenticationContext.hasRole(AiSafeRoles.PILOT)`.
 
-### RCOMP — Protocolo TCP
-
-**TCP em vez de UDP:** o Piloto envia conteúdo DSL que pode ter vários kilobytes e precisa de garantia de entrega e de ordem das mensagens. UDP não oferece estas garantias — um plano de voo truncado ou reordenado seria inaceitável. TCP garante fiabilidade, controlo de fluxo e entrega na ordem correcta, adequando-se ao modelo request-reply desta aplicação.
-
-**Protocolo texto (UTF-8, `\n`-terminado):** simplifica o debugging (o protocolo é legível com `telnet` ou `nc`), os testes manuais e a implementação em ambos os lados. Para este contexto académico o overhead de texto em relação a um formato binário é negligenciável.
-
-**Ciclo de vida da ligação:** `connect` → `LOGIN` → loop de comandos → `EXIT` (fecho gracioso via FIN/FIN-ACK) ou fecho abrupto do cliente (tratado por `IOException` no servidor; o bloco `finally` garante sempre `AuthenticationContext.clear()`).
-
-**Porta 9999:** porta alta (acima de 1023), não reservada pelo IANA, sem conflito com serviços standard. Não requer privilégios de root para ser aberta pelo servidor.
-
-**Modelo cliente-servidor:** o `AiSafeTcpServer` é o servidor passivo (escuta em `ServerSocket`); o `PilotTcpClientApp` é o cliente activo (abre a ligação). O servidor usa o padrão thread-per-connection — cada `accept()` lança uma nova thread `TcpClientDispatcher`, permitindo sessões concorrentes de diferentes roles sem bloquear o ciclo de aceitação.
-
 ---
 
 ### Key design decisions
