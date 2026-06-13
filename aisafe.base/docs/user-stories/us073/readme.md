@@ -23,7 +23,7 @@ This US is being implemented for the first time in Sprint 3. It allows an **Air 
 
 - **AC073.1** A route must be defined between exactly two airports (origin and destination), both already registered in the system.
 - **AC073.2** Origin and destination airports must be different.
-- **AC073.3** The route name must follow the format: 2 uppercase letters (company initials) followed by 1 to 4 digits (e.g. `TP123`). The format is validated by the `RouteName` value object.
+- **AC073.3** The route name must follow the format: 2 uppercase letters (company initials) followed by 1 to 4 digits (e.g. `TP123`). The format is validated by the `RouteName` value object; the company-initials part (the 2 leading letters must equal the authenticated collaborator's company IATA code) is validated by `CreateFlightRouteController`, since only the application layer knows the session's company.
 - **AC073.4** The route name must be unique within the system.
 - **AC073.5** Only an authenticated Air Transport Company Collaborator (`ATCC` role) may perform this action.
 - **AC073.6** The collaborator can only create routes for their own company — the company is derived from the authenticated user's session, not provided as input.
@@ -78,11 +78,11 @@ The use case follows the standard layered flow: `CreateFlightRouteUI` collects t
 
 1. Verifies the authenticated user has the `ATCC` role
 2. Resolves the authenticated collaborator's company from the session
-3. Creates and validates the `RouteName` value object
-4. Verifies route name uniqueness via the repository
-5. Verifies both airports exist in the repository
-6. Verifies origin and destination are different
-7. Creates the `FlightRoute` aggregate in `ACTIVE` status
+3. Creates and validates the `RouteName` value object (format `[A-Z]{2}[0-9]{1,4}`)
+4. Verifies the route name starts with the company's IATA code (company-initials rule, AC073.3)
+5. Verifies route name uniqueness via the repository
+6. Verifies both airports exist in the repository
+7. Creates the `FlightRoute` aggregate in `ACTIVE` status — the aggregate constructor enforces the remaining invariants (non-null fields, origin ≠ destination, AC073.1/AC073.2)
 8. Persists via `FlightRouteRepository`
 
 The following sequence diagram illustrates this flow:

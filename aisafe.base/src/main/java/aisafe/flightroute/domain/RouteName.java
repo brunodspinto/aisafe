@@ -32,6 +32,10 @@ public class RouteName implements ValueObject, Comparable<RouteName> {
         // for ORM
     }
 
+    public static RouteName valueOf(final String name) {
+        return new RouteName(name);
+    }
+
     /** @return the route name string */
     public String name() {
         return name;
