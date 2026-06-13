@@ -99,8 +99,14 @@ typedef struct {
     int n_flights;
     int total_violations;       /* written by coordinator at end            */
     int sim_aborted;            /* written by coordinator at end            */
+    /* US106 additions — safety violation event log (written by coordinator) */
+    violation_event_t violation_events[MAX_VIOLATION_EVENTS];
+    int violation_event_count;
+    int dropped_violation_events; /* incremented when the event buffer is full */
 } sim_shm_t;
 ```
+
+> **Note:** The three `violation_event*` fields were added in US106 (safety violation detection thread). They are defined in `shared_memory.h` but owned by the US106 feature.
 
 Created by the parent with `shm_open(O_CREAT|O_EXCL) + ftruncate + mmap` (pattern from
 `ex1-7.c`). Each child attaches with `shm_open(O_RDWR) + mmap`. The file descriptor is
