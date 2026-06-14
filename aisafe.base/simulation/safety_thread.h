@@ -1,11 +1,11 @@
 /*
- * safety_thread.h - Thread de segurança do processo pai (US106).
+ * safety_thread.h - Parent-process safety thread (US106).
  *
- * Esta é a contribuição da US106: a função-específica que separa a verificação
- * de segurança (US102) para a sua própria thread no processo pai. Define também
- * o safety_channel_t, o canal "ping-pong" (mutex + variável de condição) usado
- * para trocar, em cada passo, o snapshot das posições e o veredicto de segurança
- * com a coordinator_thread (que permanece em main.c).
+ * This is the US106 contribution: the function-specific thread that separates
+ * the safety verification (US102) into its own thread in the parent process. It
+ * also defines safety_channel_t, the "ping-pong" channel (mutex + condition
+ * variable) used to exchange, on each step, the position snapshot and the safety
+ * verdict with the coordinator_thread (which stays in main.c).
  */
 #ifndef SAFETY_THREAD_H
 #define SAFETY_THREAD_H
@@ -16,31 +16,31 @@
 #include "shared_memory.h"
 
 /*
- * US106 — Canal de handoff "ping-pong" entre a coordinator_thread (produtor do
- * snapshot do passo) e a safety_thread (produtor do veredicto). Protegido por um
- * único mutex + variável de condição (padrão T7/T8). Em cada passo:
- *   coordinator escreve o snapshot, step_ready=1, e bloqueia em verdict_ready;
- *   safety lê o snapshot, calcula, escreve o veredicto e verdict_ready=1.
- * sim_finished desbloqueia a safety_thread quando a simulação termina.
+ * US106 - "ping-pong" handoff channel between the coordinator_thread (producer of
+ * the step snapshot) and the safety_thread (producer of the verdict). Protected by
+ * a single mutex + condition variable. On each step:
+ *   coordinator writes the snapshot, step_ready=1, and blocks on verdict_ready;
+ *   safety reads the snapshot, computes, writes the verdict and verdict_ready=1.
+ * sim_finished unblocks the safety_thread when the simulation ends.
  */
 typedef struct {
-    /* snapshot do passo: escrito pelo coordinator, lido pela safety */
+    /* step snapshot: written by the coordinator, read by safety */
     aircraft_position_t prev_positions[MAX_FLIGHTS];
     aircraft_position_t current_positions[MAX_FLIGHTS];
     int                 has_position[MAX_FLIGHTS];
     int                 local_active[MAX_FLIGHTS];
-    /* veredicto: escrito pela safety, lido pelo coordinator */
+    /* verdict: written by safety, read by the coordinator */
     int                 abort_sim;
     int                 total_violations;
-    /* máquina de estados do ping-pong */
-    int                 step_ready;     /* coordinator → safety */
-    int                 verdict_ready;  /* safety → coordinator */
-    int                 sim_finished;   /* coordinator → safety: termina */
+    /* ping-pong state machine */
+    int                 step_ready;     /* coordinator -> safety */
+    int                 verdict_ready;  /* safety -> coordinator */
+    int                 sim_finished;   /* coordinator -> safety: terminate */
     pthread_mutex_t     mutex;
     pthread_cond_t      cond;
 } safety_channel_t;
 
-/* Contexto passado à safety_thread */
+/* Context passed to the safety_thread */
 typedef struct {
     safety_channel_t    *chan;
     flight_plan_t       *plans;

@@ -384,7 +384,7 @@ static void *report_thread(void *arg) {
     int sim_aborted      = ctx->shm->sim_aborted;
     pthread_mutex_unlock(ctx->g_notification_mutex);
 
-    /* Padrão ex1-9.c: write() em vez de printf() em threads POSIX */
+    /*  write() em vez de printf() em threads POSIX */
     const char *report_msg =
         "\n[SYSTEM] Simulation concluded. Report thread generating final report...\n";
     safe_write(STDOUT_FILENO, report_msg, strlen(report_msg));

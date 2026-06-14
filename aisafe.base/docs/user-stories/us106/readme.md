@@ -87,7 +87,7 @@ The coordinator mixing US101 and US102 in one thread violates the user story:
 Within one simulation step the work is **sequentially dependent**: positions must
 be collected *before* safety can be checked, and the GO/STOP decision depends on
 the safety verdict. Two cooperating threads therefore need an ordered handoff.
-A mutex + condition variable (T7/T8) provides this without busy-waiting:
+A mutex + condition variable provides this without busy-waiting:
 
 * the coordinator is the *producer* of the per-step snapshot;
 * the safety thread is the *producer* of the per-step verdict;
