@@ -157,7 +157,7 @@ All classes are under `src/main/java/aisafe/app/loggingserver/`:
 |-------|--------------------------|
 | `RemoteAccessEvent` | Record with 7 fields; `sessionKey()` builds a unique key for active-session tracking; `toLogLine()` produces the pipe-delimited persistence format |
 | `ActiveUser` | Record with 5 fields; built from a `RemoteAccessEvent` when LOGIN_SUCCESS is received |
-| `RemoteAccessLogStore` | `ConcurrentLinkedDeque` (newest first via `addFirst`); `ConcurrentHashMap` keyed by `sessionKey()`; LOGIN_SUCCESS adds, LOGOUT/CONNECTION_LOST removes |
+| `RemoteAccessLogStore` | `ConcurrentLinkedDeque` capped at `MAX_EVENTS = 1000` (newest first via `addFirst`, oldest dropped via `pollLast`); `ConcurrentHashMap` keyed by `sessionKey()`; LOGIN_SUCCESS adds, LOGOUT/CONNECTION_LOST removes |
 | `LogFileWriter` | `synchronized append()`; `BufferedWriter` opened in append mode; implements `Closeable` |
 | `LogEventParser` | Splits on `\|`; bad timestamp falls back to `LocalDateTime.now()`; bad port falls back to `-1`; returns `Optional.empty()` for malformed input |
 | `UdpLogReceiver` | `DatagramSocket` loop on configurable port; `volatile boolean running` + `volatile DatagramSocket socket` for clean shutdown via `stop()` |
