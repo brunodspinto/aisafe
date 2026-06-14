@@ -97,8 +97,8 @@ public class CreateFlightPlanFromFileController {
             throw new IllegalArgumentException("Flight plan file does not exist or is not a regular file: " + path);
         }
         final String lowerName = path.getFileName().toString().toLowerCase();
-        if (!lowerName.endsWith(".dsl") && !lowerName.endsWith(".fpdsl")) {
-            throw new IllegalArgumentException("Flight plan file must use .dsl or .fpdsl extension.");
+        if (!lowerName.endsWith(".dsl")) {
+            throw new IllegalArgumentException("Flight plan file must use .dsl extension.");
         }
         return path;
     }

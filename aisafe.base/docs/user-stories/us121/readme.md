@@ -26,7 +26,7 @@ second flight-plan model for file imports; a valid DSL file is mapped to the exi
 The use case has four relevant checks before persistence:
 
 1. **Authorization** - the current user must have the `PILOT` role.
-2. **File input validation** - the path must refer to a regular `.dsl` or `.fpdsl` file.
+2. **File input validation** - the path must refer to a regular `.dsl` file.
 3. **DSL validation** - `FlightPlanParserFacade` runs lexical, syntactic, range and semantic
    analysis according to US120.
 4. **Uniqueness validation** - a flight plan with the parsed designator must not already
@@ -50,7 +50,7 @@ CreateFlightPlanFromFileUI
   v
 CreateFlightPlanFromFileController
   |-- ensure PILOT role
-  |-- read .dsl/.fpdsl file
+  |-- read .dsl file
   |-- FlightPlanParserFacade.parse(dsl)
   |     |-- ANTLR lexer/parser
   |     |-- FlightPlanValidationListener
@@ -108,7 +108,7 @@ mvn exec:java
 
 1. Login as a Pilot.
 2. Open **Flight Plans > Create Flight Plan from DSL File**.
-3. Enter the path to a `.dsl` or `.fpdsl` file.
+3. Enter the path to a `.dsl` file.
 
 Successful import:
 
@@ -145,5 +145,4 @@ mvn test -Dtest=FlightPlanDslFileTest,FlightPlanSemanticValidatorTest,FlightPlan
   existing `FlightPlan` aggregate for persistence.
 - The controller rejects invalid files before saving, satisfying the "only valid flight plans"
   acceptance criterion.
-- `.dsl` is the canonical extension used by the project resources; `.fpdsl` is also accepted
-  to support the extension mentioned in earlier story drafts.
+- `.dsl` is the project extension accepted by the import flow and used by the project resources.

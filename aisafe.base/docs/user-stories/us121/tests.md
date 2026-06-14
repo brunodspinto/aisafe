@@ -13,7 +13,7 @@ Location: `src/test/java/aisafe/flightplan/application/CreateFlightPlanFromFileC
 | `ensureInvalidSyntacticFileIsRejectedAndNotPersisted` | AC121.2, AC121.3, AC121.4 | Syntactically invalid DSL produces a meaningful error and no plan is saved. |
 | `ensureInvalidSemanticFileIsRejectedAndNotPersisted` | AC121.2, AC121.3, AC121.4 | Semantically invalid DSL produces a meaningful error and no plan is saved. |
 | `ensureDuplicateDesignatorIsRejected` | AC121.4 | A file whose designator already exists is rejected and no duplicate is persisted. |
-| `ensureUnsupportedFileExtensionIsRejectedBeforeImport` | AC121.1 | Files outside `.dsl` / `.fpdsl` are rejected before import. |
+| `ensureUnsupportedFileExtensionIsRejectedBeforeImport` | AC121.1 | Files outside `.dsl` are rejected before import. |
 | `ensureAuthorizationFailureStopsImportFlow` | AC121.5 | Authorization failure stops the import before parsing or persistence. |
 
 ### Reused US120 DSL Tests
