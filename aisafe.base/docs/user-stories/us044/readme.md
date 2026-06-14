@@ -353,7 +353,7 @@ out.println("OK saved=" + result.saved() + " failures=" + result.failures() + " 
 ## 7. Observations
 
 - The TCP server is shared across US044, US078, and US086. The `TcpClientDispatcher` distinguishes the three by the service token in the `LOGIN` command (`WEATHER`, `ATCC`, or absent/other for Pilot). Each role dispatches to a dedicated session handler, keeping role-specific command logic isolated.
-- The `TcpClientDispatcher` always calls `AuthenticationContext.clear()` in a `finally` block to ensure the EAPLI session is released even if the connection is closed unexpectedly.
+- **Session serialisation** — `TcpClientDispatcher` holds a `static final Object AUTH_LOCK` that serialises the authenticate→command-loop→clear lifecycle. EAPLI's `AuthorizationService` stores the active session in a plain instance field (`theSession`), not a `ThreadLocal`; concurrent logins from different TCP threads would overwrite each other's identity. Serialising at this level means at most one client is authenticated at a time, but sessions queue correctly rather than corrupt each other.
 - The `IMPORT_BULK` two-step handshake ensures the server knows exactly how many characters to read, which is necessary because CSV data spans multiple lines and a plain line-by-line read would not know where the content ends.
 - `WeatherPersonTcpClientApp` is a standalone application with its own `main` method. It has no dependency on any JPA or repository class — all persistence is performed exclusively server-side (AC044.2).
 - `WeatherPersonTcpClientApp` uses `RemoteAccessLogger` with `SERVICE_ID = "US44"` to emit UDP events to the US090 logging server on every login attempt, logout, and unexpected disconnect.
