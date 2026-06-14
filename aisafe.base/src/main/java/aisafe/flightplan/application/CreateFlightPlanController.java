@@ -113,6 +113,14 @@ public class CreateFlightPlanController {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Flight route not found: " + routeNameStr));
 
+        // AC080 — the authenticated pilot may only create plans for their own company's routes.
+        // (availableRoutes() filters by company for the UI, but the controller is the real
+        //  security boundary and must enforce ownership for any caller.)
+        final Pilot creator = authenticatedPilot();
+        if (!creator.companyIataCode().equals(route.companyIataCode()))
+            throw new IllegalArgumentException(
+                    "You can only create flight plans for your own company's routes.");
+
         final RegistrationNumber registration = RegistrationNumber.valueOf(aircraftRegistrationStr);
         final Aircraft aircraft = aircraftRepo.ofIdentity(registration)
                 .orElseThrow(() -> new IllegalArgumentException(
