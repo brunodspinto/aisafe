@@ -49,4 +49,5 @@ The following artifacts are produced per user story, where applicable:
 
 - [GlobalArtifacts](global-artifacts)
 - [UserStories](user-stories)
+- [SCOMP Sprint 3 Summary (US105–US110)](../simulation/scomp-sprint3-summary.md) — consolidated technical overview of the C simulator concurrency design
   
