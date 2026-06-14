@@ -18,6 +18,10 @@ import java.net.Socket;
  */
 public final class TcpClientDispatcher implements Runnable {
 
+    // Serializes the authenticate→handle→clear lifecycle because EAPLI's
+    // AuthorizationService.theSession is not thread-local (singleton field).
+    private static final Object AUTH_LOCK = new Object();
+
     private final Socket socket;
 
     public TcpClientDispatcher(final Socket socket) {
@@ -49,41 +53,45 @@ public final class TcpClientDispatcher implements Runnable {
             // Absent for the US086 pilot client (3-token LOGIN), which keeps the legacy path.
             final String service = parts.length >= 4 ? parts[3].trim() : "";
 
-            if (!AuthenticationContext.authenticate(username, password)) {
-                out.println("FAIL invalid credentials");
-                return;
-            }
+            synchronized (AUTH_LOCK) {
+                try {
+                    if (!AuthenticationContext.authenticate(username, password)) {
+                        out.println("FAIL invalid credentials");
+                        return;
+                    }
 
-            if ("ATCC".equals(service)) {
-                // Air Transport Company App (US078): only ATCC collaborators are allowed.
-                if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
-                    out.println("OK");
-                    new CollaboratorSessionHandler(in, out).handle();
-                } else {
-                    out.println("UNAUTHORIZED");
-                }
-            } else if ("WEATHER".equals(service)) {
-                // Weather Person App (US044): only Weather Persons are allowed.
-                if (AuthenticationContext.hasRole(AiSafeRoles.WEATHER_PERSON)) {
-                    out.println("OK");
-                    new WeatherPersonSessionHandler(in, out).handle();
-                } else {
-                    out.println("UNAUTHORIZED");
-                }
-            } else {
-                // Pilot App (US086) or no service declared: only Pilots are allowed.
-                if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
-                    out.println("OK");
-                    new PilotSessionHandler(in, out).handle();
-                } else {
-                    out.println("UNAUTHORIZED");
+                    if ("ATCC".equals(service)) {
+                        // Air Transport Company App (US078): only ATCC collaborators are allowed.
+                        if (AuthenticationContext.hasRole(AiSafeRoles.ATCC)) {
+                            out.println("OK");
+                            new CollaboratorSessionHandler(in, out).handle();
+                        } else {
+                            out.println("UNAUTHORIZED");
+                        }
+                    } else if ("WEATHER".equals(service)) {
+                        // Weather Person App (US044): only Weather Persons are allowed.
+                        if (AuthenticationContext.hasRole(AiSafeRoles.WEATHER_PERSON)) {
+                            out.println("OK");
+                            new WeatherPersonSessionHandler(in, out).handle();
+                        } else {
+                            out.println("UNAUTHORIZED");
+                        }
+                    } else {
+                        // Pilot App (US086) or no service declared: only Pilots are allowed.
+                        if (AuthenticationContext.hasRole(AiSafeRoles.PILOT)) {
+                            out.println("OK");
+                            new PilotSessionHandler(in, out).handle();
+                        } else {
+                            out.println("UNAUTHORIZED");
+                        }
+                    }
+                } finally {
+                    AuthenticationContext.clear();
                 }
             }
 
         } catch (final IOException e) {
             System.err.println("[Dispatcher] Connection error: " + e.getMessage());
-        } finally {
-            AuthenticationContext.clear();
         }
     }
 }

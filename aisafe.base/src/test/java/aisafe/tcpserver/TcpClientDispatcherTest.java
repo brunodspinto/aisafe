@@ -18,6 +18,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -112,6 +115,68 @@ class TcpClientDispatcherTest {
         // WEATHER_PERSON user without WEATHER token — dispatcher treats as Pilot path → UNAUTHORIZED
         clientOut.println("LOGIN " + WEATHER_USERNAME + " " + PASSWORD);
         assertEquals("UNAUTHORIZED", clientIn.readLine());
+    }
+
+    @Test
+    void ensureConcurrentSessionsGetCorrectResponses() throws Exception {
+        // Two simultaneous connections: valid pilot + invalid credentials.
+        // Without AUTH_LOCK the valid client's session can be clobbered; with it each
+        // connection queues under the lock and always sees the correct identity.
+        final CountDownLatch clientsConnected = new CountDownLatch(2);
+        final CountDownLatch loginGate = new CountDownLatch(1);
+        final AtomicReference<String> responseA = new AtomicReference<>();
+        final AtomicReference<String> responseB = new AtomicReference<>();
+
+        try (final ServerSocket concServer = new ServerSocket(0)) {
+            final int port = concServer.getLocalPort();
+
+            // accept 2 connections concurrently, each dispatched to its own thread
+            final Thread acceptThread = new Thread(() -> {
+                try {
+                    for (int i = 0; i < 2; i++) {
+                        final Socket conn = concServer.accept();
+                        new Thread(new TcpClientDispatcher(conn)).start();
+                    }
+                } catch (final Exception ignored) {}
+            });
+            acceptThread.setDaemon(true);
+            acceptThread.start();
+
+            // Client A — valid pilot
+            final Thread clientA = new Thread(() -> {
+                try (final Socket s = new Socket("localhost", port);
+                     final BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                     final PrintWriter out = new PrintWriter(s.getOutputStream(), true)) {
+                    clientsConnected.countDown();
+                    loginGate.await();
+                    out.println("LOGIN " + PILOT_USERNAME + " " + PASSWORD);
+                    responseA.set(in.readLine());
+                    out.println("EXIT");
+                } catch (final Exception ignored) {}
+            });
+
+            // Client B — wrong password
+            final Thread clientB = new Thread(() -> {
+                try (final Socket s = new Socket("localhost", port);
+                     final BufferedReader in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+                     final PrintWriter out = new PrintWriter(s.getOutputStream(), true)) {
+                    clientsConnected.countDown();
+                    loginGate.await();
+                    out.println("LOGIN " + PILOT_USERNAME + " wrongpassword");
+                    responseB.set(in.readLine());
+                } catch (final Exception ignored) {}
+            });
+
+            clientA.start();
+            clientB.start();
+            clientsConnected.await(3, TimeUnit.SECONDS);  // both TCP connections established
+            loginGate.countDown();                         // fire both LOGINs simultaneously
+            clientA.join(5000);
+            clientB.join(5000);
+        }
+
+        assertEquals("OK", responseA.get());
+        assertTrue(responseB.get() != null && responseB.get().startsWith("FAIL"));
     }
 
     private static void ensureSystemUserExists(final String username, final String password,
