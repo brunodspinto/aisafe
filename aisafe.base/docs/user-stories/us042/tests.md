@@ -161,7 +161,7 @@ void ensureImportResultWithZeroSavedAndNoFailures() {
 
 Location: `src/test/java/aisafe/weatherdata/application/ImportBulkWeatherDataControllerTest.java`
 
-> Note: uses `AuthenticationContext` and `PersistenceContext` with in-memory repositories, following the same pattern as `AddCollaboratorControllerTest`. A Weather Person user is created in `@BeforeAll`. Test CSV files are written to temp files and deleted in `@AfterEach`.
+> Note: uses `AuthenticationContext` and `PersistenceContext` with in-memory repositories. A Weather Person user is created in `@BeforeAll`. Test CSV files are written to temp files and deleted in `@AfterEach`. Tests instantiate via the public no-arg constructor, which wires `CsvWeatherDataParser` by default; the package-private constructor allows injecting any `WeatherDataParser` implementation (AC042.6).
 
 **Test:** `ensureAllValidRecordsAreImported` *(AC042.1)*
 
@@ -312,7 +312,7 @@ void ensureParserInterfaceCanBeImplementedWithAlternativeFormat() {
 - **AC042.3**: `ensureUnauthorizedUserCannotImport`
 - **AC042.4**: `ensureMalformedRowIsSkippedAndValidRowIsSaved`, `ensureRowWithMissingFieldIsSkipped`, `ensureRowWithInvalidDateFormatIsSkipped`, `ensureRowWithNonNumericTemperatureIsSkipped`
 - **AC042.5**: `ensureImportResultContainsCountAndFailureReasons`, `ensureImportResultReportsCorrectSavedCount`, `ensureImportResultReportsFailures`, `ensureHeaderOnlyCsvProducesZeroImports`, `ensureImportResultWithZeroSavedAndNoFailures`
-- **AC042.6**: `ensureParserInterfaceCanBeImplementedWithAlternativeFormat`
+- **AC042.6**: `ensureParserInterfaceCanBeImplementedWithAlternativeFormat`; additionally, the package-private constructor of `ImportBulkWeatherDataController` allows injecting any `WeatherDataParser`, so a new format implementation can be used without modifying the controller
 
 ---
 

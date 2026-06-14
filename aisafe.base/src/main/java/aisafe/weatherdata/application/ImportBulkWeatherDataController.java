@@ -26,25 +26,42 @@ import java.util.List;
 @UseCaseController
 public class ImportBulkWeatherDataController {
 
-    private final AuthorizationService authz = AuthzRegistry.authorizationService();
+    private final AuthorizationService authz;
+    private final AirControlAreaRepository areaRepository;
+    private final WeatherDataRepository weatherDataRepository;
+    private final WeatherDataParser parser;
 
-    private final AirControlAreaRepository areaRepository =
-            PersistenceContext.repositories().airControlAreas();
+    /** Runtime constructor — wires CSV parser and pulls repositories from {@link PersistenceContext}. */
+    public ImportBulkWeatherDataController() {
+        this(AuthzRegistry.authorizationService(),
+                PersistenceContext.repositories().airControlAreas(),
+                PersistenceContext.repositories().weatherData(),
+                new CsvWeatherDataParser());
+    }
 
-    private final WeatherDataRepository weatherDataRepository =
-            PersistenceContext.repositories().weatherData();
+    /**
+     * Testing constructor — accepts all dependencies so no JPA context is required and any
+     * {@link WeatherDataParser} implementation can be injected (AC042.6). Package-private.
+     */
+    ImportBulkWeatherDataController(final AuthorizationService authz,
+                                    final AirControlAreaRepository areaRepository,
+                                    final WeatherDataRepository weatherDataRepository,
+                                    final WeatherDataParser parser) {
+        this.authz = authz;
+        this.areaRepository = areaRepository;
+        this.weatherDataRepository = weatherDataRepository;
+        this.parser = parser;
+    }
 
     /**
      * Parses the file at {@code filePath} and imports all valid weather records.
      *
-     * @param filePath path to the import file (CSV format)
+     * @param filePath path to the import file (any format supported by the injected parser)
      * @return an {@link ImportResult} with the count of saved records and any failure messages
      * @throws IllegalStateException if the authenticated user does not have the WEATHER_PERSON role
      */
     public ImportResult importWeatherData(final String filePath) {
         authz.ensureAuthenticatedUserHasAnyOf(AiSafeRoles.WEATHER_PERSON);
-
-        final WeatherDataParser parser = new CsvWeatherDataParser();
         final List<ParsedWeatherRecord> parsed;
         try {
             parsed = parser.parse(filePath);
@@ -56,12 +73,15 @@ public class ImportBulkWeatherDataController {
         final List<String> failures = new ArrayList<>();
 
         for (final ParsedWeatherRecord record : parsed) {
-            final AirControlAreaCode areaCode = AirControlAreaCode.valueOf(record.areaCode());
-            if (areaRepository.ofIdentity(areaCode).isEmpty()) {
-                failures.add("Unknown area code '" + record.areaCode() + "'");
-                continue;
-            }
             try {
+                // Resolving the area code can throw for a blank/invalid value; keeping it inside
+                // the try ensures one bad row is skipped and reported rather than aborting the
+                // whole import (AC042.4).
+                final AirControlAreaCode areaCode = AirControlAreaCode.valueOf(record.areaCode());
+                if (areaRepository.ofIdentity(areaCode).isEmpty()) {
+                    failures.add("Unknown area code '" + record.areaCode() + "'");
+                    continue;
+                }
                 final WeatherSource source = new WeatherSource(record.provider(), record.format());
                 final WeatherData weatherData = new WeatherData(
                         areaCode, source, record.date(),
