@@ -48,6 +48,7 @@ public class TestFlightPlanController {
     private final FlightPlanRepository    repository;
     private final FlightPlanParserFacade  parser;
     private final String                  binaryPath;
+    private final FlightTesterRunner      runner;
 
     /** Runtime constructor — pulls from infrastructure registries. */
     public TestFlightPlanController() {
@@ -55,17 +56,34 @@ public class TestFlightPlanController {
         this.repository = PersistenceContext.repositories().flightPlans();
         this.parser     = new FlightPlanParserFacade();
         this.binaryPath = new AppSettings().flightTesterBinary();
+        this.runner     = this::runBinary;
     }
 
     /**
-     * Testing constructor — accepts injected repository so no JPA or auth context is required.
-     * Package-private; not intended for production use.
+     * Testing constructor for guard-condition tests — accepts only a repository.
+     * Parser and runner are null; tests that exercise only the guard checks before
+     * the binary invocation use this constructor. Package-private.
      */
     TestFlightPlanController(final FlightPlanRepository repository) {
         this.authz      = null;
         this.repository = repository;
         this.parser     = null;
         this.binaryPath = null;
+        this.runner     = null;
+    }
+
+    /**
+     * Testing constructor for execution-path tests — accepts a repository and a
+     * {@link FlightTesterRunner} stub. Wires a real {@link FlightPlanParserFacade}
+     * (pure Java, no infrastructure required). Package-private.
+     */
+    TestFlightPlanController(final FlightPlanRepository repository,
+                             final FlightTesterRunner runner) {
+        this.authz      = null;
+        this.repository = repository;
+        this.parser     = new FlightPlanParserFacade();
+        this.binaryPath = null;
+        this.runner     = runner;
     }
 
     /**
@@ -143,70 +161,8 @@ public class TestFlightPlanController {
 
         Path tempFile = null;
         try {
-            // Serialise AST to temp JSON file
             tempFile = new FlightPlanJsonSerializer().toTempFile(ast);
-
-            // Invoke C binary
-            final ProcessBuilder pb = new ProcessBuilder(binaryPath, tempFile.toString());
-            pb.redirectErrorStream(true);
-
-            final Process process;
-            try {
-                process = pb.start();
-            } catch (final IOException e) {
-                throw new RuntimeException(
-                        "Flight tester binary not found. Check flight.tester.binary in "
-                        + "application.properties. Path: " + binaryPath, e);
-            }
-
-            // Read stdout in a background thread to prevent pipe-buffer deadlock
-            final StringBuilder outputBuilder = new StringBuilder();
-            final Thread outputReader = new Thread(() -> {
-                try (final BufferedReader reader =
-                             new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        outputBuilder.append(line);
-                    }
-                } catch (final IOException ignored) {
-                    // stream closed on process exit
-                }
-            });
-            outputReader.setDaemon(true);
-            outputReader.start();
-
-            final boolean finished;
-            try {
-                finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            } catch (final InterruptedException e) {
-                Thread.currentThread().interrupt();
-                process.destroyForcibly();
-                throw new RuntimeException("Flight tester interrupted while waiting.", e);
-            }
-            if (!finished) {
-                // SIGTERM first — gives the C binary a chance to unlink named IPC objects.
-                process.destroy();
-                boolean terminated;
-                try {
-                    terminated = process.waitFor(5, TimeUnit.SECONDS);
-                } catch (final InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    terminated = false;
-                }
-                if (!terminated) {
-                    process.destroyForcibly(); // SIGKILL — last resort
-                }
-                throw new RuntimeException(
-                        "Flight tester timed out after " + TIMEOUT_SECONDS + " seconds.");
-            }
-
-            try {
-                outputReader.join(READER_JOIN_TIMEOUT_MS);
-            } catch (final InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
-
-            final String output = outputBuilder.toString().trim();
+            final String output = runner.run(tempFile).trim();
             final String status = extractJsonValue(output, "status");
 
             if ("PASS".equals(status)) {
@@ -227,6 +183,73 @@ public class TestFlightPlanController {
                 }
             }
         }
+    }
+
+    /**
+     * Invokes the {@code flight_tester} C binary with the given JSON input file and
+     * returns its stdout. Used by the runtime {@link FlightTesterRunner} lambda.
+     */
+    private String runBinary(final Path jsonFile) throws IOException {
+        final ProcessBuilder pb = new ProcessBuilder(binaryPath, jsonFile.toString());
+        pb.redirectErrorStream(true);
+
+        final Process process;
+        try {
+            process = pb.start();
+        } catch (final IOException e) {
+            throw new RuntimeException(
+                    "Flight tester binary not found. Check flight.tester.binary in "
+                    + "application.properties. Path: " + binaryPath, e);
+        }
+
+        // Read stdout in a background thread to prevent pipe-buffer deadlock
+        final StringBuilder outputBuilder = new StringBuilder();
+        final Thread outputReader = new Thread(() -> {
+            try (final BufferedReader reader =
+                         new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    outputBuilder.append(line);
+                }
+            } catch (final IOException ignored) {
+                // stream closed on process exit
+            }
+        });
+        outputReader.setDaemon(true);
+        outputReader.start();
+
+        final boolean finished;
+        try {
+            finished = process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            process.destroyForcibly();
+            throw new RuntimeException("Flight tester interrupted while waiting.", e);
+        }
+        if (!finished) {
+            // SIGTERM first — gives the C binary a chance to unlink named IPC objects.
+            process.destroy();
+            boolean terminated;
+            try {
+                terminated = process.waitFor(5, TimeUnit.SECONDS);
+            } catch (final InterruptedException e) {
+                Thread.currentThread().interrupt();
+                terminated = false;
+            }
+            if (!terminated) {
+                process.destroyForcibly(); // SIGKILL — last resort
+            }
+            throw new RuntimeException(
+                    "Flight tester timed out after " + TIMEOUT_SECONDS + " seconds.");
+        }
+
+        try {
+            outputReader.join(READER_JOIN_TIMEOUT_MS);
+        } catch (final InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+        }
+
+        return outputBuilder.toString();
     }
 
     /**

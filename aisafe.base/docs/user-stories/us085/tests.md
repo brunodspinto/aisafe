@@ -8,14 +8,12 @@ Pilot, transitioning its status to `TESTED`. Testing is split across three layer
 - **`FlightPlanTest`** (domain) — the `markTested()` lifecycle transition and its guards.
 - **`FlightPlanJsonSerializerTest`** (DSL utility) — serialization of a `FlightPlanAst` to
   the JSON format consumed by the C binary.
+- **`TestFlightPlanControllerTest`** (application) — listing logic and PASS/FAIL execution
+  paths; C binary invocation is replaced by a `FlightTesterRunner` stub so tests run without
+  a compiled binary or a live JPA context.
 - **C unit tests** (`test_flight_tester.c`) — validation logic and full-binary smoke tests
   for the `flight_tester` executable.
 - **Manual acceptance tests** — end-to-end validation of the console flow.
-
-In line with the project's testing convention, `TestFlightPlanController` is not unit-tested
-in isolation — it is a thin orchestrator exercised end-to-end through the manual acceptance
-tests. The domain invariants and the serializer utility are each covered by automated unit
-tests.
 
 ---
 
@@ -193,6 +191,47 @@ void ensureTempFileCanBeDeletedByCallerAfterUse() throws Exception {
 
 ---
 
+### `TestFlightPlanControllerTest`
+
+Location: `src/test/java/aisafe/flightplan/application/TestFlightPlanControllerTest.java`
+
+Uses the package-private `(FlightPlanRepository, FlightTesterRunner)` constructor to inject
+an in-memory repository and a stub runner; no JPA context or compiled C binary is required.
+
+---
+
+**Tests: listing logic (5)**
+
+| Method | What it asserts |
+|--------|----------------|
+| `listValidatedDslPlans_returnsOnlyValidatedDslPlans` | Two VALIDATED DSL plans both appear |
+| `listValidatedDslPlans_excludesDraftPlans` | DRAFT plan is absent from the list |
+| `listValidatedDslPlans_excludesFormBasedPlans` | VALIDATED plan with `dslContent == null` is absent |
+| `listValidatedDslPlans_excludesTestedPlans` | TESTED plan is absent from the list |
+| `listValidatedDslPlans_emptyWhenNoPlanExists` | Empty repo returns empty list |
+
+---
+
+**Tests: guard conditions (3)**
+
+| Method | What it asserts |
+|--------|----------------|
+| `testFlightPlan_throwsIllegalArgumentWhenPlanNotFound` | `IllegalArgumentException` for unknown designator |
+| `testFlightPlan_throwsIllegalStateWhenPlanNotValidated` | `IllegalStateException` for DRAFT plan |
+| `testFlightPlan_throwsIllegalStateWhenDslContentIsNull` | `IllegalStateException` for form-based VALIDATED plan |
+
+---
+
+**Tests: execution paths — AC085.5 and AC085.6 (3)**
+
+| Method | What it asserts |
+|--------|----------------|
+| `testFlightPlan_transitionsToTestedOnPass` | Runner returns PASS → `plan.status() == TESTED` and plan is persisted |
+| `testFlightPlan_throwsIllegalStateOnFail` | Runner returns FAIL → `IllegalStateException` with the failure reason |
+| `testFlightPlan_leavesStatusValidatedOnFail` | After FAIL → `plan.status()` remains `VALIDATED` (not persisted) |
+
+---
+
 ### C Unit Tests — `test_flight_tester.c`
 
 Location: `simulation/tests/test_flight_tester.c`
@@ -300,11 +339,11 @@ static void test_full_tester_fail_invalid_plan(void) {
 | AC | Automated | Manual |
 |----|-----------|--------|
 | AC085.1 — only PILOT role | — | MAC085.3 |
-| AC085.2 — only VALIDATED plans | `ensureDraftPlanCannotBeMarkedTested`, `ensureAlreadyTestedPlanCannotBeMarkedTestedAgain` | MAC085.1, MAC085.4 |
-| AC085.3 — only DSL-based plans | *(filtered in controller; verified manually)* | MAC085.5 |
+| AC085.2 — only VALIDATED plans | `ensureDraftPlanCannotBeMarkedTested`, `ensureAlreadyTestedPlanCannotBeMarkedTestedAgain`, `testFlightPlan_throwsIllegalStateWhenPlanNotValidated` | MAC085.1, MAC085.4 |
+| AC085.3 — only DSL-based plans | `testFlightPlan_throwsIllegalStateWhenDslContentIsNull`, `listValidatedDslPlans_excludesFormBasedPlans` | MAC085.5 |
 | AC085.4 — C uses all POSIX APIs | `test_full_tester_pass` (exercises full binary) | MAC085.1 |
-| AC085.5 — PASS → status TESTED | `ensureValidatedDslPlanCanBeMarkedTested` | MAC085.1 |
-| AC085.6 — FAIL → status unchanged | `ensureDraftPlanCannotBeMarkedTested` (guard) | MAC085.6 |
+| AC085.5 — PASS → status TESTED | `testFlightPlan_transitionsToTestedOnPass` | MAC085.1 |
+| AC085.6 — FAIL → status unchanged | `testFlightPlan_throwsIllegalStateOnFail`, `testFlightPlan_leavesStatusValidatedOnFail` | MAC085.6 |
 | AC085.7 — Java never simulates | *(structural — enforced by design)* | — |
 | Serializer correctness | `FlightPlanJsonSerializerTest` (6 tests) | — |
 | C parsing / validation | `test_parse_valid_single_plan`, `test_validate_coordinate_bounds`, `test_validate_plan_rejects_missing_legs` | — |

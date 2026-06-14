@@ -332,11 +332,10 @@ void ensureFormBasedPlanCannotBeTested() {
 
 ```java
 @Test
-void ensureSuccessfulTestMarksFlightPlanAsTested() {
-    // given: a VALIDATED DSL FlightPlan
-    //   and: C binary stubbed to return {"status":"PASS","steps":10}
-    // then: plan.status() == FlightPlanStatus.TESTED
-    //   and: repository.save() was called with the updated plan
+void testFlightPlan_transitionsToTestedOnPass() throws Exception {
+    // runner stub returns {"identifier":"TP3001","status":"PASS","steps":3}
+    // asserts: result.status() == TESTED
+    // asserts: plan found in repo has status TESTED
 }
 ```
 
@@ -344,13 +343,10 @@ void ensureSuccessfulTestMarksFlightPlanAsTested() {
 
 ```java
 @Test
-void ensureFailedTestDoesNotChangeStatus() {
-    // given: a VALIDATED DSL FlightPlan
-    //   and: C binary stubbed to return {"status":"FAIL","reason":"invalid altitude"}
-    // then: IllegalStateException("invalid altitude") is thrown
-    //   and: plan.status() == FlightPlanStatus.VALIDATED
-    //   and: repository.save() was NOT called
-}
+void testFlightPlan_throwsIllegalStateOnFail() { /* runner returns FAIL/reason; asserts exception message */ }
+
+@Test
+void testFlightPlan_leavesStatusValidatedOnFail() { /* asserts plan.status() == VALIDATED after FAIL */ }
 ```
 
 ---
@@ -363,6 +359,7 @@ void ensureFailedTestDoesNotChangeStatus() {
 | `aisafe.infrastructure.persistence.jpa` | `JpaFlightPlanRepository` | Implement `findAllValidated()` via JPQL `match()` |
 | `aisafe.infrastructure.persistence.inmemory` | `InMemoryFlightPlanRepository` | Implement `findAllValidated()` by iterating in memory |
 | `aisafe.dsl` | `FlightPlanJsonSerializer` | **New** — `FlightPlanAst` → temp JSON file |
+| `aisafe.flightplan.application` | `FlightTesterRunner` | **New** — `@FunctionalInterface` injection seam; runtime lambda wraps `ProcessBuilder`; tests inject a stub |
 | `aisafe.flightplan.application` | `TestFlightPlanController` | **New** — use case orchestrator |
 | `aisafe.app.console.presentation.flightplan` | `TestFlightPlanUI` | **New** — console UI |
 | `aisafe.app.console.presentation` | `MainMenu` | Add "Test Flight Plan" to PILOT Flight Plans submenu |
