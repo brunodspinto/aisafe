@@ -184,7 +184,7 @@ Expected result:
 ### Environment Note
 
 The C simulator requires a native POSIX toolchain with `make`, `gcc`, POSIX shared memory,
-named semaphores and pthreads. On the current Windows Codex environment, `make` and `gcc`
+named semaphores and pthreads. On the current Windows development environment, `make` and `gcc`
 are not installed, so compilation must be executed in the target Linux/WSL environment.
 
 ---

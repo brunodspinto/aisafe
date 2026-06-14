@@ -197,18 +197,22 @@ US110 adds one parent thread and reuses the existing IPC pipeline:
 | `simulation/weather_service.{c,h}` | **New** — the weather-service source (AC110.2); `weather_service_fetch()` reads wind from `AISAFE_WIND="speed,dir"`, calm if unset. |
 | `simulation/environment.h` | `apply_wind_drift` + new `apply_wind_drift_values` prototypes. |
 | `simulation/environment.c` | Drift maths refactored into `apply_wind_drift_values`; `apply_wind_drift(seg,…)` is a thin wrapper. Affects lat/lon only. |
+| `simulation/tests/test_environment.c` | **New** — unit tests for the wind-drift maths: the meteorological convention (drift toward `wind_dir + 180°`) and the termination invariant (the drift touches lat/lon only, §4.3). |
 | `simulation/types.h` | **New** `environment_t { wind_speed; wind_direction; }`. |
 | `simulation/shared_memory.h/.c` | `sim_shm_t` gains `environment` + `env_step`; new `open_env_sem()` opens the `/aisafe_env` mutex semaphore (value 1, `ex2-6.c`); `cleanup_sems` unlinks it. `open_named_sem` gained an init-value parameter. |
 | `simulation/main.c` | **New** `environment_thread` (AC110.1) + `environment_ctx_t`; spawned as 4th parent thread and joined; coordinator ticks it once per step (AC110.3); `env_mutex`/`env_cond` (intra-process tick) and `/aisafe_env` semaphore (cross-process block guard) lifecycle. |
 | `simulation/flight_process.c` | Opens `/aisafe_env` (`open_env_sem`), reads `shm->environment` under it each step and applies `apply_wind_drift_values`, falling back to the per-segment wind when calm; closes it in `flight_done`. |
 | `simulation/flight_parser.c` | Parses `wind_dir_deg`/`wind_speed_mps` into `segment_t` (default `0`) — feeds the fallback path. |
-| `simulation/Makefile` | `SRCS += weather_service.c` (plus the pre-existing `environment.c`). |
+| `simulation/Makefile` | `SRCS += weather_service.c` (plus the pre-existing `environment.c`); the `test` target also builds and runs `test_environment` (`TEST_ENV_*`). |
 | `simulation/flight_plans.json` | (demonstration) optional segment wind for the fallback path. |
 
 > The Safety pipeline (`safety_monitor.c`, `safety_thread.c`), the ACA filter
 > (`aca_filter.c`) and the report (`report.c`) are **unchanged**: the drifted position
 > flows through them as any other position. `main.c` gains only the environment thread
 > and its per-step tick.
+>
+> The US105 `tests/test_shared_memory.c` is not a US110 file but was extended to assert
+> that the `/aisafe_env` semaphore is created as a mutex (value 1).
 
 ### 5.2 Key Implementation Details (planned)
 

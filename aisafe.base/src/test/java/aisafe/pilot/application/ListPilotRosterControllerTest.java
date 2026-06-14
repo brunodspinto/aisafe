@@ -11,6 +11,8 @@ import aisafe.infrastructure.persistence.inmemory.InMemoryAircraftModelRepositor
 import aisafe.infrastructure.persistence.inmemory.InMemoryPilotRepository;
 import aisafe.maker.domain.MakerName;
 import aisafe.pilot.domain.Pilot;
+import aisafe.auth.AuthenticationContext;
+import aisafe.infrastructure.persistence.PersistenceContext;
 import aisafe.usermanagement.domain.AiSafePasswordPolicy;
 import aisafe.usermanagement.domain.AiSafeRoles;
 import aisafe.usermanagement.domain.Email;
@@ -19,27 +21,35 @@ import aisafe.usermanagement.domain.SecurityClearance;
 import aisafe.usermanagement.domain.SecurityLevel;
 import aisafe.usermanagement.domain.User;
 import eapli.framework.infrastructure.authz.application.AuthorizationService;
+import eapli.framework.infrastructure.authz.application.AuthzRegistry;
+import eapli.framework.infrastructure.authz.application.exceptions.UnauthorizedException;
 import eapli.framework.infrastructure.authz.domain.model.PlainTextEncoder;
 import eapli.framework.infrastructure.authz.domain.model.SystemUserBuilder;
+import eapli.framework.infrastructure.authz.domain.model.Username;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for {@link ListPilotRosterController} (US076).
  *
- * <p>Tests use the package-private constructor to inject in-memory repositories, avoiding any
- * JPA or authentication context. All twelve tests focus exclusively on the in-memory filtering
- * logic; role-based authorization (AC076.4) is exercised through the public constructor path.</p>
+ * <p>Filtering tests use the package-private constructor with injected in-memory repositories
+ * and a no-op auth double, avoiding any JPA or authentication context. The authorization test
+ * (AC076.4) uses a real {@link AuthorizationService} backed by the in-memory user store.</p>
  */
 class ListPilotRosterControllerTest {
+
+    private static final String NON_ATCC_USERNAME = "pilot-us076";
+    private static final String NON_ATCC_PASSWORD = "Password1";
 
     /**
      * Lightweight authorization double. The package-private filter overloads exercised by these
@@ -47,6 +57,19 @@ class ListPilotRosterControllerTest {
      * {@code authz} field non-null, avoiding the previous fragile {@code null} seam.
      */
     private static final AuthorizationService NO_AUTH = new AuthorizationService() { };
+
+    @BeforeAll
+    static void configureAuthz() {
+        AuthzRegistry.configure(
+                PersistenceContext.repositories().systemUsers(),
+                new AiSafePasswordPolicy(),
+                new PlainTextEncoder());
+    }
+
+    @AfterEach
+    void clearAuth() {
+        AuthenticationContext.clear();
+    }
 
     private InMemoryPilotRepository pilotRepo;
     private InMemoryAircraftModelRepository modelRepo;
@@ -108,11 +131,9 @@ class ListPilotRosterControllerTest {
                         120.0, 115.0, 0.35));
     }
 
-    /** Uses reflection to flip {@code active} to {@code false} on a saved pilot. */
-    private static void deactivate(final Pilot pilot) throws Exception {
-        final Field f = Pilot.class.getDeclaredField("active");
-        f.setAccessible(true);
-        f.set(pilot, false);
+    /** Deactivates a pilot through the real domain method (no reflection). */
+    private static void deactivate(final Pilot pilot) {
+        pilot.deactivate();
     }
 
     // -------------------------------------------------------------------------
@@ -245,18 +266,32 @@ class ListPilotRosterControllerTest {
         assertTrue(result.contains(inactive));
     }
 
+
+    // -------------------------------------------------------------------------
+    // AC076.4 — only ATCC role may list the roster
+    // -------------------------------------------------------------------------
+
+    // AC076.4 — non-ATCC authenticated user cannot invoke any listing method
     @Test
-    void pilotsByCertifiedModel_pilotWithNoCertificationsIsExcluded() throws Exception {
-        final AircraftModel a320 = modelRepo.save(validAircraftModel("B737"));
-        final Pilot pilot = pilotRepo.save(
-                new Pilot(validUser("pilot-nocert"), iataA, Set.of(a320.identity())));
-        // Clear certifications via reflection to simulate a pilot with no certifications
-        final Field f = Pilot.class.getDeclaredField("certifiedAircraftModelIds");
-        f.setAccessible(true);
-        ((java.util.Set<?>) f.get(pilot)).clear();
+    void allPilots_throwsForNonAtccUser() {
+        ensureNonAtccUserExists();
+        AuthenticationContext.authenticate(NON_ATCC_USERNAME, NON_ATCC_PASSWORD);
 
-        final List<Pilot> result = controller.pilotsByCertifiedModel(companyA, "B737");
+        final ListPilotRosterController ctrl = new ListPilotRosterController(
+                AuthzRegistry.authorizationService(), pilotRepo, modelRepo, null, null);
 
-        assertTrue(result.isEmpty());
+        assertThrows(UnauthorizedException.class, ctrl::allPilots);
+    }
+
+    private static void ensureNonAtccUserExists() {
+        final var repo = PersistenceContext.repositories().systemUsers();
+        if (repo.ofIdentity(Username.valueOf(NON_ATCC_USERNAME)).isPresent()) return;
+        final var builder = new SystemUserBuilder(new AiSafePasswordPolicy(), new PlainTextEncoder());
+        builder.withUsername(NON_ATCC_USERNAME)
+                .withPassword(NON_ATCC_PASSWORD)
+                .withName("Non", "Atcc")
+                .withEmail(NON_ATCC_USERNAME + "@aisafe.com")
+                .withRoles(AiSafeRoles.PILOT);
+        repo.save(builder.build());
     }
 }

@@ -1,0 +1,46 @@
+@startuml
+title US121 - Class Diagram
+
+class CreateFlightPlanFromFileUI {
+  +show()
+}
+
+class CreateFlightPlanFromFileController {
+  +createFromFile(filePath: String): FlightPlan
+}
+
+class FlightPlanParserFacade {
+  +parse(inputDsl: String): ParseResult
+}
+
+class ParseResult {
+  +isValid(): boolean
+  +ast(): Optional<FlightPlanAst>
+  +errors(): List<ParseError>
+}
+
+class FlightPlanAst {
+  +identifier(): String
+  +flightType(): FlightType
+}
+
+class FlightPlan {
+  +fromDsl(ast: FlightPlanAst, dslContent: String): FlightPlan
+  +status(): FlightPlanStatus
+  +dslContent(): String
+}
+
+interface FlightPlanRepository {
+  +ofIdentity(id: FlightPlanDesignator): Optional<FlightPlan>
+  +save(flightPlan: FlightPlan): FlightPlan
+}
+
+CreateFlightPlanFromFileUI --> CreateFlightPlanFromFileController
+CreateFlightPlanFromFileController --> FlightPlanParserFacade
+CreateFlightPlanFromFileController --> FlightPlanRepository
+CreateFlightPlanFromFileController --> FlightPlan
+FlightPlanParserFacade --> ParseResult
+ParseResult --> FlightPlanAst
+FlightPlan --> FlightPlanAst
+
+@enduml

@@ -1,0 +1,43 @@
+@startuml
+title US121 - Domain Model Excerpt
+
+class Pilot
+
+class FlightPlan {
+  designator
+  flightType
+  status
+  dslContent
+}
+
+class FlightPlanDesignator
+enum FlightPlanStatus {
+  DRAFT
+  VALIDATED
+  TESTED
+}
+
+class FlightPlanAst {
+  identifier
+  flightType
+  legs
+}
+
+class LegAst
+class SegmentAst
+class FlightPlanParserFacade
+
+Pilot --> FlightPlan : creates from file
+FlightPlan --> FlightPlanDesignator : identity
+FlightPlan --> FlightPlanStatus : lifecycle
+FlightPlanParserFacade --> FlightPlanAst : produces
+FlightPlanAst "1" *-- "1..*" LegAst
+LegAst "1" *-- "1..*" SegmentAst
+FlightPlan ..> FlightPlanAst : fromDsl()
+
+note right of FlightPlan
+Only valid DSL input is persisted.
+Imported plans start in DRAFT status.
+end note
+
+@enduml

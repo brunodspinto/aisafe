@@ -167,6 +167,25 @@ class ImportBulkWeatherDataControllerTest {
         assertFalse(result.failures().get(1).isBlank());
     }
 
+    // AC042.4 — a row with a blank area code is skipped and reported; valid rows still saved
+    // (regression: previously a blank area code aborted the entire import)
+    @Test
+    void ensureBlankAreaCodeRowIsSkippedAndValidRowIsSaved() throws Exception {
+        AuthenticationContext.authenticate(WEATHER_PERSON_USERNAME, WEATHER_PERSON_PASSWORD);
+        ensureAreaExists("PT-N");
+
+        final Path csv = writeTempCsv(
+                HEADER,
+                ",IPMA,CSV,2025-05-14T10:00:00,20.0,15.0,N,1013.0,10.0",        // blank area code
+                "PT-N,IPMA,CSV,2025-05-14T11:00:00,21.0,12.0,NE,1012.0,9.0");   // valid
+
+        final ImportResult result = controller.importWeatherData(csv.toString());
+
+        assertEquals(1, result.saved());
+        assertEquals(1, result.failures().size());
+        assertFalse(result.failures().get(0).isBlank());
+    }
+
     // AC042.5 — edge case: header-only file produces zero saved, zero failures
     @Test
     void ensureHeaderOnlyCsvProducesZeroImports() throws Exception {

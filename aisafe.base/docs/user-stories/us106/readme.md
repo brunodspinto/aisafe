@@ -87,7 +87,7 @@ The coordinator mixing US101 and US102 in one thread violates the user story:
 Within one simulation step the work is **sequentially dependent**: positions must
 be collected *before* safety can be checked, and the GO/STOP decision depends on
 the safety verdict. Two cooperating threads therefore need an ordered handoff.
-A mutex + condition variable (T7/T8) provides this without busy-waiting:
+A mutex + condition variable provides this without busy-waiting:
 
 * the coordinator is the *producer* of the per-step snapshot;
 * the safety thread is the *producer* of the per-step verdict;
@@ -269,6 +269,10 @@ ps -T -C flight_simulator
 
 The parent process shows **three threads** (LWPs): coordinator, safety and
 report — direct evidence of the function-specific separation required by US106.
+
+> Note: US110 later adds a 4th parent thread (`environment_thread`), so on the
+> current binary `ps -T` shows **four** threads — coordinator, safety, report and
+> environment. The three above are the ones US106 introduces/separates.
 
 > Note: execution requires a native POSIX environment (Linux). On Cygwin without
 > `cygserver`, named semaphores fail to be shared across the forked children

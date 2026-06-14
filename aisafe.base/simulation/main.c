@@ -15,7 +15,6 @@
  *   shm_open + ftruncate + mmap   →  ex1-7.c, ex2-6.c
  *   sem_open / sem_post / sem_wait →  ex1-7.c, ex2-5.c
  *   pthread_create / pthread_join  →  ex1-9.c
- *   mutex + cond var (while-pred)  →  T7/T8 slides
  *   SIGUSR1                        →  ex1-3.c, ex1-4.c (em flight_process.c)
  */
 #define _POSIX_C_SOURCE 200809L
@@ -384,7 +383,7 @@ static void *report_thread(void *arg) {
     int sim_aborted      = ctx->shm->sim_aborted;
     pthread_mutex_unlock(ctx->g_notification_mutex);
 
-    /* Padrão ex1-9.c: write() em vez de printf() em threads POSIX */
+    /*  write() em vez de printf() em threads POSIX */
     const char *report_msg =
         "\n[SYSTEM] Simulation concluded. Report thread generating final report...\n";
     safe_write(STDOUT_FILENO, report_msg, strlen(report_msg));

@@ -40,19 +40,26 @@ Tests do **not** cover persistence (JPA/H2) — that is validated by manual demo
 
 **Class:** `aisafe.pilot.application.ListPilotRosterControllerTest`
 
-Tests use the package-private constructor to inject `InMemoryPilotRepository` and `InMemoryAircraftModelRepository`. No JPA or authentication context is required. Authorization (AC076.4) is validated manually.
+Filtering tests use the package-private constructor to inject `InMemoryPilotRepository` and
+`InMemoryAircraftModelRepository` — no JPA context required. The authorization test (AC076.4)
+uses the package-private constructor with a real `AuthorizationService` backed by the
+in-memory user store, avoiding JPA while exercising the actual role-check code path.
 
 | Test method | What it verifies |
 |-------------|-----------------|
 | `allPilots_returnsBothPilotsOfSameCompany` | Two pilots for company A → both returned by `allPilots(company)` |
 | `allPilots_excludesPilotFromOtherCompany` | Pilot registered to company B is absent from company A's roster |
 | `allPilots_emptyWhenNoPilots` | Company with no registered pilots → empty list |
+| `allPilots_includesInactivePilots` | Inactive pilot still appears in the full roster |
 | `activePilots_returnsOnlyActivePilots` | One active + one inactive pilot → only the active pilot returned |
 | `activePilots_emptyWhenNoActivePilots` | All pilots inactive → empty list |
 | `pilotsByCertifiedModel_returnsMatchingPilot` | Pilot certified for saved "A320" model → returned when filter = "A320" |
 | `pilotsByCertifiedModel_isCaseInsensitive` | Filter "a320" (lowercase) matches stored model name "A320" |
 | `pilotsByCertifiedModel_excludesUncertifiedPilot` | Pilot not certified for the model → not returned |
 | `pilotsByCertifiedModel_emptyWhenModelNameUnknown` | Non-existent model name → empty list, no exception |
+| `pilotsByCertifiedModel_withLeadingAndTrailingSpacesInModelName` | Whitespace around model name is trimmed before comparison |
+| `pilotsByCertifiedModel_pilotWithNoCertificationsIsExcluded` | Pilot with empty certification set is not returned |
+| `allPilots_throwsForNonAtccUser` | **AC076.4** — non-ATCC authenticated user → `UnauthorizedException` thrown |
 
 ---
 
@@ -86,6 +93,8 @@ Tests use the package-private constructor to inject `InMemoryPilotRepository` an
 2. Verify the result is identical to AT076.3 (case-insensitive string comparison).
 
 ### AT076.4 — Authorization enforcement
+
+> Also covered automatically by `allPilots_throwsForNonAtccUser` in `ListPilotRosterControllerTest`.
 
 1. Log in as a user without the ATCC role.
 2. Verify the **List Pilot Roster** menu item is either absent or, if invoked directly, results in an authorization error.
