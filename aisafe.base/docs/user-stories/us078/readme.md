@@ -46,7 +46,7 @@ The ATCC user stories that must be remotely available are the company-management
 | US076  | List the company's pilot roster | `LIST_PILOTS`            | `ListPilotRosterController`       |
 | US077  | Remove (deactivate) a pilot     | `REMOVE_PILOT`           | `RemovePilotController`           |
 
-> Scope note: this iteration exposes the **eleven commands** above, covering US071–US074, US076, US077 and the US072a-d fleet filters. The two remaining ATCC use cases — **US070 Add Aircraft** (`ADD_AIRCRAFT`, 8 fields) and **US075 Add Pilot** (`ADD_PILOT`, ~11 fields including `Email`/`SecurityClearance` value objects) — are deferred and will be wired through the same `CollaboratorSessionHandler` extension point.
+> Scope note: this iteration exposes the **eleven commands** above, covering US071–US074, US076, US077 and the US072a-d fleet filters.
 
 **Dependencies/References:**
 
