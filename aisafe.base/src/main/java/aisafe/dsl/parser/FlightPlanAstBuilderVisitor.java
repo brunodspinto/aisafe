@@ -8,6 +8,7 @@ import aisafe.dsl.ast.FuelAst;
 import aisafe.dsl.ast.LegAst;
 import aisafe.dsl.ast.RouteAst;
 import aisafe.dsl.ast.SegmentAst;
+import aisafe.dsl.ast.SourcePosition;
 import aisafe.dsl.generated.FlightPlanDslBaseVisitor;
 import aisafe.dsl.generated.FlightPlanDslParser;
 
@@ -29,7 +30,8 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
         return new FlightPlanAst(
                 ctx.IDENTIFIER().getText(),
                 FlightType.valueOf(ctx.flightType().getText().toUpperCase()),
-                List.copyOf(legs)
+                List.copyOf(legs),
+                positionOf(ctx)
         );
     }
 
@@ -44,7 +46,8 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
                 (EndpointAst) visitArrival(ctx.arrival()),
                 (RouteAst) visitRoute(ctx.route()),
                 List.copyOf(segments),
-                (FuelAst) visitFuel(ctx.fuel())
+                (FuelAst) visitFuel(ctx.fuel()),
+                positionOf(ctx)
         );
     }
 
@@ -74,7 +77,8 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
                 altitude,
                 width,
                 windSpeed,
-                windDirection
+                windDirection,
+                positionOf(ctx)
         );
     }
 
@@ -82,7 +86,8 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
     public EndpointAst visitDeparture(final FlightPlanDslParser.DepartureContext ctx) {
         return new EndpointAst(
                 ctx.dateTime().DATE().getText(),
-                ctx.dateTime().TIME().getText()
+                ctx.dateTime().TIME().getText(),
+                positionOf(ctx)
         );
     }
 
@@ -90,20 +95,22 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
     public EndpointAst visitArrival(final FlightPlanDslParser.ArrivalContext ctx) {
         return new EndpointAst(
                 ctx.dateTime().DATE().getText(),
-                ctx.dateTime().TIME().getText()
+                ctx.dateTime().TIME().getText(),
+                positionOf(ctx)
         );
     }
 
     @Override
     public RouteAst visitRoute(final FlightPlanDslParser.RouteContext ctx) {
-        return new RouteAst(ctx.airportCode(0).getText(), ctx.airportCode(1).getText());
+        return new RouteAst(ctx.airportCode(0).getText(), ctx.airportCode(1).getText(), positionOf(ctx));
     }
 
     @Override
     public FuelAst visitFuel(final FlightPlanDslParser.FuelContext ctx) {
         return new FuelAst(
                 parseSignedNumber(ctx.signedNumber()),
-                ctx.fuelUnit().getText().toUpperCase()
+                ctx.fuelUnit().getText().toUpperCase(),
+                positionOf(ctx)
         );
     }
 
@@ -111,8 +118,13 @@ public final class FlightPlanAstBuilderVisitor extends FlightPlanDslBaseVisitor<
     public CoordinateAst visitCoordinate(final FlightPlanDslParser.CoordinateContext ctx) {
         return new CoordinateAst(
                 parseSignedNumber(ctx.signedNumber(0)),
-                parseSignedNumber(ctx.signedNumber(1))
+                parseSignedNumber(ctx.signedNumber(1)),
+                positionOf(ctx)
         );
+    }
+
+    private SourcePosition positionOf(final org.antlr.v4.runtime.ParserRuleContext ctx) {
+        return new SourcePosition(ctx.getStart().getLine(), ctx.getStart().getCharPositionInLine());
     }
 
     private double parseSignedNumber(final FlightPlanDslParser.SignedNumberContext ctx) {

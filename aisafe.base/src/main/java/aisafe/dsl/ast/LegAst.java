@@ -7,6 +7,12 @@ public record LegAst(
         EndpointAst arrival,
         RouteAst route,
         List<SegmentAst> segments,
-        FuelAst fuel
+        FuelAst fuel,
+        SourcePosition position
 ) {
+
+    public LegAst(final EndpointAst departure, final EndpointAst arrival, final RouteAst route,
+                  final List<SegmentAst> segments, final FuelAst fuel) {
+        this(departure, arrival, route, segments, fuel, SourcePosition.unknown());
+    }
 }
