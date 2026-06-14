@@ -51,8 +51,7 @@ Each stage only runs if the previous produced no errors.
 | Wind speed ≥ 0 | Wind speed cannot be negative |
 | Leg airport sequence | Arrival of leg N must match departure of leg N+1 |
 | Leg time sequence | Arrival time of leg N must precede departure of leg N+1 |
-| Route origin | ROUTE `FROM` must match first leg departure |
-| Route destination | ROUTE `TO` must match last leg arrival |
+| Leg route sequence | Destination of leg N must match origin of leg N+1 |
 | No airport twice | The same airport cannot appear more than once |
 | Valid date/time | All dates and times must be valid calendar values |
 

@@ -21,8 +21,8 @@ One flight plan per file. Keywords are **case-insensitive**.
 ```
 FLIGHT <id> TYPE <REGULAR|CHARTER> {
   LEG {
-    DEPARTURE: <airport> <YYYY-MM-DD> <HH:MM>;
-    ARRIVAL:   <airport> <YYYY-MM-DD> <HH:MM>;
+    DEPARTURE: <YYYY-MM-DD> <HH:MM>;
+    ARRIVAL:   <YYYY-MM-DD> <HH:MM>;
     ROUTE:     <airport> -> <airport>;
     SEGMENT {
       START: (<lat>, <lon>);
@@ -188,7 +188,7 @@ FLIGHT TP123 TYPE PRIVATE {   // parser error: PRIVATE not in flightType rule
 
 ---
 
-### Invalid — semantic errors
+### Invalid - semantic errors
 
 **`01_negative_fuel.dsl`** — fuel must be strictly positive
 
@@ -210,11 +210,11 @@ END:   (+41.15, -8.61);   // semantic error: start and end coordinates must be d
 // semantic error: Leg 1 arrival airport (LIS) must match leg 2 departure airport (FAO)
 ```
 
-**`09_route_origin_mismatch.dsl`** — ROUTE origin ≠ first leg departure
+**`09_route_origin_mismatch.dsl`** — leg 1 route destination ≠ leg 2 route origin
 
 ```dsl
-DEPARTURE: OPO ...
-ROUTE: FAO -> LIS;   // semantic error: Route origin (FAO) must match first leg departure (OPO)
+// Leg 1 arrives LIS, Leg 2 starts at FAO
+ROUTE: FAO -> LIS;   // semantic error: Leg 1 arrival airport (LIS) must match leg 2 departure airport (FAO)
 ```
 
 ---
@@ -225,3 +225,8 @@ ROUTE: FAO -> LIS;   // semantic error: Route origin (FAO) must match first leg 
 [FlightPlanDslFileTest]   Tests run: 13, Failures: 0, Errors: 0
 BUILD SUCCESS
 ```
+
+## 7. Grammar Notes
+
+- The formal ANTLR grammar is the source of truth: `src/main/antlr4/FlightPlanDsl.g4`.
+- A short explanation of the generated lexer, parser, listener and visitor is documented in `antlr.md`.
