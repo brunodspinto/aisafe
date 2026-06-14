@@ -85,6 +85,15 @@ class RemoteAccessLogStoreTest {
     }
 
     @Test
+    void ensureStoreIsCappedAtMaxEvents() {
+        final RemoteAccessLogStore store = new RemoteAccessLogStore();
+        for (int i = 0; i <= RemoteAccessLogStore.MAX_EVENTS + 10; i++) {
+            store.add(ev("u" + i, "LOGIN_FAILED", i % 60));
+        }
+        assertEquals(RemoteAccessLogStore.MAX_EVENTS, store.size());
+    }
+
+    @Test
     void ensureClearResetsEventsAndActiveUsers() {
         final RemoteAccessLogStore store = new RemoteAccessLogStore();
         store.add(ev("a", "LOGIN_SUCCESS", 1));

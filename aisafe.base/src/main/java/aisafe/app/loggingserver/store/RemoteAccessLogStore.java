@@ -25,6 +25,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  */
 public final class RemoteAccessLogStore {
 
+    public static final int MAX_EVENTS = 1000;
+
     /** All events, newest first. */
     private final Deque<RemoteAccessEvent> events = new ConcurrentLinkedDeque<>();
 
@@ -33,6 +35,9 @@ public final class RemoteAccessLogStore {
 
     public void add(final RemoteAccessEvent event) {
         events.addFirst(event);
+        if (events.size() > MAX_EVENTS) {
+            events.pollLast();   // drop oldest when cap is exceeded
+        }
         switch (event.event()) {
             case "LOGIN_SUCCESS" -> activeSessions.put(event.sessionKey(), event);
             case "LOGOUT", "CONNECTION_LOST" -> activeSessions.remove(event.sessionKey());
