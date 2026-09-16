@@ -162,4 +162,4 @@ Technical documentation: [`aisafe.base/docs`](aisafe.base/docs/README.md).
 
 ## Academic Context
 
-Developed as the Integrative Project (LAPR4) of the 2nd year, 2nd semester of the Degree in Informatics Engineering at ISEP – Polytechnic of Porto, 2025/2026, integrating EAPLI, LPROG, SCOMP and RCOMP, across 3 sprints.
+Developed as the Integrative Project (LAPR4) of the 2nd year, 2nd semester of the Degree in Informatics Engineering at ISEP – Polytechnic of Porto, 2025/2026, integrating EAPLI, LPROG, SCOMP and RCOMP, across three sprints.
