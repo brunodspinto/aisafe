@@ -398,7 +398,7 @@ cd aisafe.base/libs/scripts
 Expected output:
 ```
 [INFO] Compiling C components...
-[SUCCESS] C components built in .../aisafe.base/bin/
+[SUCCESS] C components built in .../aisafe.base/simulation/
 ```
 
 Zero compiler warnings (enforced by `-Wall -Wextra`).
@@ -406,7 +406,8 @@ Zero compiler warnings (enforced by `-Wall -Wextra`).
 ### Run
 
 ```bash
-../../bin/simulation
+cd ../../simulation
+./flight_simulator
 ```
 
 ### Expected output
@@ -774,11 +775,14 @@ STOP or SIGUSR1.
 # From repository root
 bash aisafe.base/libs/scripts/build_c.sh
 
+# Run from the simulation directory (reads simulation.conf and flight_plans.json)
+cd aisafe.base/simulation
+
 # Normal simulation — 3 parallel flights, no collision
-./aisafe.base/bin/simulation
+./flight_simulator
 
 # Collision test — 4 flights; FLIGHT_04 triggers cylinder alert immediately
-./aisafe.base/bin/simulation --collision
+./flight_simulator --collision
 ```
 
 ### Expected Output — Normal Mode
@@ -1044,11 +1048,14 @@ and exits regardless of the token value. This means:
 # From repository root
 bash aisafe.base/libs/scripts/build_c.sh
 
+# Run from the simulation directory (reads simulation.conf and flight_plans.json)
+cd aisafe.base/simulation
+
 # Normal simulation (3 flights, no guaranteed collision)
-./aisafe.base/bin/simulation
+./flight_simulator
 
 # Collision test (4 flights; FLIGHT_04 triggers cylinder alert)
-./aisafe.base/bin/simulation --collision
+./flight_simulator --collision
 ```
 
 ### Expected Output — Normal Mode

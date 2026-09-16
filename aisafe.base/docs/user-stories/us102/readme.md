@@ -274,11 +274,14 @@ STOP or SIGUSR1.
 # From repository root
 bash aisafe.base/libs/scripts/build_c.sh
 
+# Run from the simulation directory (reads simulation.conf and flight_plans.json)
+cd aisafe.base/simulation
+
 # Normal simulation — 3 parallel flights, no collision
-./aisafe.base/bin/simulation
+./flight_simulator
 
 # Collision test — 4 flights; FLIGHT_04 triggers cylinder alert immediately
-./aisafe.base/bin/simulation --collision
+./flight_simulator --collision
 ```
 
 ### Expected Output — Normal Mode

@@ -327,7 +327,7 @@ cd aisafe.base/libs/scripts
 Expected output:
 ```
 [INFO] Compiling C components...
-[SUCCESS] C components built in .../aisafe.base/bin/
+[SUCCESS] C components built in .../aisafe.base/simulation/
 ```
 
 Zero compiler warnings (enforced by `-Wall -Wextra`).
@@ -335,7 +335,8 @@ Zero compiler warnings (enforced by `-Wall -Wextra`).
 ### Run
 
 ```bash
-../../bin/simulation
+cd ../../simulation
+./flight_simulator
 ```
 
 ### Expected output

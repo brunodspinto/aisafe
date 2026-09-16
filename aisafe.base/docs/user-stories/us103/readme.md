@@ -210,11 +210,14 @@ and exits regardless of the token value. This means:
 # From repository root
 bash aisafe.base/libs/scripts/build_c.sh
 
+# Run from the simulation directory (reads simulation.conf and flight_plans.json)
+cd aisafe.base/simulation
+
 # Normal simulation (3 flights, no guaranteed collision)
-./aisafe.base/bin/simulation
+./flight_simulator
 
 # Collision test (4 flights; FLIGHT_04 triggers cylinder alert)
-./aisafe.base/bin/simulation --collision
+./flight_simulator --collision
 ```
 
 ### Expected Output — Normal Mode
