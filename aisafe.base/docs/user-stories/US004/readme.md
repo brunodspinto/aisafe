@@ -1,7 +1,7 @@
 # US004 - Continuous Integration Server
 
 ## 1. Context
-This task was assigned in Sprint 1 and establishes the foundations for the quality control of the AlSafe project's code. It is being developed for the first time, and its goal is to ensure that all changes submitted by the team keep the system in a compilable and functional state from day one.
+This task was assigned in Sprint 1 and establishes the foundations for the quality control of the AISafe project's code. It is being developed for the first time, and its goal is to ensure that all changes submitted by the team keep the system in a compilable and functional state from day one.
 
 ## 2. Requirements
 **US004:** As Project Manager, I want the team to setup a continuous integration server. GitHub Actions/Workflows should be used.
@@ -19,7 +19,7 @@ The configuration of this system requires the creation of an automated *workflow
 4. Invoke the Maven engine to clean previous builds, recompile all the code, and execute the entire test suite (`mvn -B clean verify`).
 5. Publish test results and JaCoCo coverage reports as GitHub Actions artifacts (NFR05: "publishing of results and metrics").
 
-The repository has two independent Maven projects: `eapli.base/` (the EAPLI framework scaffold) and `aisafe.base/` (the project's own source code). The CI targets `aisafe.base/` exclusively, since it contains all the team's domain, application, and infrastructure code. `aisafe.base/` has no local dependency on `eapli.base/` — it resolves the EAPLI framework from remote repositories — so it builds independently.
+All the team's domain, application, and infrastructure code lives in the `aisafe.base/` Maven project, so the CI builds `aisafe.base/pom.xml`. The EAPLI framework is resolved from remote repositories, so no other local project is needed. The CI also builds the C simulation and runs its unit tests (`make test`).
 
 ## 4. Design
 The solution's architecture is based on declaring infrastructure as code (IaC) through a YAML configuration file. GitHub requires this file to be placed in a specific, hidden directory: `.github/workflows/`, which must be located at the root of the repository.
@@ -34,7 +34,7 @@ To satisfy NFR05's requirement to publish results and metrics:
 The `.github/workflows/maven-ci.yml` file at the root of the project:
 
 ```yaml
-name: AlSafe CI Build
+name: AISafe CI Build
 
 on:
   push:
@@ -62,6 +62,12 @@ jobs:
 
     - name: Build and Run Tests with Maven
       run: mvn -B clean verify --file aisafe.base/pom.xml
+
+    - name: Build C Simulation and Run C Tests
+      working-directory: aisafe.base/simulation
+      run: |
+        make all
+        make test
 
     - name: Upload Test Results
       if: always()

@@ -32,11 +32,6 @@ activate Shell
 Shell --> PM : diagrams generated and output paths displayed
 deactivate Shell
 
-PM -> Shell : executes ./libs/scripts/run_placeholder.sh
-activate Shell
-Shell --> PM : placeholder status displayed (no app yet)
-deactivate Shell
-
 deactivate PM
 
 @enduml

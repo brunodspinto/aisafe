@@ -1,7 +1,7 @@
 # US005 - Automated Deployment Scripts
 
 ## 1. Context
-This task was assigned in Sprint 1 to establish the initial Unix-compatible automation baseline for the project. Since there is no functional application runtime or database in this sprint, the focus is on essential infrastructure scripts for build, cleanup, documentation generation, and a temporary execution entry point.
+This task was assigned in Sprint 1 to establish the initial Unix-compatible automation baseline for the project. Since there is no functional application runtime or database in this sprint, the focus is on essential infrastructure scripts for build, cleanup, and documentation generation. Application run scripts (`run-*.sh`, `start-h2.sh`) were added to `aisafe.base/` in later sprints.
 
 ## 2. Requirements
 **US005:** As Project Manager, I want the team to add to the project the necessary scripts, so that build/executions/deployments can be executed effortlessly in a Unix compatible machine. Include scripts for all the major tasks and execution of applications.
@@ -11,7 +11,6 @@ For Sprint 1, the scripts in scope are:
 - `build_c.sh`
 - `clean.sh`
 - `generate-plantuml-diagrams.sh`
-- `run_placeholder.sh`
 
 Acceptance criteria considered for this sprint:
 - Scripts are Bash-compatible and executable in Unix-compatible environments.
@@ -36,7 +35,6 @@ The script design follows a single-responsibility approach so each script can ev
 - `build_c.sh` isolates C-specific build actions.
 - `clean.sh` removes generated artifacts.
 - `generate-plantuml-diagrams.sh` converts `.puml` artifacts into SVG diagrams.
-- `run_placeholder.sh` provides a temporary run entry point until real applications exist.
 
 All scripts are located in `aisafe.base/libs/scripts` and are designed to be invoked from any directory.
 
@@ -46,7 +44,6 @@ Implemented Sprint 1 scripts:
 - `aisafe.base/libs/scripts/build_c.sh`
 - `aisafe.base/libs/scripts/clean.sh`
 - `aisafe.base/libs/scripts/generate-plantuml-diagrams.sh`
-- `aisafe.base/libs/scripts/run_placeholder.sh`
 
 Validation performed at documentation level:
 - Script scope matches Sprint 1 constraints.

@@ -39,28 +39,17 @@ The team analysed the technical constraints and identified which ones apply in S
 
 ### Build Tool — Maven (NFR05)
 
-The project uses Maven as the build automation tool. The `pom.xml` at the root defines a multi-module project structure with the following modules:
-
-- `exemplo.core` — domain and application core
-- `exemplo.persistence.impl` — persistence implementation
-- `exemplo.infrastructure.application` — infrastructure layer
-- `exemplo.app.backoffice.console` — backoffice console application
-- `exemplo.app.user.console` — user console application
-- `exemplo.app.other.console` — additional console application
-- `exemplo.app.common.console` — shared console utilities
-- `exemplo.app.bootstrap` — application bootstrapper
-- `exemplo.bootstrappers` — domain bootstrappers
+The project uses Maven as the build automation tool. All Java code lives in a single Maven project, `aisafe.base/pom.xml`, organised in packages by bounded context (`domain`, `application` and `repositories` layers per aggregate), with the console application under `aisafe.app`.
 
 Key build configuration:
 
 - Java 21 (`maven.compiler.release=21`)
 - JUnit 5 (Jupiter) for unit testing
-- JaCoCo for test coverage reporting (`target/jacoco.exec`)
-- Lombok for boilerplate reduction
-- H2 in-memory database for development and testing
-- EAPLI Framework (core, authz, pubsub) version 25.0.0-RELEASE
-- Maven Surefire Report Plugin for test reporting
-- UML Doclet for Javadoc generation with UML diagrams
+- JaCoCo for test coverage reporting (`target/site/jacoco/`)
+- ANTLR 4 Maven plugin for the flight plan DSL grammar
+- H2 database for development and testing, PostgreSQL JDBC driver for an RDBMS deployment
+- EAPLI Framework (core, authz) version 25.0.0-RELEASE, resolved from remote repositories
+- Exec Maven Plugin to run the console application
 
 ### Continuous Integration — GitHub Actions (NFR05)
 
@@ -75,13 +64,13 @@ This ensures that every commit is validated automatically and that the nightly b
 
 ### Documentation (NFR02)
 
-All documentation is maintained in the `docs/` folder in Markdown format. PlantUML is used for all diagrams. A script generates PNG exports automatically:
+All documentation is maintained in the `docs/` folder in Markdown format. PlantUML is used for all diagrams. A script generates SVG exports automatically:
 
 ```bash
 bash aisafe.base/libs/scripts/generate-plantuml-diagrams.sh
 ```
 
-Requirements: Java 11+, `libs/plantuml-1.2026.2.jar`.
+Requirements: Java 11+. The PlantUML jar is downloaded to `aisafe.base/libs/` on first run if missing.
 
 ### Unix Scripts (NFR07)
 
@@ -92,8 +81,7 @@ Unix-compatible scripts are available under `aisafe.base/libs/scripts/`:
 | `build.sh` | Full project build — runs `clean.sh`, Maven build and C build |
 | `clean.sh` | Cleans all build artifacts |
 | `build_c.sh` | Builds the C simulation component |
-| `run_placeholder.sh` | Temporary run entry point for Sprint 1 |
-| `generate-plantuml-diagrams.sh` | Generates PNG diagrams from PlantUML sources |
+| `generate-plantuml-diagrams.sh` | Generates SVG diagrams from PlantUML sources |
 
 ---
 
@@ -101,9 +89,9 @@ Unix-compatible scripts are available under `aisafe.base/libs/scripts/`:
 
 The following actions were performed in Sprint 1:
 
-1. Multi-module Maven project structure created and validated locally and on the CI server.
+1. Maven project structure (`aisafe.base/pom.xml`) created and validated locally and on the CI server.
 2. GitHub Actions workflow configured with JDK 21, Maven cache and nightly build schedule.
-3. JaCoCo configured in the root `pom.xml` for future coverage enforcement (NFR03).
+3. JaCoCo configured in `aisafe.base/pom.xml` for coverage reporting (NFR03).
 4. Unix scripts created for build, clean and PlantUML diagram generation.
 5. Documentation structure created under `docs/` with a `README.md` index.
 6. PlantUML diagrams configured and generated for Sprint 1 artifacts.
@@ -118,7 +106,7 @@ To build and test locally:
 
 ```bash
 bash aisafe.base/libs/scripts/build.sh
-mvn test
+mvn -f aisafe.base/pom.xml test
 ```
 
 To generate documentation diagrams:

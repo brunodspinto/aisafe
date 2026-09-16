@@ -1,4 +1,4 @@
-name: AlSafe CI Build
+name: AISafe CI Build
 
 on:
   push:
@@ -26,6 +26,12 @@ jobs:
 
     - name: Build and Run Tests with Maven
       run: mvn -B clean verify --file aisafe.base/pom.xml
+
+    - name: Build C Simulation and Run C Tests
+      working-directory: aisafe.base/simulation
+      run: |
+        make all
+        make test
 
     - name: Upload Test Results
       if: always()

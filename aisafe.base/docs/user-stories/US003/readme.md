@@ -1,7 +1,7 @@
 # US003 - Project Structure
 
 ## 1. Context
-This task was assigned during Sprint 1 and constitutes the initial and fundamental step of preparing the team's work environment for the AlSafe project. The objective is to adopt the provided base project (EAPLI Base Project), perform the initial configurations of the dependency manager (Maven), and organize the directory tree to independently accommodate the technologies of the different course units (Java, C, and ANTLR).
+This task was assigned during Sprint 1 and constitutes the initial and fundamental step of preparing the team's work environment for the AISafe project. The objective is to adopt the provided base project (EAPLI Base Project), perform the initial configurations of the dependency manager (Maven), and organize the directory tree to independently accommodate the technologies of the different course units (Java, C, and ANTLR).
 
 ## 2. Requirements
 **US003:** As Project Manager, I want the team to setup the repository structure, adopting the provided EAPLI base project, and configure the project to support Java, C, and ANTLR (LPROG).
@@ -15,7 +15,7 @@ This task was assigned during Sprint 1 and constitutes the initial and fundament
 This task serves as the foundation for US004 (Continuous Integration), as the CI server requires a properly configured `pom.xml` file to be able to validate the code compilation.
 
 ## 3. Analysis
-The team analyzed the base project (`eapli.base`) and the required technical specifications. Since the AlSafe system will not be limited to the Java language, it was decided to adopt a technological isolation approach by directories. The source code written in C should not coexist in the same folders as the Java domain, requiring its own independent build process (`Make`).
+The team analyzed the base project (`eapli.base`) and the required technical specifications. Since the AISafe system will not be limited to the Java language, it was decided to adopt a technological isolation approach by directories. The source code written in C should not coexist in the same folders as the Java domain, requiring its own independent build process (`Make`).
 
 Regarding Java, the team analyzed the Maven configuration file (`pom.xml`) to ensure that all vital dependencies and tools were present, updated, and targeted to the versions required by the business rules.
 

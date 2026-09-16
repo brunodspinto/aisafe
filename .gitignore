@@ -26,3 +26,14 @@ aisafe.base/simulation/**/*.o
 # generated runtime outputs (report + live violation log)
 aisafe.base/simulation/simulation_report.txt
 aisafe.base/simulation/simulation_violation_log.txt
+
+# Portfolio hygiene
+.claude/
+*.o
+aisafe.base/bin/
+libs/*.jar
+aisafe.base/libs/*.jar
+logs/
+.env
+*.key
+*.pem

@@ -6,11 +6,11 @@ public class DevelopmentTeamUI extends AbstractUI {
 
     @Override
     protected boolean doShow() {
-        System.out.println("  Bruno Pinto     - [removed]");
-        System.out.println("  Hugo Pereira    - [removed]");
-        System.out.println("  Joana Braga     - [removed]");
-        System.out.println("  Jorge Rocha     - [removed]");
-        System.out.println("  Marcos Menezes  - [removed]");
+        System.out.println("  Bruno Pinto");
+        System.out.println("  Hugo Pereira");
+        System.out.println("  Joana Braga");
+        System.out.println("  Jorge Rocha");
+        System.out.println("  Marcos Menezes");
         return true;
     }
 

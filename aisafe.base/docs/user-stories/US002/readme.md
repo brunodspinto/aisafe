@@ -7,7 +7,7 @@ This task was assigned during Sprint 1 and represents the foundational step for 
 **US002:** As Project Manager, I want the team to use the defined project repository in GitHub and setup a GitHub tool for project management.
 
 **Acceptance Criteria:**
-- US002.1. The team must utilize the official GitHub repository provided by the course coordinators (e.g., via GitHub Classroom).
+- US002.1. The team must utilize the official GitHub repository provided by the course coordinators.
 - US002.2. A native GitHub project management tool (GitHub Projects) must be configured to support the Scrum framework.
 - US002.3. All User Stories (US) and technical tasks must be mapped as Issues and tracked through the project board.
 
@@ -32,7 +32,7 @@ The defined column (status) structure is as follows:
 ## 5. Implementation
 The following actions were performed to implement the design:
 1. The repository was successfully cloned and linked to all team members' local environments.
-2. A new GitHub Projects board was created and linked directly to the `AlSafe` repository.
+2. A new GitHub Projects board was created and linked directly to the `AISafe` repository.
 3. Custom columns were configured according to the single-branch development process, with a strong emphasis on the *Testing* phase.
 4. GitHub Issues were created for all User Stories assigned to Sprint 1, assigned to their respective team members, and tagged with appropriate labels (e.g., `documentation`, `enhancement`, `US`).
 

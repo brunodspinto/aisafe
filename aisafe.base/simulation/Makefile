@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -O2 -I.
+CFLAGS = -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -O2 -I.
 LDFLAGS = -lm -lpthread
 
 # Em Linux, shm_open requer -lrt; no macOS está incluído no libc

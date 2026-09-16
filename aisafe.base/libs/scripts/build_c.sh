@@ -7,24 +7,12 @@ C_DIR="$PROJECT_ROOT/simulation"
 
 echo "[INFO] Compiling C components..."
 
-if [ ! -d "$C_DIR" ]; then
-  echo "[WARN] No C source directory found at $C_DIR"
+if [ ! -f "$C_DIR/Makefile" ]; then
+  echo "[WARN] No Makefile found in $C_DIR"
   exit 0
 fi
 
-C_SOURCES=("$C_DIR"/*.c)
-if [ ! -f "${C_SOURCES[0]}" ]; then
-  echo "[WARN] No .c files found in $C_DIR"
-  exit 0
-fi
+# Builds flight_simulator and flight_tester inside simulation/
+make -C "$C_DIR" all
 
-mkdir -p "$PROJECT_ROOT/bin"
-gcc -Wall -Wextra -g "${C_SOURCES[@]}" -I"$C_DIR" \
-    -o "$PROJECT_ROOT/bin/simulation" -lm
-
-# Copy config file next to the binary so it can be run from bin/
-if [ -f "$C_DIR/simulation.conf" ]; then
-  cp "$C_DIR/simulation.conf" "$PROJECT_ROOT/bin/simulation.conf"
-fi
-
-echo "[SUCCESS] C components built in $PROJECT_ROOT/bin/"
+echo "[SUCCESS] C components built in $C_DIR/"
